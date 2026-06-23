@@ -1,0 +1,178 @@
+system_prompt: |
+  Bạn là engine tạo meeting recap cho ứng dụng AIP491 Meeting Recap Webapp.
+
+  Nhiệm vụ duy nhất của bạn là đọc transcript hoặc các đoạn transcript đã được tiền xử lý, sau đó trả về một đối tượng JSON hợp lệ theo đúng schema mà user prompt yêu cầu.
+
+  Quy tắc bắt buộc:
+  - Chỉ trả về JSON parseable. Không dùng Markdown, không dùng code fence, không thêm lời chào, giải thích, phân tích, ghi chú ngoài JSON.
+  - Không viết mã nguồn, không đưa hướng dẫn triển khai, không mô tả prompt.
+  - Viết nội dung recap bằng tiếng Việt tự nhiên, ngắn gọn, ở ngôi thứ ba.
+  - Giữ nguyên technical terms quan trọng nếu chúng xuất hiện trong transcript, ví dụ: API, frontend, backend, model, pipeline, benchmark, test, report.
+  - Chỉ sử dụng thông tin có trong input. Không bịa người thực hiện, deadline, quyết định, số liệu, nguyên nhân, hoặc kết quả chưa được nói rõ.
+  - Khi một text field không có bằng chứng trong input, ghi đúng chuỗi "none"; không để trống text field.
+  - Khi một boolean field không có bằng chứng trong input, dùng false.
+  - Tôn trọng chính xác ID trong input. Không tự tạo utterance_id, chunk_id, chapter number, speaker name, hoặc timestamp mới.
+  - Bảo toàn đầy đủ các key bắt buộc trong schema, kể cả khi mảng rỗng.
+
+highlights_extractive: |
+  Bạn đang thực hiện DR1 Highlights extractive pass dựa trên bài "Summaries, Highlights, and Action Items".
+
+  Mục tiêu:
+  - Phân loại một center utterance duy nhất để quyết định có đưa nó vào danh sách AI Notes hoặc AI Tasks hay không.
+  - AI Notes và AI Tasks phục vụ lập kế hoạch, điều phối công việc, và đọc nhanh sau cuộc họp.
+  - Input bên dưới là Markdown: một U ID trung tâm cần phân loại và một đoạn transcript context theo thứ tự thời gian.
+  - Chỉ được phân loại U ID duy nhất nằm trong dòng "Candidate center utterance IDs to classify"; các câu khác chỉ là bối cảnh để hiểu ý nghĩa.
+
+  Tiêu chí chọn key point:
+  - Quyết định, kết luận, phạm vi đã thống nhất, mục tiêu chính, kiến trúc/phương án, trade-off, rủi ro/blocker, kết quả đánh giá, hoặc thông tin làm thay đổi hướng thực hiện.
+  - Không chọn câu xã giao, nhắc lại thông tin vụn vặt, hoặc câu chỉ có ý nghĩa nếu tách khỏi bối cảnh sẽ mơ hồ.
+
+  Tiêu chí chọn action item:
+  - Có việc cần làm, cam kết sẽ làm, yêu cầu follow-up, kiểm thử, báo cáo, sửa lỗi, gửi tài liệu, triển khai, hoặc phân công rõ ràng.
+
+  Quy tắc output:
+  - Chỉ dùng `utterance_id` duy nhất lấy từ dòng "Candidate center utterance IDs to classify" trong Markdown input.
+  - `is_key_point` = true nếu center utterance đủ tiêu chí key point; nếu không thì false.
+  - `is_action_item` = true nếu center utterance đủ tiêu chí action item; nếu không thì false.
+  - Nếu center utterance vừa là key point vừa là action item, đặt cả hai boolean là true.
+  - Nếu không có mục phù hợp để đưa vào recap, vẫn trả đúng `utterance_id` và đặt cả hai boolean là false.
+  - Không trả về `key_points` hoặc `action_items` dạng mảng; mỗi request chỉ phân loại một center utterance.
+  - Không viết summary, không giải thích lý do, không chấm điểm, không trích người thực hiện hoặc deadline ở pass này.
+  - Trả về đúng JSON object với ba key `utterance_id`, `is_key_point`, và `is_action_item`.
+
+  Input file: {input_name}
+
+  Câu trung tâm được phép phân loại:
+  Đọc dòng "Candidate center utterance IDs to classify" trong input Markdown bên dưới.
+
+  Shared context utterances:
+  Đọc phần "Shared transcript context in chronological order" để hiểu bối cảnh. Không chọn `utterance_id` từ context nếu ID đó không nằm trong danh sách candidate center.
+
+  Markdown input:
+  {extractive_batch_markdown}
+
+  Return strict JSON only:
+  {
+    "utterance_id": 12,
+    "is_key_point": true,
+    "is_action_item": false
+  }
+
+highlights_abstractive: |
+  Bạn đang thực hiện DR1 Highlights abstractive rewrite pass.
+
+  Mục tiêu:
+  - Viết lại các candidate đã được chọn thành AI Notes và AI Tasks dễ đọc, ngắn gọn, có thể hiển thị trực tiếp trong webapp.
+  - Input bên dưới là Markdown. Mỗi request thường có một candidate đã được extractive pass chọn, gồm loại candidate, output `utterance_id`, câu nguồn cần rewrite, và context hội thoại 512-token theo thứ tự thời gian.
+  - "Source utterance" là candidate chính cần rewrite.
+  - Phần "Conversation context within 512-token budget" bao gồm cả source utterance ở đúng vị trí trong mạch nói chuyện.
+
+  Quy tắc rewrite:
+  - Với candidate có `type` = "key_point", tạo đúng một item trong `notes`.
+  - Với candidate có `type` = "action_item", tạo đúng một item trong `tasks`.
+  - Không bỏ sót candidate. Mỗi `utterance_id` trong input phải xuất hiện đúng một lần ở mảng phù hợp.
+  - Không đổi `utterance_id`.
+  - Chỉ được dùng `utterance_id` trong hai danh sách allowed bên dưới. Các U ID khác trong context chỉ giúp đọc mạch hội thoại, không phải candidate để output.
+  - `summary` viết bằng tiếng Việt, ngôi thứ ba, 1-2 câu, đủ cụ thể để hiểu được khi đứng riêng.
+  - Không bắt đầu bằng nhãn máy móc như "Câu thoại này", "Người nói nói rằng", hoặc "Trong transcript".
+  - Giữ nguyên tên người, tên hệ thống, model, API, metric, file path, deadline, và thuật ngữ kỹ thuật nếu có trong nguồn.
+  - Với task, điền `assignee` và `due` từ source utterance hoặc context nếu có bằng chứng; nếu không có bằng chứng rõ, dùng "none".
+  - Không thêm nguyên nhân, deadline, người phụ trách, kết quả, hoặc next step không được transcript hỗ trợ.
+
+  Input file: {input_name}
+
+  Allowed note utterance_ids:
+  {allowed_note_utterance_ids}
+
+  Allowed task utterance_ids:
+  {allowed_task_utterance_ids}
+
+  Selected extractive candidates and surrounding context:
+  {candidates_markdown}
+
+  Return strict JSON only:
+  {
+    "notes": [
+      {
+        "utterance_id": 12,
+        "summary": "Ghi chú 1-2 câu bằng tiếng Việt, phản ánh đúng điểm chính đã được chọn."
+      }
+    ],
+    "tasks": [
+      {
+        "utterance_id": 20,
+        "summary": "Nhiệm vụ cụ thể bằng tiếng Việt, nêu rõ việc cần làm nếu transcript có đủ bằng chứng.",
+        "assignee": "tên người thực hiện nếu có bằng chứng, nếu không thì ghi none",
+        "due": "hạn chót nếu có bằng chứng, nếu không thì ghi none"
+      }
+    ]
+  }
+
+hierarchical_title: |
+  Bạn đang thực hiện DR2 Hierarchical title pass cho một chapter được tạo bởi TextTiling-style segmentation.
+
+  Mục tiêu:
+  - Đặt tiêu đề ngắn cho chapter và viết một câu tóm tắt bao quát nội dung chapter.
+  - Tiêu đề và tóm tắt phải giúp người đọc scan lại diễn biến cuộc họp theo dòng thời gian.
+
+  Quy tắc:
+  - Chỉ dùng thông tin trong `Segment utterances`.
+  - `title` dài 4-10 từ tiếng Việt, cụ thể theo chủ đề chapter, không dùng tiêu đề chung chung như "Thảo luận cuộc họp" nếu có thông tin cụ thể hơn.
+  - `one_line_summary` là đúng một câu, tối đa khoảng 35 từ, nêu chủ đề chính, quyết định, hoặc hướng trao đổi nổi bật của chapter.
+  - Nếu không có nội dung rõ cho `title` hoặc `one_line_summary`, ghi "none".
+  - Không nhắc `Chapter number` trong title trừ khi transcript tự nói như vậy.
+  - Không thêm action item, deadline, hoặc kết quả nếu không có trong segment.
+
+  Input file: {input_name}
+  Chapter number: {chapter_number}
+
+  Segment utterances:
+  {segment_utterances}
+
+  Return strict JSON only:
+  {
+    "title": "tiêu đề chapter ngắn gọn bằng tiếng Việt",
+    "one_line_summary": "một câu tóm tắt chapter bằng tiếng Việt"
+  }
+
+hierarchical_abstractive: |
+  Bạn đang thực hiện DR2 Hierarchical abstractive pass cho một hoặc nhiều chunk 8 utterances trong cùng một chapter.
+
+  Mục tiêu:
+  - Tạo ghi chú theo từng chunk để webapp ghép lại thành biên bản cuộc họp dạng chapterized recap.
+  - Mỗi chunk phải có một ghi chú ngắn, factual, giữ đúng mạch thời gian.
+
+  Quy tắc coverage:
+  - Trả về đúng một note cho mỗi `chunk_id` trong `Required chunk_ids in order`.
+  - Không bỏ sót chunk_id, không đổi tên chunk_id, không tự tạo chunk_id mới.
+  - Sắp xếp notes theo đúng thứ tự `Required chunk_ids in order`.
+  - Nếu không có nội dung rõ cho `summary`, ghi "none".
+
+  Quy tắc viết nội dung:
+  - `summary` viết bằng tiếng Việt, ngôi thứ ba, 1-3 câu, phản ánh nội dung chính của chunk.
+  - Nếu chunk có quyết định, kết luận, scope, kiến trúc, rủi ro, blocker, hoặc kết quả quan trọng, đặt `contains_key_point` = true.
+  - Nếu chunk có việc cần làm, phân công, cam kết follow-up, kiểm thử, báo cáo, sửa lỗi, triển khai, hoặc deadline, đặt `contains_action_item` = true.
+  - Nếu chunk chỉ là trao đổi nền hoặc cập nhật không có điểm chính/action item rõ ràng, vẫn tóm tắt ngắn và đặt các boolean phù hợp là false.
+  - Giữ speaker names, model names, APIs, metrics, file paths, timestamps, và thuật ngữ kỹ thuật nếu chúng là thông tin quan trọng.
+  - Không thêm thông tin ngoài chunk. Chỉ dùng các utterances trong chunk tương ứng để viết note của chunk đó.
+
+  Input file: {input_name}
+  Chapter number: {chapter_number}
+
+  Required chunk_ids in order:
+  {required_chunk_ids}
+
+  8-utterance chunks:
+  {prompt_chunks}
+
+  Return strict JSON only:
+  {
+    "notes": [
+      {
+        "chunk_id": "{example_chunk_id}",
+        "summary": "Ghi chú factual 1-3 câu bằng tiếng Việt cho đúng chunk này.",
+        "contains_key_point": true,
+        "contains_action_item": false
+      }
+    ]
+  }

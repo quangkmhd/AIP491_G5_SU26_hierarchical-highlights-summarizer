@@ -1,0 +1,7 @@
+node_modules/
+.vite/
+!package.json
+!package-lock.json
+!tsconfig.json
+!dist/
+!dist/**

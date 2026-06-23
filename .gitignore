@@ -1,0 +1,25 @@
+# Local environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.benchmarks/
+.deepeval/
+.venv/
+venv/
+ENV/
+env/
+
+# Node.js (Frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/.eslintcache
+
+# Logs & temp files
+*.log
+eval/run.log
+eval/lexnorm_corrected_transcript.jsonl
