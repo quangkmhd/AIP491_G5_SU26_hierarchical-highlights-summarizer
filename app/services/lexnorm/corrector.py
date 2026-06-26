@@ -71,7 +71,7 @@ class OllamaClient:
             "options": {
                 "temperature": 0.0,
                 "num_predict": max_tokens,
-                "num_ctx": 4096,
+                "num_ctx": 2048,
             },
         }
         response = requests.post(

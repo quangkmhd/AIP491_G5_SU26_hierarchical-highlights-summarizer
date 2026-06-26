@@ -1,0 +1,243 @@
+{
+  "hierarchical": {
+    "wall_seconds": 11.8,
+    "model_run_count": 6,
+    "input_tokens": 7086,
+    "output_tokens": 509,
+    "chapters": [
+      {
+        "chapter_number": 1,
+        "title": "Kiến trúc microservices và Kafka",
+        "summary": "Đề xuất chuyển sang kiến trúc microservices với message broker Kafka, quy định naming convention snake_case cho schema registry và versioning API.",
+        "chunks": [
+          {
+            "chunk_id": "chunk-1-8",
+            "notes": [
+              {
+                "summary": "Đội nhóm bàn về kiến trúc hệ thống mới, quyết định chuyển sang microservices và sử dụng Kafka làm message broker cho pipeline. Lan sẽ phụ trách review cấu hình bảo mật với deadline cuối tuần này, đồng thời Tuấn chuẩn bị draft schema đầu tiên cho service order sau khi thống nhất naming convention.",
+                "contains_key_point": true,
+                "contains_action_item": true,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          },
+          {
+            "chunk_id": "chunk-9-10",
+            "notes": [
+              {
+                "summary": "Đề xuất sử dụng snake_case cho tất cả schema fields để đảm bảo tính nhất quán. Đã chốt việc dùng URL versioning cho API.",
+                "contains_key_point": true,
+                "contains_action_item": false,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          }
+        ],
+        "final_belief_state": null
+      },
+      {
+        "chapter_number": 2,
+        "title": "Thiết lập kiến trúc microservices và ADR",
+        "summary": "Nhóm xác định cấu hình gateway, Kafka với rate limit, phân công viết bốn bản ADR cho các thành phần chính và quy ước naming snake_case.",
+        "chunks": [
+          {
+            "chunk_id": "chunk-11-18",
+            "notes": [
+              {
+                "summary": "Đội nhóm thống nhất kiến trúc microservices với Kafka cho pipeline và API gateway có rate limiting. Tuấn phụ trách cluster Kafka, Lan review bảo mật và thêm giới hạn tốc độ, cả hai đều cam kết hoàn thành vào cuối tuần.",
+                "contains_key_point": true,
+                "contains_action_item": true,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          },
+          {
+            "chunk_id": "chunk-19-22",
+            "notes": [
+              {
+                "summary": "Kim Anh đề xuất viết ADR cho naming convention snake_case, hoàn thành đủ bốn tài liệu. Tuấn cam kết phụ trách việc setup CI/CD cho tất cả service và Lan xác nhận sẽ thêm bước kiểm tra test schema compatibility vào quy trình.",
+                "contains_key_point": true,
+                "contains_action_item": true,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          }
+        ],
+        "final_belief_state": null
+      }
+    ],
+    "notes": [
+      {
+        "chapter": 1,
+        "chunk_id": "chunk-1-8",
+        "summary": "Đội nhóm bàn về kiến trúc hệ thống mới, quyết định chuyển sang microservices và sử dụng Kafka làm message broker cho pipeline. Lan sẽ phụ trách review cấu hình bảo mật với deadline cuối tuần này, đồng thời Tuấn chuẩn bị draft schema đầu tiên cho service order sau khi thống nhất naming convention.",
+        "contains_key_point": true,
+        "contains_action_item": true
+      },
+      {
+        "chapter": 1,
+        "chunk_id": "chunk-9-10",
+        "summary": "Đề xuất sử dụng snake_case cho tất cả schema fields để đảm bảo tính nhất quán. Đã chốt việc dùng URL versioning cho API.",
+        "contains_key_point": true,
+        "contains_action_item": false
+      },
+      {
+        "chapter": 2,
+        "chunk_id": "chunk-11-18",
+        "summary": "Đội nhóm thống nhất kiến trúc microservices với Kafka cho pipeline và API gateway có rate limiting. Tuấn phụ trách cluster Kafka, Lan review bảo mật và thêm giới hạn tốc độ, cả hai đều cam kết hoàn thành vào cuối tuần.",
+        "contains_key_point": true,
+        "contains_action_item": true
+      },
+      {
+        "chapter": 2,
+        "chunk_id": "chunk-19-22",
+        "summary": "Kim Anh đề xuất viết ADR cho naming convention snake_case, hoàn thành đủ bốn tài liệu. Tuấn cam kết phụ trách việc setup CI/CD cho tất cả service và Lan xác nhận sẽ thêm bước kiểm tra test schema compatibility vào quy trình.",
+        "contains_key_point": true,
+        "contains_action_item": true
+      }
+    ]
+  },
+  "ssdst": {
+    "wall_seconds": 26.78,
+    "model_run_count": 10,
+    "input_tokens": 12336,
+    "output_tokens": 1355,
+    "chapters": [
+      {
+        "chapter_number": 1,
+        "title": "Kiến trúc microservices và Kafka",
+        "summary": "Đề xuất chuyển sang kiến trúc microservices với message broker Kafka, quy định naming convention snake_case cho schema registry và versioning API.",
+        "chunks": [
+          {
+            "chunk_id": "chunk-1-8",
+            "notes": [
+              {
+                "summary": "Đội nhóm chốt kiến trúc microservices và chọn Kafka làm message broker cho pipeline. Tuấn cam kết phụ trách cấu hình cluster, Lan sẽ review bảo mật với deadline cuối tuần này. Kim Anh yêu cầu định nghĩa schema qua Schema Registry cho từng service.",
+                "contains_key_point": true,
+                "contains_action_item": true,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          },
+          {
+            "chunk_id": "chunk-9-10",
+            "notes": [
+              {
+                "summary": "Đề xuất sử dụng snake_case cho tất cả schema fields để đảm bảo tính nhất quán. Chốt việc dùng URL versioning cho API.",
+                "contains_key_point": true,
+                "contains_action_item": false,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          }
+        ],
+        "final_belief_state": {
+          "current_topic": "Kiến trúc microservices với Kafka, snake_case cho schema và URL versioning.",
+          "entities": [
+            "Kim Anh",
+            "Tuấn",
+            "Lan",
+            "microservices",
+            "Kafka",
+            "cluster",
+            "schema registry",
+            "snake_case"
+          ],
+          "decisions": [
+            "Chốt kiến trúc sử dụng microservices thay vì monolith.",
+            "Chọn Kafka làm message broker cho pipeline.",
+            "Sử dụng snake_case cho tất cả schema fields để đảm bảo tính nhất quán.",
+            "Dùng URL versioning cho API."
+          ],
+          "open_actions": [
+            "'action': 'Cấu hình cluster Kafka và đảm bảo an toàn hệ thống', assignee: 'Tuấn'",
+            "'action': 'Review cấu hình bảo mật của cluster Kafka', assignee: 'Lan'",
+            "'action': 'Định nghĩa schema cho từng service qua Schema Registry', assignee: None"
+          ],
+          "resolved_references": [
+            {
+              "pronoun": "nó",
+              "refers_to": "cluster Kafka"
+            }
+          ]
+        }
+      },
+      {
+        "chapter_number": 2,
+        "title": "Thiết lập kiến trúc microservices và ADR",
+        "summary": "Nhóm xác định cấu hình gateway, Kafka với rate limit, phân công viết bốn bản ADR cho các thành phần chính và quy ước naming snake_case.",
+        "chunks": [
+          {
+            "chunk_id": "chunk-11-18",
+            "notes": [
+              {
+                "summary": "Đề xuất kiến trúc microservices với API gateway đứng trước các service, sử dụng Kafka cho pipeline và thêm plugin rate limit. Tuấn phụ trách cluster Kafka và demo gateway, Lan review bảo mật Kafka cùng giới hạn tốc độ trên gateway; cả hai có deadline cuối tuần.",
+                "contains_key_point": true,
+                "contains_action_item": false,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          },
+          {
+            "chunk_id": "chunk-19-22",
+            "notes": [
+              {
+                "summary": "Kim Anh xác nhận đã hoàn thành bốn ADR bao gồm naming convention snake_case và tài liệu cho kiến trúc microservices, Kafka cùng API gateway. Tuấn cam kết phụ trách việc setup CI/CD để kiểm tra compatibility schema trong pipeline.",
+                "contains_key_point": true,
+                "contains_action_item": false,
+                "generated_by": "qwen3.5:4b-q4_K_M"
+              }
+            ]
+          }
+        ],
+        "final_belief_state": {
+          "current_topic": "Hoàn thành ADR, setup CI/CD và review demo gateway",
+          "entities": [
+            "ADR",
+            "CI/CD pipeline"
+          ],
+          "decisions": [
+            "Đã hoàn thành bốn tài liệu ADR bao gồm naming convention snake_case.",
+            "Setup CI/CD để kiểm tra compatibility schema trong pipeline."
+          ],
+          "open_actions": [
+            "'Review tất cả ADR và demo gateway' vào tuần sau",
+            "'Phụ trách setup CI/CD'",
+            "'Thêm bước kiểm tra test schema compatibility'"
+          ],
+          "resolved_references": []
+        }
+      }
+    ],
+    "notes": [
+      {
+        "chapter": 1,
+        "chunk_id": "chunk-1-8",
+        "summary": "Đội nhóm chốt kiến trúc microservices và chọn Kafka làm message broker cho pipeline. Tuấn cam kết phụ trách cấu hình cluster, Lan sẽ review bảo mật với deadline cuối tuần này. Kim Anh yêu cầu định nghĩa schema qua Schema Registry cho từng service.",
+        "contains_key_point": true,
+        "contains_action_item": true
+      },
+      {
+        "chapter": 1,
+        "chunk_id": "chunk-9-10",
+        "summary": "Đề xuất sử dụng snake_case cho tất cả schema fields để đảm bảo tính nhất quán. Chốt việc dùng URL versioning cho API.",
+        "contains_key_point": true,
+        "contains_action_item": false
+      },
+      {
+        "chapter": 2,
+        "chunk_id": "chunk-11-18",
+        "summary": "Đề xuất kiến trúc microservices với API gateway đứng trước các service, sử dụng Kafka cho pipeline và thêm plugin rate limit. Tuấn phụ trách cluster Kafka và demo gateway, Lan review bảo mật Kafka cùng giới hạn tốc độ trên gateway; cả hai có deadline cuối tuần.",
+        "contains_key_point": true,
+        "contains_action_item": false
+      },
+      {
+        "chapter": 2,
+        "chunk_id": "chunk-19-22",
+        "summary": "Kim Anh xác nhận đã hoàn thành bốn ADR bao gồm naming convention snake_case và tài liệu cho kiến trúc microservices, Kafka cùng API gateway. Tuấn cam kết phụ trách việc setup CI/CD để kiểm tra compatibility schema trong pipeline.",
+        "contains_key_point": true,
+        "contains_action_item": false
+      }
+    ]
+  }
+}

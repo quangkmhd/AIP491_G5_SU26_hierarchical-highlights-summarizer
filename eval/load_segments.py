@@ -23,6 +23,8 @@ class PairedSegment:
     sherpa_transcript: str
     soniox_transcript: str
     duration_sec: float
+    sherpa_tokens: list[str] = None
+    sherpa_confidences: list[float] = None
 
 
 def _scan_provider_dir(root: Path, provider: str) -> dict[tuple[str, int], dict]:
@@ -73,6 +75,8 @@ def pair_sherpa_soniox(
                 duration_sec=float(
                     (sherpa_payload.get("metadata", {}) or {}).get("duration_sec", 0.0)
                 ),
+                sherpa_tokens=sherpa_payload.get("tokens", []),
+                sherpa_confidences=sherpa_payload.get("confidences", []),
             )
         )
     return pairs
