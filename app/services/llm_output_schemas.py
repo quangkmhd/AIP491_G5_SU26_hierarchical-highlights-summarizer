@@ -44,6 +44,14 @@ class HierarchicalAbstractiveOutput(BaseModel):
     notes: list[ChunkNoteOutput] = Field(default_factory=list)
 
 
+class SsDstStateOutput(BaseModel):
+    current_topic: str = ""
+    entities: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    open_actions: list[str] = Field(default_factory=list)
+    resolved_references: list[dict[str, str]] = Field(default_factory=list)
+
+
 def response_schema_for_task(task_name: str) -> dict[str, Any] | None:
     if task_name == "highlights_extractive":
         return HighlightsExtractiveOutput.model_json_schema()
@@ -53,6 +61,10 @@ def response_schema_for_task(task_name: str) -> dict[str, Any] | None:
         return HierarchicalTitleOutput.model_json_schema()
     if task_name == "hierarchical_abstractive":
         return HierarchicalAbstractiveOutput.model_json_schema()
+    if task_name == "ssdst_abstractive":
+        return HierarchicalAbstractiveOutput.model_json_schema()
+    if task_name == "ssdst_state_update":
+        return SsDstStateOutput.model_json_schema()
     return None
 
 

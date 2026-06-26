@@ -6,6 +6,7 @@ from typing import Any
 from app.config import AppSettings
 from app.methods.highlights_recap import HighlightsRecapMethod
 from app.methods.hierarchical_recap import HierarchicalRecapMethod
+from app.methods.ssdst_recap import SsDstRecapMethod
 from app.schemas import SummaryMethod
 from app.services.completion_client import CompletionClient, JsonCompletionRunner
 from app.services.model_targets import load_local_model_target, target_public_dict
@@ -37,6 +38,7 @@ class RecapService:
             [
                 ("highlights", HighlightsRecapMethod()),
                 ("hierarchical", HierarchicalRecapMethod()),
+                ("ssdst", SsDstRecapMethod()),
             ]
         )
 

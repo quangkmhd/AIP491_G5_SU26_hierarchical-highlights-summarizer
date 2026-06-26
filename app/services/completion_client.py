@@ -301,6 +301,15 @@ def build_completion_request(
         "format": response_schema or "json",
         "options": {"temperature": temperature, "num_predict": max_tokens},
     }
+    # Evaluation jobs over long meeting benchmarks can otherwise leave the
+    # Ollama model and KV cache resident between requests. Keep the default app
+    # behavior unchanged, but allow memory-safe eval runs with:
+    #   OLLAMA_KEEP_ALIVE=0s python3 eval/...
+    import os
+
+    keep_alive = os.getenv("OLLAMA_KEEP_ALIVE")
+    if keep_alive:
+        payload["keep_alive"] = keep_alive
     return url, headers, payload
 
 

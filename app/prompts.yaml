@@ -108,6 +108,91 @@ highlights_abstractive: |
     ]
   }
 
+ssdst_abstractive: |
+  Bạn đang thực hiện SS-DST (State-Space Dialogue State Tracking) abstractive pass cho một chunk trong một chapter.
+
+  Khác với hierarchical thông thường, bạn KHÔNG tóm tắt chunk trong cô lập. Bạn được cung cấp một "dialogue belief state" (trạng thái nhớ đàm thoại) tích lũy từ các chunk trước đó trong cùng chapter. Dùng belief state này để:
+  - Giải quyết đại từ và tham chiếu (coreference): "nó", "vấn đề đó", "anh ấy" phải được hiểu dựa trên state.
+  - Không lặp lại thông tin đã ghi trong state; tập trung vào thông tin MỚI hoặc CẬP NHẬT trong chunk hiện tại.
+  - Ghi chú factual, giữ đúng mạch thời gian, ngôi thứ ba, tiếng Việt, 1-3 câu.
+
+  Quy tắc coverage:
+  - Trả về đúng một note cho mỗi `chunk_id` trong `Required chunk_ids in order`.
+  - Không bỏ sót chunk_id, không đổi tên chunk_id, không tự tạo chunk_id mới.
+  - Sắp xếp notes theo đúng thứ tự `Required chunk_ids in order`.
+  - Nếu không có nội dung rõ cho `summary`, ghi "none".
+
+  Quy tắc viết nội dung:
+  - `summary` phản ánh nội dung CHÍNH của chunk, có thể tham chiếu thực thể/quyết định từ belief state để câu đầy đủ ý.
+  - Nếu chunk có quyết định, kết luận, scope, kiến trúc, rủi ro, blocker, hoặc kết quả quan trọng, đặt `contains_key_point` = true.
+  - Nếu chunk có việc cần làm, phân công, cam kết follow-up, kiểm thử, báo cáo, sửa lỗi, triển khai, hoặc deadline, đặt `contains_action_item` = true.
+  - Giữ speaker names, model names, APIs, metrics, file paths, timestamps, và thuật ngữ kỹ thuật quan trọng.
+  - Chỉ dùng các utterances trong chunk tương ứng và belief state để viết note; không bịa thông tin ngoài state và chunk.
+
+  Input file: {input_name}
+  Chapter number: {chapter_number}
+  Chunk index trong chapter: {chunk_index}
+
+  Dialogue belief state (tích lũy từ các chunk trước, dùng để giải quyết tham chiếu):
+  {belief_state}
+
+  Required chunk_ids in order:
+  {required_chunk_ids}
+
+  8-utterance chunks:
+  {prompt_chunks}
+
+  Return strict JSON only:
+  {
+    "notes": [
+      {
+        "chunk_id": "{example_chunk_id}",
+        "summary": "Ghi chú factual 1-3 câu, dùng belief state để giải quyết đại từ/tham chiếu.",
+        "contains_key_point": true,
+        "contains_action_item": false
+      }
+    ]
+  }
+
+ssdst_state_update: |
+  Bạn đang thực hiện SS-DST state update: cập nhật dialogue belief state sau khi xử lý một chunk.
+
+  Belief state là bộ nhớ cuộn (rolling memory) theo kiểu state-space: state mới = cập nhật(state cũ, nội dung chunk mới). Giữ state NGẮN GỌN (dưới ~180 token) bằng cách:
+  - Thêm thực thể/quyết định/hành động MỚI xuất hiện trong chunk.
+  - Cập nhật (không trùng lặp) các mục đã thay đổi.
+  - Áp dụng "forgetting gate": nếu state cũ đã quá dài, ưu tiên giữ decisions và open_actions, lược bớt current_topic/entities ít quan trọng.
+  - Giải quyết tham chiếu: nếu chunk nhắc "nó"/"vấn đề đó" và state có thực thể phù hợp, ghi rõ thực thể đó vào resolved_references.
+
+  Trả về belief state MỚI (toàn bộ, không phải diff) dưới dạng JSON với đúng các key:
+  - `current_topic`: chủ đề đang thảo luận (1 cụm ngắn).
+  - `entities`: mảng tên thực thể/người/hệ thống/model quan trọng đang active.
+  - `decisions`: mảng quyết định/kết luận đã chốt (mỗi mục 1 câu ngắn).
+  - `open_actions`: mảng hành động cần làm chưa hoàn tất (mỗi mục 1 câu ngắn, kèm assignee nếu có).
+  - `resolved_references`: mảng tham chiếu đã được giải quyết, dạng {"pronoun": "...", "refers_to": "..."}.
+
+  Nếu một key không có nội dung, trả mảng rỗng (hoặc "" cho current_topic). Không bịa thông tin ngoài state cũ và chunk mới.
+
+  Chapter number: {chapter_number}
+  Chunk index: {chunk_index}
+
+  Previous belief state (state cũ):
+  {previous_state}
+
+  Chunk vừa xử lý (utterances):
+  {chunk_text}
+
+  Chunk summary vừa tạo:
+  {chunk_summary}
+
+  Return strict JSON only:
+  {
+    "current_topic": "chủ đề ngắn",
+    "entities": ["thực thể 1", "thực thể 2"],
+    "decisions": ["quyết định 1"],
+    "open_actions": ["hành động 1"],
+    "resolved_references": [{"pronoun": "nó", "refers_to": "pipeline mới"}]
+  }
+
 hierarchical_title: |
   Bạn đang thực hiện DR2 Hierarchical title pass cho một chapter được tạo bởi TextTiling-style segmentation.
 

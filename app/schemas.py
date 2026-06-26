@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-SummaryMethod = Literal["highlights", "hierarchical", "both"]
+SummaryMethod = Literal["highlights", "hierarchical", "ssdst", "both"]
 
 
 class SummaryRequest(BaseModel):
