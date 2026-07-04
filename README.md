@@ -15,10 +15,11 @@ This tool serves as a **Dialogue Topic Segmentation Data Hub** and contains refe
      - `Committee (QMSum)` (Zhong et al., NAACL-21)
 
 2. **PDF Converter (`convert-pdf-to-md.py`)**:
-   - Converts reference papers in PDF format into markdown using the `datalab_sdk` (DatalabClient).
-   - Currently includes reference papers:
-     - `2021.sigdial-1.18.pdf` (Xing and Carenini, SIGDIAL-21)
-     - `2307.15793v3.pdf`
+   - Converts reference papers in PDF format into markdown using the `datalab-python-sdk` (DatalabClient).
+   - Keeps papers organized under [papers/](file:///home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/papers) and generates outputs under [docs/](file:///home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/docs) with descriptive, product-standard names.
+   - Reference papers:
+     - [improving-unsupervised-dialogue-topic-segmentation.pdf](file:///home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/papers/improving-unsupervised-dialogue-topic-segmentation.pdf) (Xing and Carenini, SIGDIAL-21)
+     - [llm-powered-meeting-recap-system.pdf](file:///home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/papers/llm-powered-meeting-recap-system.pdf) (Asthana et al., 2023)
 
 ---
 
@@ -29,9 +30,8 @@ Ensure you have a Python environment (virtual environment recommended):
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt  # If requirements.txt is created
+pip install datalab-python-sdk python-dotenv
 ```
-*(Note: If `datalab-sdk` and other dependencies are not installed in the system/env, run `pip install datalab-sdk python-dotenv`)*
 
 ### 2. Configuration
 Create a `.env` file in the root of this folder and add your Datalab API key:
@@ -42,6 +42,12 @@ DATALAB_API_KEY_2=your_api_key_here
 ### 3. Convert PDFs to Markdown
 Run the conversion script:
 ```bash
-python3 convert-pdf-to-md.py
+.venv/bin/python convert-pdf-to-md.py
 ```
-This will generate `2021.sigdial-1.18.md` and `2307.15793v3.md` in the root folder.
+This will:
+1. Convert the PDFs in `papers/` using `DatalabClient` in accurate mode.
+2. Generate clean markdown files in `docs/`:
+   - [improving-unsupervised-dialogue-topic-segmentation.md](file:///home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/docs/improving-unsupervised-dialogue-topic-segmentation.md)
+   - [llm-powered-meeting-recap-system.md](file:///home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/docs/llm-powered-meeting-recap-system.md)
+3. Extract and organize all images into separate paper assets folders under `docs/assets/` with clean names (e.g. `figure-1.jpg`), and automatically rewrite the image links inside the markdown files.
+

@@ -1,13 +1,4 @@
-
-
 # Improving Unsupervised Dialogue Topic Segmentation with Utterance-Pair Coherence Scoring
-
-Linzi Xing and Giuseppe Carenini
-
-Department of Computer Science  
-University of British Columbia  
-Vancouver, BC, Canada, V6T 1Z4  
-{lzxing, carenini}@cs.ubc.ca
 
 ## Abstract
 
@@ -19,10 +10,10 @@ Dialogue Topic Segmentation (DTS), as a fundamental task of dialogue modeling, h
 
 Different from the monologue topic segmentation (MTS) task (Koshorek et al., 2018; Xing et al.,
 
-<sup>1</sup>Our code, proposed fine-tuned models and data can be found at <https://github.com/lxing532/Dialogue-Topic-Segmenter>.
+<sup>1</sup>Our code, proposed fine-tuned models and data can be found at [https://github.com/lxing532/Dialogue-Topic-Segmenter](https://github.com/lxing532/Dialogue-Topic-Segmenter).
 
 | Turns   | Dialogue Text                                                                                                                                      |
-|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Turn-1: | <b>A:</b> For how long should the liability insurance coverage remain in effect?                                                                   |
 | Turn-2: | <b>B:</b> As long as the registration of your vehicle remains valid.                                                                               |
 | Turn-3: | <b>A:</b> Does this apply for motorcycles too?                                                                                                     |
@@ -74,16 +65,20 @@ utterance-pair coherence scoring model (described in Section 3.2) with marginal 
 
 In order to create the training data labeled with coherence ordering relations, we make two assumptions: (1) A pair of adjacent utterances is more likely to be more topical coherent than a pair of non-adjacent utterances but still in the same dialogue session. (2) A pair of utterances from the same dialogue is more likely to be more topical coherent than a pair of utterances sampled from different dialogues. To formalize the ordering relations, we notate a source dialogue corpus as  $\mathcal{C}$  and use  $u_i^k$  to represent the  $i$ th utterance in the dialogue  $d_k \in \mathcal{C}$ . Then the two ordering relations based on the above assumptions can be formulated as:
 
-$$\begin{aligned} CS(u_i^k, u_{i+1}^k) > CS(u_i^k, u_j^k), \\ j \notin \{i-1, i, i+1\} \end{aligned} \quad (1)$$
+$$
+\begin{aligned} CS(u_i^k, u_{i+1}^k) > CS(u_i^k, u_j^k), \\ j \notin \{i-1, i, i+1\} \end{aligned} \quad (1)
+$$
 
-$$\begin{aligned} CS(u_i^k, u_j^k) > CS(u_i^k, u_j^m), \\ k \neq m \end{aligned} \quad (2)$$
+$$
+\begin{aligned} CS(u_i^k, u_j^k) > CS(u_i^k, u_j^m), \\ k \neq m \end{aligned} \quad (2)
+$$
 
 Since the ranking objective is pairwise, given two utterance pairs, we deem the pair with higher/lower coherence score as the positive/negative instance. Taking eq. 1 as an example,  $(u_i^k, u_{i+1}^k)$  and  $(u_i^k, u_j^k)$  are positive and negative instance respectively.
 
 Since the generality of the obtained coherence scoring model will significantly impact the robustness of the overall segmentation system, having a proper source dialogue corpus  $\mathcal{C}$  to generate training data from is a critical step. We believe that an ideal source corpus should satisfy the following key requirements: (1) having a fairly large size; (2) covering as many topics as possible; (3) containing both formal and informal expressions. To test the strength of our proposal in a multilingual setting, we select *DailyDialog*<sup>2</sup> (Li et al., 2017) and *NaturalConv*<sup>3</sup> (Wang et al., 2021) for English and Chinese respectively. These two conversational corpora both consist of
 
 | Dataset                 | DailyDialog | NaturalConv |
-|-------------------------|-------------|-------------|
+| ----------------------- | ----------- | ----------- |
 | Total dialogues         | 13,118      | 19,919      |
 | Language                | English     | Chinese     |
 | Avg. # turns per dialog | 7.9         | 20.1        |
@@ -107,11 +102,9 @@ These utterances will replace  $t_i^+$  in the positive instance to form two neg
 
 <sup>4</sup>We omit topic categories of these two corpus for space, please refer original papers for more details.
 
-![Figure 1: Overview of the proposed dialogue topic segmentation procedure. (a) Fine-tuning the NSP BERT on training data of utterance-pair coherence scoring. (b) Leveraging the fine-tuned BERT as the coherence scoring model to predict coherence scores for all the consecutive utterance pairs in a testing dialogue.](f9a14fbfecbd7d059226cc93677d721b_img.jpg)
+![](assets/improving-unsupervised-dialogue-topic-segmentation/figure-1.jpg)
 
 Figure 1(a) illustrates the fine-tuning process. A pair of utterances, 'Uttr\_1' and 'Uttr\_2', is input into a BERT model. The input is composed of token embeddings (yellow), segment embeddings (green), and position embeddings (grey), with special tokens [CLS] and [SEP]. The BERT model outputs a sequence of representations, which are then passed through an MLP to produce a 'Score'. Figure 1(b) shows the application of the fine-tuned BERT model to a 'Dialogue to be segmented'. The dialogue is split into utterances u1 through u6. The BERT model processes these utterances and outputs coherence scores (0.1, 0.8, 0.2, 0.75, 0.25) for the pairs (u1, u2), (u2, u3), (u3, u4), (u4, u5), and (u5, u6). These scores are then used by a 'Depth Score Computing' module to infer segment boundaries.
-
-Figure 1: Overview of the proposed dialogue topic segmentation procedure. (a) Fine-tuning the NSP BERT on training data of utterance-pair coherence scoring. (b) Leveraging the fine-tuned BERT as the coherence scoring model to predict coherence scores for all the consecutive utterance pairs in a testing dialogue.
 
 Figure 1: The overview of our proposed dialogue topic segmentation procedure. (a) Fine-tuning the NSP BERT on the training data of utterance-pair coherence scoring generated from the source dialogue corpus  $\mathcal{C}$ . (2) Leveraging the fine-tuned BERT as the coherence scoring model to predict coherence scores for all the consecutive utterance pairs in a testing dialogue. *TextTiling* algorithm is further utilized to infer segment boundaries.
 
@@ -127,7 +120,9 @@ To encourage the model to learn to assign a positive instance  $(s_i, t_i^+)$  a
 
 <sup>5</sup>Instead of NSP BERT (a cross-encoder), we could have also modelled such pairwise scoring with a bi-encoder, which first encodes each utterance independently. We eventually selected the cross-encoder due to the results in Thakur et al. (2021) showing that cross-encoders usually outperform bi-encoders for pairwise sentence scoring.
 
-$$L = \frac{1}{N} \sum_{i=1}^N \max(0, \eta + c_i^- - c_i^+) \quad (3)$$
+$$
+L = \frac{1}{N} \sum_{i=1}^N \max(0, \eta + c_i^- - c_i^+) \quad (3)
+$$
 
 where  $N$  is the size of the training set,  $\eta$  is the margin hyper-parameter tuned at validation set.
 
@@ -154,12 +149,12 @@ We compare our dialogue topic segmenter with following unsupervised baselines:
 **BayesSeg** (Eisenstein and Barzilay, 2008): This method models the words in each topic segment as draws from a multinomial language model associated with the segment. Maximizing the observation likelihood of the dialogue yields a lexically-cohesive segmentation.
 
 | Dataset    | DialSeg_711 | Doc2Dial | ZYS     |
-|------------|-------------|----------|---------|
+| ---------- | ----------- | -------- | ------- |
 | documents  | 711         | 4,130    | 505     |
 | language   | English     | English  | Chinses |
 | # sent/seg | 5.6         | 3.5      | 6.4     |
 | # seg/doc  | 4.9         | 3.7      | 4.0     |
-| real-world | ✓           | ✗        | ✓       |
+| real-world | ✓          | ✗       | ✓      |
 
 Table 3: Statistics of the three dialogue topic segmentation testing sets for model evaluation.
 
@@ -183,32 +178,32 @@ We apply three standard metrics to evaluate the performances of our proposal and
 
 We fine-tune the utterance-pair coherence scoring model on BERT<sub>base</sub> which consists of 12 layers and 12 heads in each layer. The hidden dimension of BERT<sub>base</sub> is 768. Training is executed with *AdamW* (Loshchilov and Hutter, 2019) as our optimizer and
 
-| Method                                   | DialSeg_711      |                 |                | Doc2Dial         |                 |                |
-|------------------------------------------|------------------|-----------------|----------------|------------------|-----------------|----------------|
+| Method                                   | DialSeg_711        |                   |                  | Doc2Dial           |                   |                  |
+| ---------------------------------------- | ------------------ | ----------------- | ---------------- | ------------------ | ----------------- | ---------------- |
 |                                          | $P_k \downarrow$ | $WD \downarrow$ | $F_1 \uparrow$ | $P_k \downarrow$ | $WD \downarrow$ | $F_1 \uparrow$ |
-| Random                                   | 52.92            | 70.04           | 0.410          | 55.60            | 65.29           | 0.420          |
-| BayesSeg (Eisenstein and Barzilay, 2008) | 30.97            | 35.60           | 0.517          | 46.65            | 62.13           | 0.433          |
-| GraphSeg (Glavaš et al., 2016)           | 43.74            | 44.76           | 0.537          | 51.54            | 51.59           | 0.403          |
-| GreedySeg (Xu et al., 2021)              | 50.95            | 53.85           | 0.401          | 50.66            | 51.56           | 0.406          |
-| TextTiling (TeT) (Hearst, 1997)          | 40.44            | 44.63           | 0.608          | 52.02            | 57.42           | 0.539          |
-| TeT + Embedding (Song et al., 2016)      | 39.37            | 41.27           | 0.637          | 53.72            | 55.73           | 0.602          |
-| TeT + CLS (Xu et al., 2021)              | 40.49            | 43.14           | 0.610          | 54.34            | 57.92           | 0.518          |
-| TeT + NSP                                | 46.84            | 48.50           | 0.512          | 50.79            | 54.86           | 0.550          |
-| Ours (w/o Dialog Flows)                  | 32.60            | 37.97           | 0.750          | 48.76            | 50.83           | 0.636          |
-| Ours (w/o Dialog Topics)                 | 26.95            | 28.98           | 0.761          | 46.61            | 48.58           | 0.657          |
-| Ours (full)                              | <b>26.80</b>     | <b>28.24</b>    | <b>0.776</b>   | <b>45.23</b>     | <b>47.32</b>    | <b>0.660</b>   |
+| Random                                   | 52.92              | 70.04             | 0.410            | 55.60              | 65.29             | 0.420            |
+| BayesSeg (Eisenstein and Barzilay, 2008) | 30.97              | 35.60             | 0.517            | 46.65              | 62.13             | 0.433            |
+| GraphSeg (Glavaš et al., 2016)          | 43.74              | 44.76             | 0.537            | 51.54              | 51.59             | 0.403            |
+| GreedySeg (Xu et al., 2021)              | 50.95              | 53.85             | 0.401            | 50.66              | 51.56             | 0.406            |
+| TextTiling (TeT) (Hearst, 1997)          | 40.44              | 44.63             | 0.608            | 52.02              | 57.42             | 0.539            |
+| TeT + Embedding (Song et al., 2016)      | 39.37              | 41.27             | 0.637            | 53.72              | 55.73             | 0.602            |
+| TeT + CLS (Xu et al., 2021)              | 40.49              | 43.14             | 0.610            | 54.34              | 57.92             | 0.518            |
+| TeT + NSP                                | 46.84              | 48.50             | 0.512            | 50.79              | 54.86             | 0.550            |
+| Ours (w/o Dialog Flows)                  | 32.60              | 37.97             | 0.750            | 48.76              | 50.83             | 0.636            |
+| Ours (w/o Dialog Topics)                 | 26.95              | 28.98             | 0.761            | 46.61              | 48.58             | 0.657            |
+| Ours (full)                              | <b>26.80</b>       | <b>28.24</b>      | <b>0.776</b>     | <b>45.23</b>       | <b>47.32</b>      | <b>0.660</b>     |
 
 Table 4: The experimental results on two English testing sets: *DialSeg\_711* (Xu et al., 2021) and *Doc2Dial* (Feng et al., 2020).  $\uparrow/\downarrow$  after the name of metrics indicates if the higher/lower value means better performance. The best performances among the listed methods are in **bold**.
 
 | Method          | $P_k \downarrow$ | $WD \downarrow$ | $F_1 \uparrow$ |
-|-----------------|------------------|-----------------|----------------|
-| Random          | 52.79            | 67.73           | 0.398          |
-| GreedySeg       | 44.12            | 48.29           | 0.502          |
-| TextTiling      | 45.86            | 49.31           | 0.485          |
-| TeT + Embedding | 43.85            | 45.13           | 0.510          |
-| TeT + CLS       | 43.01            | 43.60           | 0.502          |
-| TeT + NSP       | 42.59            | 43.95           | 0.500          |
-| Ours            | <b>40.99</b>     | <b>41.32</b>    | <b>0.521</b>   |
+| --------------- | ------------------ | ----------------- | ---------------- |
+| Random          | 52.79              | 67.73             | 0.398            |
+| GreedySeg       | 44.12              | 48.29             | 0.502            |
+| TextTiling      | 45.86              | 49.31             | 0.485            |
+| TeT + Embedding | 43.85              | 45.13             | 0.510            |
+| TeT + CLS       | 43.01              | 43.60             | 0.502            |
+| TeT + NSP       | 42.59              | 43.95             | 0.500            |
+| Ours            | <b>40.99</b>       | <b>41.32</b>      | <b>0.521</b>     |
 
 Table 5: The experimental results on the Chinese testing set proposed in Xu et al. (2021). The best performances among the listed methods are in **bold**.
 
@@ -222,14 +217,12 @@ conversational data. The reason may be that the coherence prediction components 
 
 To confirm the benefit of taking dialogue flows and topics into account, we also conduct an ablation study by removing either one of these two parts from the training data generation process for coherence scoring. As reported in the bottom sub-table of Table 4, sampling positive/negative utterance pairs ( $t_i^+/t_i^-$  in Section 3.1) without using dialogue flows causes substantial performance drop on both testing sets, while sampling the other negative utterance pair ( $t_i'^-$  in Section 3.1) without taking dialogue topics into consideration seems to have a smaller impact on the trained model’s performance. This observation shows that the dialogue flow is a more effective signal than the dialogue topic. One possible explanation is that there are some basic dialogue flows that are commonly followed and gen-
 
-![Figure 2: Behaviors of four TextTiling-based segmenters on an example dialogue. The figure consists of a dialogue box on the left and four line charts on the right. The dialogue box contains 12 utterances (U1-U12) about checking VA claims. The four charts show depth scores (0.0 to 1.0) across 11 intervals for TextTiling, TeT + Embedding, TeT + CLS, and Ours. Reference boundaries are red vertical lines, prediction boundaries are blue vertical lines, and overlaps are purple vertical lines. The 'Ours' chart shows the most pronounced peaks and valleys, indicating better topic discrimination.](c3c305cefbac2e7b13be34ab87054d1e_img.jpg)
-
-Figure 2: Behaviors of four TextTiling-based segmenters on an example dialogue. The figure consists of a dialogue box on the left and four line charts on the right. The dialogue box contains 12 utterances (U1-U12) about checking VA claims. The four charts show depth scores (0.0 to 1.0) across 11 intervals for TextTiling, TeT + Embedding, TeT + CLS, and Ours. Reference boundaries are red vertical lines, prediction boundaries are blue vertical lines, and overlaps are purple vertical lines. The 'Ours' chart shows the most pronounced peaks and valleys, indicating better topic discrimination.
+![](assets/improving-unsupervised-dialogue-topic-segmentation/figure-2.jpg)
 
 Figure 2: Behaviors of four TextTiling-based segmenters on an example dialogue selected from *Doc2Dial* (Feng et al., 2020). The horizontal axis is the index of intervals in a session, and the vertical axis is the value of depth score (higher value means more topical unrelated). The reference and prediction of topic boundaries are marked by blue and red vertical lines respectively. The overlaps of reference and prediction are marked by purple lines.
 
 | Method          | DialSeg_711  | Doc2Dial     | ZYS          |
-|-----------------|--------------|--------------|--------------|
+| --------------- | ------------ | ------------ | ------------ |
 | TextTiling      | 0.122        | 0.102        | 0.113        |
 | TeT + Embedding | 0.136        | 0.125        | 0.131        |
 | TeT + CLS       | 0.166        | 0.154        | 0.158        |
@@ -258,53 +251,3 @@ This paper addresses a key limitation of unsupervised dialogue topic segmenters,
 For the future, although most recent work has built on *TextTiling*, we plan to explore if our proposal can also be integrated with other unsupervised topic segmentation methods, like *GraphSeg* and *BayesSeg*, rather than just *TextTiling*. Furthermore, we also plan to explore effective strategies to exploit external commonsense knowledge (eg., ConceptNet (Speer et al., 2017)) or user characters (Xing and Paul, 2017) in topic segmentation, since they have been shown to be beneficial in dialogue
 
 generation (Qiao et al., 2020; Ji et al., 2020b) and summarization (Ji et al., 2020a).
-
-## Acknowledgments
-
-We thank the anonymous reviewers and the UBC-NLP group for their insightful comments and suggestions. This research was supported by the Language & Speech Innovation Lab of Cloud BU, Huawei Technologies Co., Ltd.
-
-## References
-
-- Sebastian Arnold, Rudolf Schneider, Philippe Cudré-Mauroux, Felix A. Gers, and Alexander Löser. 2019. [SECTOR: A neural model for coherent topic segmentation and classification](#). *Transactions of the Association for Computational Linguistics*, 7:169–184.
-- Pinkesh Badjatiya, Litton J. Kurisinkel, Manish Gupta, and Vasudeva Varma. 2018. Attention-based neural text segmentation. In *Advances in Information Retrieval*, pages 180–193, Cham. Springer International Publishing.
-- Regina Barzilay and Mirella Lapata. 2005. [Modeling local coherence: An entity-based approach](#). In *Proceedings of the 43rd Annual Meeting of the Association for Computational Linguistics (ACL’05)*, pages 141–148, Ann Arbor, Michigan. Association for Computational Linguistics.
-- Regina Barzilay and Mirella Lapata. 2008. [Modeling local coherence: An entity-based approach](#). *Computational Linguistics*, 34(1):1–34.
-- Doug Beeferman, Adam Berger, and John Lafferty. 1999. Statistical models for text segmentation. *Machine Learning*, 34(1):177–210.
-- Mohammad Hadi Bokaei, Hossein Sameti, and Yang Liu. 2016. [Extractive summarization of multi-party meetings through discourse segmentation](#). *Natural Language Engineering*, 22(1):41–72.
-- Paweł Budzianowski, Tsung-Hsien Wen, Bo-Hsiang Tseng, Iñigo Casanueva, Stefan Ultes, Osman Ramadan, and Milica Gašić. 2018. [MultiWOZ - a large-scale multi-domain Wizard-of-Oz dataset for task-oriented dialogue modelling](#). In *Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing*, pages 5016–5026, Brussels, Belgium. Association for Computational Linguistics.
-- Alessandra Cervone and Giuseppe Riccardi. 2020. [Is this dialogue coherent? learning from dialogue acts and entities](#). In *Proceedings of the 21th Annual Meeting of the Special Interest Group on Discourse and Dialogue*, pages 162–174, 1st virtual meeting. Association for Computational Linguistics.
-
-- Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019. [BERT: Pre-training of deep bidirectional transformers for language understanding](#). In *Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)*, pages 4171–4186, Minneapolis, Minnesota. Association for Computational Linguistics.
-- Lan Du, Wray Buntine, and Mark Johnson. 2013. [Topic segmentation with a structured topic model](#). In *Proceedings of the 2013 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies*, pages 190–200, Atlanta, Georgia. Association for Computational Linguistics.
-- Jacob Eisenstein and Regina Barzilay. 2008. [Bayesian unsupervised topic segmentation](#). In *Proceedings of the 2008 Conference on Empirical Methods in Natural Language Processing*, pages 334–343, Honolulu, Hawaii. Association for Computational Linguistics.
-- Mihail Eric, Lakshmi Krishnan, Francois Charette, and Christopher D. Manning. 2017. [Key-value retrieval networks for task-oriented dialogue](#). In *Proceedings of the 18th Annual SIGdial Meeting on Discourse and Dialogue*, pages 37–49, Saarbrücken, Germany. Association for Computational Linguistics.
-- Song Feng, Hui Wan, Chulaka Gunasekara, Siva Patel, Sachindra Joshi, and Luis Lastras. 2020. [doc2dial: A goal-oriented document-grounded dialogue dataset](#). In *Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, pages 8118–8128, Online. Association for Computational Linguistics.
-- Michel Galley, Kathleen R. McKeown, Eric Fosler-Lussier, and Hongyan Jing. 2003. [Discourse segmentation of multi-party conversation](#). In *Proceedings of the 41st Annual Meeting of the Association for Computational Linguistics*, pages 562–569, Sapporo, Japan. Association for Computational Linguistics.
-- Goran Glavaš, Federico Nanni, and Simone Paolo Ponzetto. 2016. [Unsupervised text segmentation using semantic relatedness graphs](#). In *Proceedings of the Fifth Joint Conference on Lexical and Computational Semantics*, pages 125–130, Berlin, Germany. Association for Computational Linguistics.
-- Marti A. Hearst. 1997. [Text tiling: Segmenting text into multi-paragraph subtopic passages](#). *Computational Linguistics*, 23(1):33–64.
-- Lishan Huang, Zheng Ye, Jinghui Qin, Liang Lin, and Xiaodan Liang. 2020. [GRADE: Automatic graph-enhanced coherence metric for evaluating open-domain dialogue systems](#). In *Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, pages 9230–9240, Online. Association for Computational Linguistics.
-- Haozhe Ji, Pei Ke, Shaohan Huang, Furu Wei, and Minlie Huang. 2020a. [Generating commonsense explanation by extracting bridge concepts from reasoning paths](#). In *Proceedings of the 1st Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics and the 10th International Joint Conference on Natural Language Processing*, pages 248–257, Suzhou, China. Association for Computational Linguistics.
-- Haozhe Ji, Pei Ke, Shaohan Huang, Furu Wei, Xiaoyan Zhu, and Minlie Huang. 2020b. [Language generation with multi-hop reasoning on commonsense knowledge graph](#). In *Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, pages 725–736, Online. Association for Computational Linguistics.
-- O. Z. Khan, Jean-Philippe Robichaud, Paul A. Crook, and R. Sarikaya. 2015. Hypotheses ranking and state tracking for a multi-domain dialog system using multiple asr alternates. In *INTERSPEECH*, page 1810–1814.
-- Omri Koshorek, Adir Cohen, Noam Mor, Michael Rotman, and Jonathan Berant. 2018. [Text segmentation as a supervised learning task](#). In *Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 2 (Short Papers)*, pages 469–473, New Orleans, Louisiana. Association for Computational Linguistics.
-- Hang Li. 2011. [A short introduction to learning to rank](#). *IEICE Transactions on Information and Systems*, E94.D(10):1854–1862.
-- Jiwei Li, Will Monroe, Alan Ritter, Dan Jurafsky, Michel Galley, and Jianfeng Gao. 2016. [Deep reinforcement learning for dialogue generation](#). In *Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing*, pages 1192–1202, Austin, Texas. Association for Computational Linguistics.
-- Yanran Li, Hui Su, Xiaoyu Shen, Wenjie Li, Ziqiang Cao, and Shuzi Niu. 2017. [DailyDialog: A manually labelled multi-turn dialogue dataset](#). In *Proceedings of the Eighth International Joint Conference on Natural Language Processing (Volume 1: Long Papers)*, pages 986–995, Taipei, Taiwan. Asian Federation of Natural Language Processing.
-- Ilya Loshchilov and Frank Hutter. 2019. Decoupled weight decay regularization. In *ICLR*.
-- Lev Pevzner and Marti A. Hearst. 2002. [A critique and improvement of an evaluation metric for text segmentation](#). *Computational Linguistics*, 28(1):19–36.
-- Matthew Purver, Konrad P. Körding, Thomas L. Griffiths, and Joshua B. Tenenbaum. 2006. [Unsupervised topic modelling for multi-party spoken discourse](#). In *Proceedings of the 21st International*
-
-- Conference on Computational Linguistics and 44th Annual Meeting of the Association for Computational Linguistics*, pages 17–24, Sydney, Australia. Association for Computational Linguistics.
-- Lin Qiao, Jianhao Yan, Fandong Meng, Zhendong Yang, and Jie Zhou. 2020. [A sentiment-controllable topic-to-essay generator with topic knowledge graph](#). In *Findings of the Association for Computational Linguistics: EMNLP 2020*, pages 3336–3344, Online. Association for Computational Linguistics.
-- Martin Riedl and Chris Biemann. 2012. [TopicTiling: A text segmentation algorithm based on LDA](#). In *Proceedings of ACL 2012 Student Research Workshop*, pages 37–42, Jeju Island, Korea. Association for Computational Linguistics.
-- Yiping Song, Lili Mou, R. Yan, Li Yi, Zinan Zhu, X. Hu, and M. Zhang. 2016. Dialogue session segmentation by embedding-enhanced texttiling. In *INTERSPEECH*, page 2706–2710.
-- Robyn Speer, Joshua Chin, and Catherine Havasi. 2017. Conceptnet 5.5: An open multilingual graph of general knowledge. In *Proceedings of the Thirty-First AAAI Conference on Artificial Intelligence, AAAI’17*, page 4444–4451. AAAI Press.
-- Ryuichi Takanobu, Minlie Huang, Zhongzhou Zhao, Fenglin Li, Haiqing Chen, Xiaoyan Zhu, and Liqiang Nie. 2018. [A weakly supervised method for topic segmentation and labeling in goal-oriented dialogues via reinforcement learning](#). In *Proceedings of the Twenty-Seventh International Joint Conference on Artificial Intelligence, IJCAI-18*, pages 4403–4410. International Joint Conferences on Artificial Intelligence Organization.
-- Nandan Thakur, Nils Reimers, Johannes Daxenberger, and Iryna Gurevych. 2021. [Augmented SBERT: Data augmentation method for improving bi-encoders for pairwise sentence scoring tasks](#). In *Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies*, pages 296–310, Online. Association for Computational Linguistics.
-- Liang Wang, Sujian Li, Yajuan Lv, and Houfeng Wang. 2017. [Learning to rank semantic coherence for topic segmentation](#). In *Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing*, pages 1340–1344, Copenhagen, Denmark. Association for Computational Linguistics.
-- Weishi Wang, Steven C.H. Hoi, and Shafiq Joty. 2020. [Response selection for multi-party conversations with dynamic topic tracking](#). In *Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, pages 6581–6591, Online. Association for Computational Linguistics.
-- Xiaoyang Wang, Chen Li, Jianqiao Zhao, and Dong Yu. 2021. [Naturalconv: A chinese dialogue dataset towards multi-turn topic-driven conversation](#). *Proceedings of the AAAI Conference on Artificial Intelligence*, 35(16):14006–14014.
-- Linzi Xing, Brad Hackinen, Giuseppe Carenini, and Francesco Trebbi. 2020. [Improving context modeling in neural topic segmentation](#). In *Proceedings of the 1st Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics and the 10th International Joint Conference on Natural Language Processing*, pages 626–636, Suzhou, China. Association for Computational Linguistics.
-- Linzi Xing and Michael J. Paul. 2017. [Incorporating metadata into content-based user embeddings](#). In *Proceedings of the 3rd Workshop on Noisy User-generated Text*, pages 45–49, Copenhagen, Denmark. Association for Computational Linguistics.
-- Peng Xu, Hamidreza Saghir, Jin Sung Kang, Teng Long, Avishek Joey Bose, Yanshuai Cao, and Jackie Chi Kit Cheung. 2019. [A cross-domain transferable neural coherence model](#). In *Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics*, pages 678–687, Florence, Italy. Association for Computational Linguistics.
-- Yi Xu, Hai Zhao, and Zhuosheng Zhang. 2021. [Topic-aware multi-turn dialogue modeling](#). *Proceedings of the AAAI Conference on Artificial Intelligence*, 35(16):14176–14184.
