@@ -1,0 +1,17 @@
+# Local environment variables
+.env
+
+# Python virtual environments & cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+
+# Logs & temporary files
+*.log
+.DS_Store
