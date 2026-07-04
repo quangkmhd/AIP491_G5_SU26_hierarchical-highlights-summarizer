@@ -1,10 +1,35 @@
 {
   "project": "Hierarchical Meeting Recap System",
+  "description": "LLM-powered meeting recap system that produces two complementary views of a meeting transcript: (1) a quick highlights recap (key points + action items) and (2) a hierarchical minutes-style recap segmented into topically-coherent chapters with rolling 3rd-person summaries. Built on top of unsupervised dialogue topic segmentation driven by an utterance-pair NSP-BERT coherence scorer + TextTiling.",
   "last_updated": "2026-07-04",
+  "primary_papers": [
+    {
+      "id": "paper-1",
+      "path": "docs/papers/improving-unsupervised-dialogue-topic-segmentation.md",
+      "drives": [
+        "service/coherence_scorer",
+        "service/text_tiling",
+        "service/segmenter_service"
+      ]
+    },
+    {
+      "id": "paper-2",
+      "path": "docs/papers/llm-powered-meeting-recap-system.md",
+      "drives": [
+        "service/meeting_recap_orchestrator",
+        "runtime/api",
+        "ui/web_app",
+        "evaluation/user_study"
+      ]
+    }
+  ],
+  "data_corpus_note": "data/eval_vi/ contains Vietnamese-translated versions of paper-1's English test sets (dialseg_711, doc2dial), paper-2's AMI/ICSI meeting corpora (meeting_ami, meeting_icsi), plus the project's own meeting_committee sample and tiage. ZYS (Chinese) is NOT shipped with this repo -- the eval-001 feature must source it externally if Chinese segmentation is in scope.",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
-    "do_not_skip_verification": true
+    "do_not_skip_verification": true,
+    "one_area_per_feature": true,
+    "verification_must_run": true
   },
   "status_legend": {
     "not_started": "Work has not begun.",
@@ -12,101 +37,330 @@
     "blocked": "Work cannot continue until a documented blocker is resolved.",
     "passing": "Required verification has passed and evidence is recorded."
   },
+  "area_legend": {
+    "types": "Pydantic data models, schemas, validators -- the foundation every other layer depends on.",
+    "repo": "Model and file repositories: loading HuggingFace checkpoints, persisting transcripts/recaps.",
+    "config": "Configuration objects and tunable hyperparameters for services.",
+    "service": "Pure-logic services: scoring, segmentation, summarization, orchestration.",
+    "runtime": "FastAPI server, CLI runner, request/response wiring.",
+    "ui": "Web prototype (HTML) implementing the recap UX described in paper-2.",
+    "data": "Dataset loaders, evaluation corpora, Vietnamese committee sample harness.",
+    "evaluation": "Quantitative (P_k, Win-Diff, F1) and qualitative (user-study) evaluation harnesses."
+  },
+  "known_gaps": [
+    {
+      "feature": "model-001",
+      "gap": "Highlight model is missing `assigned_to` and `due_date` fields that paper-2 Section 3.4 specifies as editable per action item. This blocks the exact paper-2 UX in ui-001. A follow-up patch must add these fields (with Pydantic validators) before ui-001's 'edit task assignee/deadline' verification can pass."
+    },
+    {
+      "feature": "model-002",
+      "gap": "NSP-BERT paper-1 model is described as 'fine-tuned' on DailyDialog (en) / NaturalConv (zh). The project does not ship a fine-tuned checkpoint; it must either load a public fine-tuned checkpoint or include a fine-tuning step. For Vietnamese, a separate Vietnamese NSP-BERT must be sourced or trained."
+    }
+  ],
   "features": [
     {
       "id": "model-001",
       "priority": 1,
       "area": "types",
       "title": "Define Core Data Models (Utterance, Chunk, Segment, Highlight, Recap)",
-      "user_visible_behavior": "System possesses strictly typed internal data structures for transcript and summary components, enabling consistent API schemas.",
-      "status": "not_started",
+      "user_visible_behavior": "System possesses strictly typed internal data structures for transcript and summary components, enabling consistent API schemas and round-trip JSON serialization.",
+      "status": "passing",
       "verification": [
-        "Create Pydantic classes for Utterance, Chunk, Segment, Highlight, and HierarchicalRecap.",
-        "Create Pydantic classes for API requests/responses (TranscriptIngestionRequest, HighlightUpsertRequest).",
-        "Instantiate models with sample data and verify type validation works."
+        "Create Pydantic classes for Utterance, Chunk, SegmentResult, Highlight, and HierarchicalRecap.",
+        "Create Pydantic classes for API requests/responses (TranscriptIngestionRequest, HighlightUpsertRequest, MeetingProcessResponse).",
+        "Instantiate models with sample data and verify type validation works.",
+        "Enforce Chunk.MAX_CHUNK_SIZE=8 (paper-2 chunk size) at construction time.",
+        "Enforce DialogueTranscript.MAX_UTTERANCES upper bound and contiguous 0..N-1 indices.",
+        "Provide Highlight.toggle_star() / Highlight.toggle_check() for the paper-2 interactive UX.",
+        "Verify SegmentResult.display_title returns user_title_override when present, otherwise the auto title.",
+        "Verify DialogueTranscript.utterance_pairs yields consecutive (prev, next) tuples usable by CoherenceScorer (paper-1 Section 3.2)."
       ],
-      "evidence": [],
-      "notes": "Lớp này quy định toàn bộ dữ liệu giao tiếp, cần làm ĐẦU TIÊN để thống nhất format (Data Models)."
+      "evidence": [
+        "tests/unit/test_types.py: 38/38 unit tests pass -- Pydantic v2 validation, frozen Utterance, BaseSchema strictness, MAX_CHUNK_SIZE/MAX_UTTERANCES ClassVar constants (both now enforced in model_validators), KEY_POINT/ACTION_ITEM UX alias methods, JSON wire-format canonical values, real 370-utterance Vietnamese committee round-trip.",
+        "tests/manual/test_meeting_committee_sample.py: end-to-end smoke test (kept out of src/ since it is a demo, not production code) that loads data/eval_vi/meeting_committee.json[0] (370 utterances, 8 ground-truth segments) and serializes a HierarchicalRecap (50 chunks, 1 note, 1 task) to docs/generated/model001_demo_recap.json.",
+        "src/types/{_base,utterance,transcript,segment,highlight,hierarchical_recap,schemas}.py: Pydantic v2 BaseModels on a shared BaseSchema, frozen Utterance, contiguous-index + MAX_UTTERANCES validators, MAX_CHUNK_SIZE/MAX_UTTERANCES as ClassVar, Highlight.toggle_star/toggle_check, TranscriptIngestionRequest with model_validator (requires exactly one of utterances/flat_texts) and materialize() (enforces MAX_UTTERANCES), separate API request/response schemas."
+      ],
+      "notes": "Pydantic v2 BaseModels on a shared BaseSchema (extra='forbid', populate_by_name, str_strip_whitespace) for schema safety, JSON serialization, and FastAPI integration. Composable via composition (Transcript -> Segment -> Chunk -> Utterance) so model-002 loader and svc-001/svc-002 services can plug in without re-shaping data. Immutability for Utterance, mutable semantics for Highlight (toggle_star/toggle_check) match the recap paper's interactive UX. Canonical enum names follow the paper (KEY_POINT, ACTION_ITEM); UX labels (note / task, or Vietnamese ghi chú / việc cần làm) are applied at the i18n boundary, not in the enum, so the data layer stays language-neutral. MAX_UTTERANCES is enforced both on the domain object and at the request boundary, so oversized meetings fail fast with a clear message."
     },
     {
       "id": "model-002",
       "priority": 2,
-      "area": "repository",
+      "area": "repo",
       "title": "Build AI Model Loader & File Repository",
-      "user_visible_behavior": "System successfully loads Hugging Face checkpoints (BERT, deBERTa, BART) into memory and can read/write local transcript files.",
+      "user_visible_behavior": "System successfully loads the four Hugging Face checkpoints required by paper-2 (hierarchical_segment BART, hierarchical_abstractive deBERTa, hierarchical_title deBERTa, highlights_extractive BART, highlights_abstractive deBERTa) plus the utterance-pair NSP-BERT coherence model from paper-1, and can read/write local transcript and recap JSON files.",
       "status": "not_started",
       "verification": [
-        "Initialize ModelLoader and assert CoherenceNet/NSP BERT weights load successfully.",
-        "Initialize ModelLoader and assert deBERTa (Title & Abstractive) weights load successfully.",
-        "Initialize ModelLoader and assert BART weights load successfully.",
+        "Initialize ModelLoader and assert hierarchical_segment (BART) weights load successfully.",
+        "Initialize ModelLoader and assert hierarchical_abstractive / hierarchical_title (deBERTa) weights load successfully.",
+        "Initialize ModelLoader and assert highlights_extractive (BART) weights load successfully.",
+        "Initialize ModelLoader and assert highlights_abstractive (deBERTa) weights load successfully.",
+        "Initialize ModelLoader and assert NSP-BERT (paper-1) CoherenceNet weights load successfully.",
         "Read a raw JSON/TXT transcript and parse it into Utterance models.",
-        "Write a dummy HierarchicalRecap object to a local JSON file."
+        "Write a dummy HierarchicalRecap object to a local JSON file and re-read it (round-trip).",
+        "Provide offline stubs/fakes for environments without network access to HuggingFace.",
+        "Lazy-load each checkpoint on first use; assert the second access does not re-read from disk."
       ],
       "evidence": [],
-      "notes": "Bộ tải AI Models phải được thiết lập trước khi viết các logic xử lý NLP."
+      "notes": "Bộ tải AI Models phải được thiết lập trước khi viết các logic xử lý NLP. Five transformers total: one BART for hierarchical_segment, two deBERTa for hierarchical_abstractive / hierarchical_title, one BART for highlights_extractive, one deBERTa for highlights_abstractive (paper-2 Table 1), plus the NSP-BERT coherence scorer from paper-1. All weights must be lazy-loaded and cacheable; the loader must support both online (HuggingFace hub) and offline (local snapshot) modes so CI does not depend on the network. KNOWN GAP: NSP-BERT must be either fine-tuned from BERT_base (paper-1 Section 3.2) on DailyDialog/NaturalConv, or sourced from a public fine-tuned checkpoint. Vietnamese NSP-BERT is not shipped; a separate per-language checkpoint strategy is required (paper-1 Section 4.5 reports smaller gains for Chinese, suggesting per-language fine-tuning is necessary)."
+    },
+    {
+      "id": "config-001",
+      "priority": 3,
+      "area": "config",
+      "title": "Centralize Tunable Hyperparameters",
+      "user_visible_behavior": "All paper-derived magic numbers (window=30, stride=10, chunk_size=8, 106/225/512 token contexts) are exposed as named, validated configuration objects so the pipeline can be tuned without editing service code.",
+      "status": "not_started",
+      "verification": [
+        "Create TextTilingConfig with window_size=30, stride=10, smoothing, cutoff policy (paper-1, paper-2 Section 3.3).",
+        "Create ChunkingConfig with chunk_size=8 utterances (paper-2 Section 3.3) and configurable overlap (default 0).",
+        "Create HighlightsConfig with extractive context window of 10 utterances (~106 tokens, paper-2 Section 3.3).",
+        "Create AbstractiveConfig with 512-token surrounding context (paper-2 Section 3.3).",
+        "Create LanguageConfig with BCP-47 language tag and per-language model variant selection (paper-1 supports en/zh; project extends to vi).",
+        "Reject invalid combinations (e.g. stride > window, chunk_size <= 0) at config construction time with a typed ConfigError.",
+        "Expose a single MeetingRecapConfig that composes all of the above so callers pass one object to the orchestrator."
+      ],
+      "evidence": [],
+      "notes": "Derived directly from paper-1 Section 3 and paper-2 Section 3.3. The 8-words-per-utterance heuristic (Banerjee et al.) and the 1 token = 0.75 words heuristic justify the window/stride/chunk sizes. Stride > window is invalid for a sliding-window TextTiling pipeline; reject it loudly. Paper-1 Section 3.3 does not prescribe a fixed smoothing or cutoff -- expose them but mark as 'tune' defaults."
+    },
+    {
+      "id": "data-001",
+      "priority": 4,
+      "area": "data",
+      "title": "Multi-corpus Evaluation Data Loader",
+      "user_visible_behavior": "The system can ingest every JSON file in data/eval_vi/ as a uniform DialogueSample for both segmentation and recap evaluation, with explicit per-corpus metadata describing origin, language, and ground-truth source.",
+      "status": "not_started",
+      "verification": [
+        "Load data/eval_vi/dialseg_711.json (711 Vietnamese samples, originally MultiWOZ+Stanford Dialog per paper-1 Section 4.1) as DialogueSample list.",
+        "Load data/eval_vi/doc2dial.json (3270 Vietnamese samples, paper-1 Section 4.1) as DialogueSample list.",
+        "Load data/eval_vi/meeting_ami.json (137 AMI-meeting samples) and data/eval_vi/meeting_icsi.json (59 ICSI-meeting samples) -- these are paper-2's internal meeting corpora.",
+        "Load data/eval_vi/meeting_committee.json (36 committee samples -- the manual-test corpus) and data/eval_vi/tiage.json (500 samples).",
+        "Expose a unified DialogueSample schema with fields dial_id, utterances, language='vi', segments (ground-truth boundaries), set, utterances_vi, utterances_en.",
+        "Provide a pytest fixture that yields one DialogueSample at a time for batch evaluation."
+      ],
+      "evidence": [],
+      "notes": "Paper-1 reports results on DialSeg_711, Doc2Dial, and ZYS. Paper-2 trained hierarchical_segment on 12,600 UHRS-annotated meetings (70/15/15 split) and trained hierarchical_abstractive and hierarchical_title on 1M-pair annotated datasets. The project's data/eval_vi/ already contains Vietnamese translations of the paper-1 test sets (dialseg_711, doc2dial) plus the paper-2 AMI/ICSI corpora. ZYS (Chinese, paper-1 Table 5) is NOT shipped -- if Chinese evaluation is needed, source ZYS externally. The manual test (tests/manual/test_meeting_committee_sample.py) targets data/eval_vi/meeting_committee.json[0]."
     },
     {
       "id": "svc-001",
-      "priority": 3,
+      "priority": 5,
       "area": "service",
-      "title": "Implement TextTiling & Chunking Logic",
-      "user_visible_behavior": "System divides a linear transcript into logical topics (Segments) based on topic shifts, and chunks long segments into <= 8 utterances.",
+      "title": "Implement Utterance-Pair Coherence Scoring (NSP-BERT)",
+      "user_visible_behavior": "Given any two consecutive utterances, the CoherenceScorer returns a depth score (low = same topic, high = topic shift) using the fine-tuned NSP-BERT model from paper-1.",
       "status": "not_started",
       "verification": [
-        "Pass sample dialogue to CoherenceScorer (NSP BERT) and verify coherence/depth scores.",
-        "Execute TextTiling logic to extract correct segment boundaries.",
-        "Verify segments with > 8 utterances are chunked correctly to avoid context overflow."
+        "Pass a same-topic utterance pair from data/eval_vi/meeting_committee.json to CoherenceScorer and assert low depth score.",
+        "Pass a topic-shift pair (e.g. cross the turn-4 boundary in the paper-1 Table 1 example) and assert high depth score.",
+        "Confirm scores run as a single batched forward pass (no Python-level per-pair loop) on GPU and CPU.",
+        "Persist the model checkpoint path so the same weights are reused across svc-002 and svc-003 without reloads.",
+        "Use DialogueTranscript.utterance_pairs as the canonical input iterator so the scorer never depends on raw indices.",
+        "Reuse the NSP tokenizer's [CLS] / [SEP] / segment-embedding contract from paper-1 Section 3.2 verbatim."
       ],
       "evidence": [],
-      "notes": "Sử dụng AI model thứ nhất: NSP BERT."
+      "notes": "Paper-1 Section 3.2: train a BERT_base (12 layers, 12 heads, hidden 768) with marginal ranking loss on automatically-constructed positive/negative utterance pairs. The scorer must be a first-class service because both svc-002 (TextTiling) and any future per-chapter coherence checks consume it. Paper-1 Section 3.2 also notes the cross-encoder (NSP) was chosen over bi-encoder because cross-encoders outperform bi-encoders for pairwise scoring (Thakur et al., 2021) -- this justification must be carried in code comments."
     },
     {
       "id": "svc-002",
-      "priority": 4,
+      "priority": 6,
       "area": "service",
-      "title": "Implement Summarization Orchestrator",
-      "user_visible_behavior": "System coordinates AI models to generate chapter titles, abstractive chunk summaries (3rd person), and key highlights.",
+      "title": "Implement TextTiling Segmentation with Sliding-Window Max-Voting",
+      "user_visible_behavior": "Given a DialogueTranscript, TextTilingService returns an ordered list of segment boundaries (start_index, end_index) using a 30-utterance sliding window, stride of 10, and max-voting over CoherenceScorer predictions (paper-1 Section 3, paper-2 Section 3.2).",
       "status": "not_started",
       "verification": [
-        "Generate a chapter title using deBERTa (hierarchical_title) on a full segment.",
-        "Generate 3rd-person summary using deBERTa (hierarchical_abstractive) on a chunk.",
-        "Extract key points and action items using BART (highlights pipeline).",
-        "Assemble the final HierarchicalRecap object."
+        "Run TextTiling on data/eval_vi/meeting_committee.json[0] and confirm the predicted segment count is in [6, 10] for the 8 ground-truth segments.",
+        "Confirm per-window scores, the depth-score sequence, and the max-vote tally are all exposed for debugging.",
+        "Reject transcripts longer than DialogueTranscript.MAX_UTTERANCES with a typed error before scoring.",
+        "Batch long transcripts into overlapping windows of 30 with stride 10 and stitch boundaries via max voting (paper-2 Section 3.2).",
+        "Run eval-001 on the test set; P_k must be <= the paper-1 TeT+CLS baseline on the same corpus (40.49 on DialSeg_711, 54.34 on Doc2Dial -- paper-1 Table 4)."
       ],
       "evidence": [],
-      "notes": "Sử dụng các AI models: deBERTa và BART."
+      "notes": "Sử dụng AI model thứ nhất: NSP BERT từ paper-1. Paper-2 Section 3.2 trained hierarchical_segment as a BART classifier on 12,600 UHRS-annotated meetings; the project instead reuses the unsupervised TextTiling + NSP-BERT pipeline from paper-1 because it does not require crowd-labelled boundaries. The 30-utterance window / 10-utterance stride / 8-utt chunk size are derived from the 8-words-per-utterance heuristic (Banerjee et al.) and the 1 token = 0.75 words heuristic (paper-2 Section 3.3). The 6..10 segment-count tolerance on the committee sample is a smoke test, not a quality bar; the real bar is eval-001's P_k against paper-1's TeT+CLS baseline."
     },
     {
-      "id": "api-001",
-      "priority": 5,
-      "area": "runtime",
-      "title": "Create FastAPI Endpoints",
-      "user_visible_behavior": "Clients can trigger meeting processing and interact with recaps (update titles, edit highlights) via RESTful API routes.",
+      "id": "svc-003",
+      "priority": 7,
+      "area": "service",
+      "title": "Implement Hierarchical Chunking (8-utterance blocks)",
+      "user_visible_behavior": "Given a SegmentResult with more than 8 utterances, ChunkingService returns an ordered list of Chunks each containing <= 8 contiguous utterances, ready to be fed into the abstractive summarizer.",
       "status": "not_started",
       "verification": [
-        "Start FastAPI development server.",
-        "Submit POST /api/v1/meetings/process and receive 200 OK.",
-        "Submit PUT /api/v1/meetings/{id}/segments/{id} to update chapter title.",
-        "Retrieve full recap via GET /api/v1/meetings/{id}/recap."
+        "Chunk a 50-utterance segment and assert exactly 7 chunks (6 of size 8 + 1 of size 2) with no chunk exceeding MAX_CHUNK_SIZE.",
+        "Reject attempts to materialize a chunk with > MAX_CHUNK_SIZE utterances (Pydantic validator at the types layer).",
+        "Preserve the original utterance ordering inside each chunk so that rolling summaries remain chronologically correct.",
+        "Return chunks whose utterances reference the parent SegmentResult.utterances_start + offset (no copies).",
+        "End-to-end on data/eval_vi/meeting_committee.json[0] (370 utts, 8 segments with lengths [13,32,33,16,27,130,118,1]) produces 50 chunks -- the same count reported by tests/manual/test_meeting_committee_sample.py and progress.md."
       ],
       "evidence": [],
-      "notes": "Kết nối các Service bằng API chuẩn REST."
+      "notes": "Trực tiếp từ paper-2 Section 3.2: 8-utterance chunks are the input size for hierarchical_abstractive. The Chunk model already enforces MAX_CHUNK_SIZE=8 (model-001). Note that per-segment chunking yields 50 chunks (not ceil(370/8)=47) because each segment's remainder produces an extra short chunk; this is verified by the manual test."
+    },
+    {
+      "id": "svc-004",
+      "priority": 8,
+      "area": "service",
+      "title": "Implement Hierarchical Summarization (deBERTa abstractive + title)",
+      "user_visible_behavior": "For each SegmentResult the service generates a chapter title (hierarchical_title) and a 3rd-person abstractive rolling summary per 8-utterance Chunk (hierarchical_abstractive), then attaches both back to the SegmentResult.",
+      "status": "not_started",
+      "verification": [
+        "Generate a chapter title for a SegmentResult of >= 8 utterances and assert it is non-empty.",
+        "Generate a 3rd-person rolling summary for each Chunk and assert it preserves chronological order.",
+        "Confirm abstractive summaries for an empty chunk raise a typed ValidationError.",
+        "Confirm the 512-token surrounding context window from paper-2 Section 3.3 is enforced in the prompt/tokenizer call.",
+        "Confirm each generated title is written to SegmentResult.title and each chunk summary is written to Chunk.rolling_summary (not just returned)."
+      ],
+      "evidence": [],
+      "notes": "Paper-2 Section 3.2: hierarchical_abstractive is a fine-tuned deBERTa trained on 1M 8-utterance dialogue -> 3rd-person summary pairs. hierarchical_title is a deBERTa trained on 1M utterance -> topic pairs. Both run with 512-token context. Paper-2 does not specify a hard title-length cap, so verification asserts non-empty rather than a word count."
+    },
+    {
+      "id": "svc-005",
+      "priority": 9,
+      "area": "service",
+      "title": "Implement Highlights Pipeline (extractive BART + abstractive deBERTa)",
+      "user_visible_behavior": "Given a DialogueTranscript, HighlightsService returns a list of (text, type, source) triples: type KEY_POINT (UI: 'note') for general highlights, type ACTION_ITEM (UI: 'task') for action items. Text is rephrased in 3rd person using the abstractive deBERTa (paper-2 Section 3.2).",
+      "status": "not_started",
+      "verification": [
+        "Run the pipeline on a known committee transcript sample and recover at least one ACTION_ITEM whose text matches a manually identified task.",
+        "Run the pipeline and assert every returned highlight has HighlightType in {KEY_POINT, ACTION_ITEM} and HighlightSource.AUTO.",
+        "Assert each key point sits inside a 106-token (~10-utterance) context window (paper-2 Section 3.3).",
+        "Reject empty highlight text."
+      ],
+      "evidence": [],
+      "notes": "Paper-2 Section 3.2: highlights_extractive (BART) selects the important utterances, highlights_abstractive (deBERTa) rephrases them in 3rd person within a 512-token context. The two-step decomposition (select -> rephrase) is preserved. Paper-2 does not specify a maximum summary length, so this feature intentionally does not assert one -- a future config-001 follow-up may add a tunable cap if needed."
+    },
+    {
+      "id": "svc-006",
+      "priority": 10,
+      "area": "service",
+      "title": "Implement MeetingRecapOrchestrator (end-to-end pipeline)",
+      "user_visible_behavior": "Given a TranscriptIngestionRequest, the orchestrator runs CoherenceScorer -> TextTiling -> Chunker -> hierarchical_summarizer -> highlights_pipeline and returns a complete HierarchicalRecap with non-empty segments, non-empty chunks, and (when applicable) non-empty highlights_notes and highlights_tasks.",
+      "status": "not_started",
+      "verification": [
+        "End-to-end run on data/eval_vi/meeting_committee.json[0] produces a HierarchicalRecap with segment_count == 8, total_chunks == 50, and len(highlights_notes) + len(highlights_tasks) >= 1 (matches tests/manual/test_meeting_committee_sample.py output).",
+        "Run on a 2-utterance transcript and assert a single SegmentResult of length 2 with 1 chunk is produced.",
+        "Run on an empty transcript and assert a typed ValidationError (not a generic 500).",
+        "Persist the meeting_id -> recap mapping via the file repository (model-002) for later retrieval.",
+        "Populate HierarchicalRecap.processing_time_ms with the wall-clock duration of the full pipeline."
+      ],
+      "evidence": [],
+      "notes": "Wire-up: SegmenterService -> ChunkingService -> HierarchicalSummarizationService + HighlightsService. The orchestrator owns the meeting_id lifecycle and processing_time_ms metric, both of which are first-class fields on HierarchicalRecap. The manual test (tests/manual/test_meeting_committee_sample.py) already produces segment_count=8, total_chunks=50, 1 note, 1 task -- those are the exact numbers the orchestrator must match once the real services replace the placeholder chunk/segment construction."
+    },
+    {
+      "id": "runtime-001",
+      "priority": 11,
+      "area": "runtime",
+      "title": "FastAPI Endpoints for Meeting Ingestion, Recap Retrieval, Highlight CRUD",
+      "user_visible_behavior": "Clients can submit a transcript, retrieve a generated recap, list meetings, update chapter titles, and add/edit/star/check/delete highlights via RESTful API routes that follow the API schemas defined in model-001.",
+      "status": "not_started",
+      "verification": [
+        "Start FastAPI development server and confirm /api/v1/health returns 200 OK.",
+        "Submit POST /api/v1/meetings/process with a transcript payload and receive 200 OK + a MeetingProcessResponse with status=completed and a non-null recap.",
+        "Submit GET /api/v1/meetings/{id}/recap and receive the persisted HierarchicalRecap (round-trip JSON equals svc-006 output).",
+        "Submit PUT /api/v1/meetings/{id}/segments/{segment_id} with {title: '...'} and confirm the next GET returns user_title_override set.",
+        "Submit POST /api/v1/meetings/{id}/highlights to add a manual note/task; confirm source=manual.",
+        "Submit PATCH /api/v1/meetings/{id}/highlights/{highlight_id} to star/check an item; confirm starred / checked flag is updated.",
+        "Submit DELETE /api/v1/meetings/{id}/highlights/{highlight_id} and confirm the highlight is removed; chapter summaries must NOT be deletable (paper-2 Section 3.4).",
+        "Submit GET /api/v1/meetings and receive a paginated list of meeting summaries."
+      ],
+      "evidence": [],
+      "notes": "Kết nối các Service bằng API chuẩn REST. Paper-2 Section 3.4 specifies the UX: editable chapter titles, editable notes/tasks, share-to-chat, and the user-study feedback that the system must let users add/edit/delete highlights with consistent semantics -- particularly that deletion has a different meaning than edit (paper-2 Section 5.2.3). Paper-2 Section 3.4 also says hierarchical chapter summaries cannot be deleted; the API must reject DELETE on /segments/{sid}/summary."
+    },
+    {
+      "id": "runtime-002",
+      "priority": 12,
+      "area": "runtime",
+      "title": "CLI Runner for Batch Recap Generation",
+      "user_visible_behavior": "A `python -m src.runtime.cli` command can process a JSON file of transcripts (or a single transcript) without the HTTP layer, write the resulting HierarchicalRecap objects to disk, and print a one-line summary per meeting.",
+      "status": "not_started",
+      "verification": [
+        "Run `python -m src.runtime.cli --input data/eval_vi/meeting_committee.json --output docs/generated/cli/` and confirm one HierarchicalRecap JSON per sample is written.",
+        "Confirm --language vi tags each meeting's metadata.language as 'vi'.",
+        "Confirm --dry-run exits 0 without writing any files but logs the same summary it would have written.",
+        "Confirm a typed error is printed (and exit code 2 returned) when --input is missing."
+      ],
+      "evidence": [],
+      "notes": "The CLI is the offline counterpart of the FastAPI server; it shares the orchestrator (svc-006) and the file repository (model-002) so behavior stays consistent across surfaces."
     },
     {
       "id": "ui-001",
-      "priority": 6,
+      "priority": 13,
       "area": "ui",
-      "title": "Develop Client Interface",
-      "user_visible_behavior": "Users have an interactive interface to view hierarchical meeting minutes, edit titles, and check off action items.",
+      "title": "Highlights Tab UI (key points + action items, with assignee/deadline once Highlight schema is extended)",
+      "user_visible_behavior": "The 'Highlights' tab of the prototype shows two columns/lists -- AI notes (key points) and AI tasks (action items) -- with a star toggle and a checkbox respectively, and an 'Add note/task' affordance per paper-2 Section 3.4.",
       "status": "not_started",
       "verification": [
-        "Load client application.",
-        "Verify meeting chapters and 8-utterance chunks render correctly.",
-        "Edit a chapter title in the UI and verify it updates.",
-        "Mark an action item as checked."
+        "Load the HTML prototype, paste a transcript, click 'Process', and confirm the two lists populate from the FastAPI response.",
+        "Click a star next to a note; refresh the page; confirm the star is persisted (PATCH /api/v1/meetings/{id}/highlights/{hid}).",
+        "Click a checkbox next to a task; refresh; confirm the check is persisted.",
+        "Click 'Add note' and confirm a new Highlight with source=manual is created via POST /api/v1/meetings/{id}/highlights.",
+        "GATED: editing 'assigned to' and 'date' on a task is BLOCKED until model-001's `Highlight` schema gains `assigned_to: Optional[str]` and `due_date: Optional[date]` fields (see `known_gaps`). The UI must render the inputs as disabled with a tooltip until that patch lands."
       ],
       "evidence": [],
-      "notes": "Phần trình diễn sản phẩm cuối cùng."
+      "notes": "Phần trình diễn sản phẩm cuối cùng. Paper-2 Section 3.4: key points are 'AI notes', action items are 'AI tasks'. Each task has editable 'assigned to' and 'date' fields (paper-2 Section 3.4). The 'Show context' affordance reveals up to 3 transcript utterances before and after the detected note/task (paper-2 Section 3.4) -- this requires a GET endpoint that returns a window of utterances around a highlight's source offset, which should be added to runtime-001."
+    },
+    {
+      "id": "ui-002",
+      "priority": 14,
+      "area": "ui",
+      "title": "Hierarchical Tab UI (chapterized minutes with progressive disclosure)",
+      "user_visible_behavior": "The 'Hierarchical' tab renders the meeting as a chronological list of chapter cards. Each card shows the auto-generated title, an inline-editable title field, a star count for key points, a checkbox count for tasks, and a collapsed view of 8-utterance chunk summaries that expand on click to reveal the raw transcript (paper-2 Section 3.4).",
+      "status": "not_started",
+      "verification": [
+        "Confirm chapter cards render in chronological order (utterances_start ascending).",
+        "Inline-edit a chapter title and confirm PUT /api/v1/meetings/{id}/segments/{sid} persists the change; reload and confirm the new title survives.",
+        "Confirm a chapter with >= 1 key point shows a star icon, a chapter with >= 1 action item shows a checkbox icon, and a chapter with neither shows no badge -- counts come from the segment-scoped highlights (filtered by Highlight.segment_id, or via a dedicated GET /api/v1/meetings/{id}/segments/{sid}/highlights endpoint).",
+        "Click a chunk card and confirm the 8-utterance raw transcript is revealed (progressive disclosure -- paper-2 Section 5.3.1 'progressive detail').",
+        "Confirm collapsing a chapter hides the chunk summaries but keeps the title visible.",
+        "Confirm chapter summaries cannot be deleted from the UI (paper-2 Section 3.4 -- 'summaries couldn't be deleted' in hierarchical view)."
+      ],
+      "evidence": [],
+      "notes": "Phần trình diễn sản phẩm cuối cùng. Paper-2 Section 5.3.1: participants use a progressive, breadth-first exploration strategy -- chapter heading first, then per-chunk summaries, then raw utterances. The 'collapse chapter' affordance (paper-2 Section 5.3.3) lets users tune their preferred depth. Per-chapter star/checkbox counts depend on a way to scope highlights to a segment; the simplest path is to filter HierarchicalRecap.all_highlights by segment_id, but a dedicated endpoint is cleaner."
+    },
+    {
+      "id": "ui-003",
+      "priority": 15,
+      "area": "ui",
+      "title": "Copy-to-Share and Show-Context Affordances",
+      "user_visible_behavior": "Users can copy a chapter or chunk to the clipboard (or 'share to chat'), and a 'Show context' link on any highlight or chapter note reveals the surrounding transcript utterances (paper-2 Section 3.4).",
+      "status": "not_started",
+      "verification": [
+        "Click 'Share to chat' on a chapter card and confirm a markdown/plain-text rendering of the chapter title + per-chunk summaries + highlights is placed on the clipboard (or a configurable share target).",
+        "Click 'Show context' on a key point; confirm the transcript view scrolls to the source chunk and reveals the 3 utterances before and 3 utterances after the source utterance (paper-2 Section 3.4).",
+        "Confirm 'Share' includes the chapter's assigned notes/tasks (paper-2 Section 5.3.2: users copy-paste discussions for collaboration)."
+      ],
+      "evidence": [],
+      "notes": "Phần trình diễn sản phẩm cuối cùng. Paper-2 Section 5.3.2: 'Five participants remarked that it was very easy to simply copy-paste a relevant meeting discussion into an email or on workplace chat to discuss with colleagues.' Paper-2 Section 3.4 names the affordance 'share to chat' and 'show context' (3 utterances before + 3 after)."
+    },
+    {
+      "id": "eval-001",
+      "priority": 16,
+      "area": "evaluation",
+      "title": "Quantitative Segmentation Evaluation (P_k, Win-Diff, F1)",
+      "user_visible_behavior": "Running the evaluation harness on the Vietnamese-translated test sets in data/eval_vi/ produces a paper-1-style table with P_k, Win-Diff, and F1 scores for our CoherenceScorer + TextTiling pipeline.",
+      "status": "not_started",
+      "verification": [
+        "Run `python -m src.evaluation.segmentation_eval --corpus dialseg_711` and confirm a P_k, Win-Diff, F1 row is printed per method.",
+        "Run the same command for --corpus doc2dial, meeting_ami, meeting_icsi, meeting_committee, tiage (all present in data/eval_vi/).",
+        "For ZYS (Chinese, paper-1 Table 5) the harness must accept --corpus zys and source ZYS from an external path (data/eval_vi/zys.json is not shipped -- see data-001 / `data_corpus_note`).",
+        "Compare against the paper-1 TeT+CLS baseline (P_k 40.49 on DialSeg_711, 54.34 on Doc2Dial -- paper-1 Table 4). The Vietnamese-translated test sets are not directly comparable to paper-1's English numbers, so the eval must report absolute numbers and flag the language mismatch.",
+        "Confirm depth-score variance (paper-1 Table 6) is computed and reported per corpus."
+      ],
+      "evidence": [],
+      "notes": "Paper-1 Section 4.3: metrics are P_k (Beeferman et al., 1999), Win-Diff (Pevzner and Hearst, 2002), and F1. Lower P_k/WD is better, higher F1 is better. Window size k should match the median ground-truth segment length per corpus. The test sets in data/eval_vi/ are Vietnamese translations, so direct numerical comparison with paper-1 Table 4 is not valid; eval-001 should still produce the table for internal tracking, but the comparison-vs-baseline bar must be reframed as 'does Vietnamese NSP-BERT perform comparably to Vietnamese TeT+CLS' rather than 'does it match paper-1's English numbers'."
+    },
+    {
+      "id": "eval-002",
+      "priority": 17,
+      "area": "evaluation",
+      "title": "Qualitative Recap Evaluation Harness (user-study script)",
+      "user_visible_behavior": "An evaluator script can run a small-N user study (target N=7 like paper-2 Section 4) that captures per-participant behavior for each of the 13 meeting-habit constructs in paper-2 Table 4 and the 9 finding rows in paper-2 Table 5.",
+      "status": "not_started",
+      "verification": [
+        "Run `python -m src.evaluation.user_study --participant P01 --meeting data/eval_vi/meeting_committee.json` and confirm a per-participant JSON report is written.",
+        "Confirm the script records add/edit/delete/star/check events on highlights and chapter-title edits, with timestamps.",
+        "Confirm it captures per-participant answers to: 'useful for personal work?', 'useful for group work?', 'edit confidence for highlights vs hierarchical' (paper-2 Section 5.2-5.3).",
+        "Confirm the consolidated report includes the Table-4 habit counts and the Table-5 finding matrix.",
+        "Confirm the harness can be replayed against stored event logs (no need to re-run the live UI) so the study is reproducible from repo artifacts only."
+      ],
+      "evidence": [],
+      "notes": "Paper-2 Section 4: 7 participants at Microsoft, pre-recorded real meetings. Paper-2 Table 4: 13 meeting-habit constructs (Takes notes ... Recap at end of meeting). Paper-2 Table 5: 9 finding rows comparing highlights vs hierarchical recaps. The harness should be reproducible from repo artifacts only -- no out-of-band chat context. The original study was conducted in English; running it on Vietnamese data (data/eval_vi/meeting_committee.json) requires translated instruments."
     }
   ]
 }
