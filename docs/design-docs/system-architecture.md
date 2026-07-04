@@ -171,3 +171,65 @@ Các Endpoint RESTful API tương tác được mô tả chi tiết bằng đị
   * Hệ thống không được phép gửi dữ liệu transcript cuộc họp ra bên ngoài máy chủ nếu không có cơ chế mã hóa.
   * Không lưu trữ trực tiếp API Keys hay Secrets trong mã nguồn (quản lý qua `.env` thông qua thư viện python-dotenv).
 * **Tính tin cậy & khả năng khôi phục (Reliability):** Trạng thái xử lý cuộc họp và kết quả tóm tắt được đồng bộ trực tiếp vào các tệp tin cấu trúc JSON. Nếu xảy ra lỗi hoặc sập máy chủ giữa chừng, hệ thống có khả năng khôi phục và tiếp tục chạy lại các tiến trình từ tệp tin lưu tạm trên đĩa.
+
+---
+
+## 6. Types Layer Schema (model-001 — implemented 2026-07-04)
+
+The Types layer uses Pydantic v2 `BaseModel` through a shared `BaseSchema`
+(`src/types/_base.py`) with `extra="forbid"`, `populate_by_name=True`,
+`str_strip_whitespace=True`. Every model below has a passing unit test
+(`tests/unit/test_types.py`, 38/38) and a real round-trip on the first
+Vietnamese committee meeting (`tests/manual/test_meeting_committee_sample.py`).
+
+### 6.1 Class graph
+
+```
+BaseSchema (pydantic.BaseModel)
+  +-- Utterance                       (frozen)
+  +-- DialogueTranscript              MAX_UTTERANCES: ClassVar[int] = 5000
+  |     +-- utterances: list[Utterance]
+  +-- Chunk                           MAX_CHUNK_SIZE: ClassVar[int] = 8
+  |     +-- utterances: list[Utterance]
+  |     +-- rolling_summary: Optional[str]
+  +-- SegmentResult
+  |     +-- chunks: list[Chunk]
+  |     +-- title: str
+  |     +-- user_title_override: Optional[str]
+  |     +-- utterances_start: int   (>= 0)
+  |     +-- utterances_end: int     (>= 0)
+  +-- HighlightType                   str-Enum: KEY_POINT, ACTION_ITEM
+  +-- HighlightSource                 str-Enum: AUTO, MANUAL
+  +-- Highlight                       toggle_star(), toggle_check()
+  +-- MeetingStatus                   str-Enum: QUEUED, PROCESSING, COMPLETED, FAILED
+  +-- HierarchicalRecap
+  |     +-- meeting_id: UUID
+  |     +-- segments: list[SegmentResult]
+  |     +-- highlights_notes: list[Highlight]
+  |     +-- highlights_tasks: list[Highlight]
+  +-- TranscriptIngestionRequest      has model_validator + materialize()
+  +-- HighlightUpsertRequest
+  +-- MeetingProcessResponse
+```
+
+### 6.2 Enforced constraints
+
+| Constraint | Enforced where |
+|------------|----------------|
+| `Utterance` is immutable | `model_config = BaseSchema.model_config | {"frozen": True}` |
+| `speaker` / `text` non-empty | `Field(min_length=1)` |
+| `index >= 0` | `Field(ge=0)` |
+| `Chunk.utterances` length `<= 8` | `_check_chunk_size` model_validator |
+| `DialogueTranscript.utterances` length `<= 5000` | `_validate_transcript` model_validator |
+| `DialogueTranscript.utterances` indices contiguous 0..N-1 | `_validate_transcript` model_validator |
+| `TranscriptIngestionRequest` has exactly one of `utterances`/`flat_texts` | `_validate_payload` model_validator |
+| `flat_texts` of any size re-checked against `MAX_UTTERANCES` at the boundary | `materialize()` |
+| All models reject unknown JSON keys | `BaseSchema` `extra="forbid"` |
+| Highlight JSON wire format is canonical | `HighlightType` enum values are the canonical strings |
+
+### 6.3 Layer rule
+
+`src/types/*.py` (excluding `__init__.py`) has zero imports from `config`,
+`repo`, `service`, or `runtime`. This is verified by an AST scan inside
+`tests/manual/test_meeting_committee_sample.py`. Any new module added under
+`src/types/` that breaks the rule should fail code review.

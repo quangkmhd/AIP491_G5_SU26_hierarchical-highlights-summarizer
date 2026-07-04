@@ -5,8 +5,12 @@ Use this index as the discoverable map of design history.
 ## Accepted
 
 - `core-beliefs.md`: agent-first operating beliefs and durable project norms
-- `system-architecture.md`: definitive architecture and schemas for the Hierarchical Meeting Recap system
-- `paper-integration.md`: details the combination and synergy of the two core papers (Topic Segmentation + Hierarchical Recap)
+- `system-architecture.md`: definitive architecture for the Hierarchical Meeting
+  Recap system (container diagram, sequence diagram, API contracts, NFRs)
+- `models-and-roadmap.md`: data models (Types layer inventory) and the
+  layered implementation roadmap
+- `paper-integration.md`: how the two source papers combine into a single
+  pipeline (NSP BERT TextTiling -> deBERTa/BART recap)
 
 ## Proposed
 
@@ -21,3 +25,5 @@ Use this index as the discoverable map of design history.
 - Every design doc should have an owner or update trigger.
 - Remove stale docs or mark them deprecated instead of letting them drift.
 - Link active execution plans to the design docs they depend on.
+- When a feature (`model-001`, `svc-001`, ...) becomes passing, update the
+  matching entry in `models-and-roadmap.md` and link the evidence file.

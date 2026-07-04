@@ -1,10 +1,8 @@
-# Active Plans
+# Active Execution Plans
 
-Keep one markdown file per active execution plan in this folder.
+These plans are currently driving work. Each plan should have exactly one
+clearly owned current step.
 
-Suggested filename pattern:
-
-- `YYYY-MM-DD-short-topic.md`
-
-Each active plan should be current enough that a fresh agent session can resume
-work from the repository alone.
+| Plan | Owner step | Status |
+|------|-----------|--------|
+| [model-002-model-loader.md](model-002-model-loader.md) | "Scope" section, waiting to start | Not started |
