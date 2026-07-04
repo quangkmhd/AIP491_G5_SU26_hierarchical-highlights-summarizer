@@ -1,0 +1,112 @@
+{
+  "project": "Hierarchical Meeting Recap System",
+  "last_updated": "2026-07-04",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "model-001",
+      "priority": 1,
+      "area": "types",
+      "title": "Define Core Data Models (Utterance, Chunk, Segment, Highlight, Recap)",
+      "user_visible_behavior": "System possesses strictly typed internal data structures for transcript and summary components, enabling consistent API schemas.",
+      "status": "not_started",
+      "verification": [
+        "Create Pydantic classes for Utterance, Chunk, Segment, Highlight, and HierarchicalRecap.",
+        "Create Pydantic classes for API requests/responses (TranscriptIngestionRequest, HighlightUpsertRequest).",
+        "Instantiate models with sample data and verify type validation works."
+      ],
+      "evidence": [],
+      "notes": "Lớp này quy định toàn bộ dữ liệu giao tiếp, cần làm ĐẦU TIÊN để thống nhất format (Data Models)."
+    },
+    {
+      "id": "model-002",
+      "priority": 2,
+      "area": "repository",
+      "title": "Build AI Model Loader & File Repository",
+      "user_visible_behavior": "System successfully loads Hugging Face checkpoints (BERT, deBERTa, BART) into memory and can read/write local transcript files.",
+      "status": "not_started",
+      "verification": [
+        "Initialize ModelLoader and assert CoherenceNet/NSP BERT weights load successfully.",
+        "Initialize ModelLoader and assert deBERTa (Title & Abstractive) weights load successfully.",
+        "Initialize ModelLoader and assert BART weights load successfully.",
+        "Read a raw JSON/TXT transcript and parse it into Utterance models.",
+        "Write a dummy HierarchicalRecap object to a local JSON file."
+      ],
+      "evidence": [],
+      "notes": "Bộ tải AI Models phải được thiết lập trước khi viết các logic xử lý NLP."
+    },
+    {
+      "id": "svc-001",
+      "priority": 3,
+      "area": "service",
+      "title": "Implement TextTiling & Chunking Logic",
+      "user_visible_behavior": "System divides a linear transcript into logical topics (Segments) based on topic shifts, and chunks long segments into <= 8 utterances.",
+      "status": "not_started",
+      "verification": [
+        "Pass sample dialogue to CoherenceScorer (NSP BERT) and verify coherence/depth scores.",
+        "Execute TextTiling logic to extract correct segment boundaries.",
+        "Verify segments with > 8 utterances are chunked correctly to avoid context overflow."
+      ],
+      "evidence": [],
+      "notes": "Sử dụng AI model thứ nhất: NSP BERT."
+    },
+    {
+      "id": "svc-002",
+      "priority": 4,
+      "area": "service",
+      "title": "Implement Summarization Orchestrator",
+      "user_visible_behavior": "System coordinates AI models to generate chapter titles, abstractive chunk summaries (3rd person), and key highlights.",
+      "status": "not_started",
+      "verification": [
+        "Generate a chapter title using deBERTa (hierarchical_title) on a full segment.",
+        "Generate 3rd-person summary using deBERTa (hierarchical_abstractive) on a chunk.",
+        "Extract key points and action items using BART (highlights pipeline).",
+        "Assemble the final HierarchicalRecap object."
+      ],
+      "evidence": [],
+      "notes": "Sử dụng các AI models: deBERTa và BART."
+    },
+    {
+      "id": "api-001",
+      "priority": 5,
+      "area": "runtime",
+      "title": "Create FastAPI Endpoints",
+      "user_visible_behavior": "Clients can trigger meeting processing and interact with recaps (update titles, edit highlights) via RESTful API routes.",
+      "status": "not_started",
+      "verification": [
+        "Start FastAPI development server.",
+        "Submit POST /api/v1/meetings/process and receive 200 OK.",
+        "Submit PUT /api/v1/meetings/{id}/segments/{id} to update chapter title.",
+        "Retrieve full recap via GET /api/v1/meetings/{id}/recap."
+      ],
+      "evidence": [],
+      "notes": "Kết nối các Service bằng API chuẩn REST."
+    },
+    {
+      "id": "ui-001",
+      "priority": 6,
+      "area": "ui",
+      "title": "Develop Client Interface",
+      "user_visible_behavior": "Users have an interactive interface to view hierarchical meeting minutes, edit titles, and check off action items.",
+      "status": "not_started",
+      "verification": [
+        "Load client application.",
+        "Verify meeting chapters and 8-utterance chunks render correctly.",
+        "Edit a chapter title in the UI and verify it updates.",
+        "Mark an action item as checked."
+      ],
+      "evidence": [],
+      "notes": "Phần trình diễn sản phẩm cuối cùng."
+    }
+  ]
+}

@@ -26,6 +26,10 @@ Before changing code:
 - `docs/RELIABILITY.md`: runtime signals, benchmarks, and restart expectations
 - `docs/SECURITY.md`: secrets, sandbox, data, and external-action rules
 - `docs/FRONTEND.md`: UI constraints, design system rules, accessibility checks
+- `quality-document.md`: quality tracking document
+- `feature_list.json`: list of features
+- `evaluator-rubric.md`: evaluator rubric
+- `progress.md`: project progress
 
 ## Working Contract
 

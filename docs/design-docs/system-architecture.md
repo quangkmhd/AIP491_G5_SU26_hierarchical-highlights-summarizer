@@ -18,6 +18,11 @@ Họp trực tuyến và làm việc từ xa ngày càng phổ biến, dẫn đ�
 
 ## 2. Công Nghệ Sử Dụng (Tech Stack)
 
+Hệ thống tích hợp hai bài báo nghiên cứu nền tảng (xem chi tiết tích hợp tại [paper-integration.md](paper-integration.md)):
+
+- **Topic Segmentation Engine:** *Improving Unsupervised Dialogue Topic Segmentation with Utterance-Pair Coherence Scoring* — [`docs/papers/improving-unsupervised-dialogue-topic-segmentation.md`](../papers/improving-unsupervised-dialogue-topic-segmentation.md)
+- **Hierarchical Recap Blueprint:** *Summaries, Highlights, and Action Items: Design, Implementation and Evaluation of an LLM-powered Meeting Recap System* — [`docs/papers/llm-powered-meeting-recap-system.md`](../papers/llm-powered-meeting-recap-system.md)
+
 Hệ thống được phát triển tuân thủ nghiêm ngặt mô hình kiến trúc phân lớp:
 
 $$

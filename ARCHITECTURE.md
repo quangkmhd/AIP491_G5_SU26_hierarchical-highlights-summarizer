@@ -14,8 +14,9 @@ to deeper documents when needed.
 
 | Domain | Purpose | Primary Entry Points | Related Spec |
 |--------|---------|----------------------|--------------|
-| `Topic Segmentation` | `Identifying coherent topics using NSP BERT & TextTiling` | `src/service/text_tiling.py` | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md` |
-| `Hierarchical Recap` | `Meeting summarization, action items, chapters generation` | `src/service/segmenter_service.py` | `docs/papers/llm-powered-meeting-recap-system.md` |
+| `Topic Segmentation` | `Identifying coherent topics using NSP BERT & TextTiling` | `src/service/text_tiling.py`, `src/service/coherence_scorer.py` | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md` |
+| `Hierarchical Recap` | `Meeting summarization, chapter titles, rolling summaries` | `src/service/segmenter_service.py`, `src/service/meeting_recap_orchestrator.py` | `docs/papers/llm-powered-meeting-recap-system.md` |
+| `Highlights & Action Items` | `Key-point extraction and task/action-item generation via BART` | `src/service/meeting_recap_orchestrator.py` | `docs/papers/llm-powered-meeting-recap-system.md` |
 
 ## Layer Model
 
@@ -47,6 +48,17 @@ boundaries instead of reaching across layers directly.
 
 - `CoherenceNet / NSP BERT integration with HuggingFace pipeline`
 - `Data loading and boundary scoring logic`
+- `MeetingRecapOrchestrator: wiring segmentation → summarization → highlights pipeline`
+- `FastAPI router + CLI runtime (not yet implemented)`
+
+## Service Map
+
+| Service | File | Layer | Depends On |
+|---------|------|-------|------------|
+| `CoherenceScorer` | `src/service/coherence_scorer.py` | Service | `ModelLoader` (Repo), `CoherenceNet` (Repo) |
+| `TextTilingService` | `src/service/text_tiling.py` | Service | `CoherenceScorer` (Service), `TextTilingConfig` (Config) |
+| `SegmenterService` | `src/service/segmenter_service.py` | Service | `TextTilingService` (Service), `TextTilingConfig` (Config) |
+| `MeetingRecapOrchestrator` | `src/service/meeting_recap_orchestrator.py` | Service | `SegmenterService` (Service), `ModelLoader` (Repo) |
 
 ## Change Checklist
 
