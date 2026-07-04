@@ -5,10 +5,10 @@ from code alone.
 
 ## Product Core
 
-- Primary user: `[replace]`
-- Job to be done: `[replace]`
-- Main frustration to remove: `[replace]`
-- Quality bar for acceptance: `[replace]`
+- Primary user: Information workers who attend long meetings or catch up asynchronously.
+- Job to be done: Convert unstructured meeting transcripts into a structured, readable hierarchy of topics, key points, and action items.
+- Main frustration to remove: Reading through unstructured transcripts or missing context from flat summaries.
+- Quality bar for acceptance: Accurate topic boundaries mirroring human segmentation; high semantic coherence between chunks.
 
 ## Product Rules
 

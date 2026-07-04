@@ -4,10 +4,10 @@ This file defines how the system proves it is healthy and restartable.
 
 ## Standard Paths
 
-- Bootstrap: `[command]`
-- Verification: `[command]`
-- Start app or service: `[command]`
-- Debug or inspect runtime: `[command]`
+- Bootstrap: `uv sync`
+- Verification: `import-linter`
+- Start app or service: `uv run src/runtime/cli.py`
+- Debug or inspect runtime: `uv run python -m pdb src/runtime/cli.py`
 
 ## Required Runtime Signals
 
@@ -18,9 +18,9 @@ This file defines how the system proves it is healthy and restartable.
 
 ## Golden Journeys
 
-- `[journey 1]`
-- `[journey 2]`
-- `[journey 3]`
+- `Running CLI end-to-end on a transcript JSON to output hierarchical recap`
+- `Validating strictly layered architecture using import-linter`
+- `Generating proper Topic Segment bounds matching ground truth`
 
 Each golden journey should have a repeatable verification path and clear failure
 signals.

@@ -5,10 +5,11 @@ Use this index as the discoverable map of design history.
 ## Accepted
 
 - `core-beliefs.md`: agent-first operating beliefs and durable project norms
+- `system-architecture.md`: definitive architecture and schemas for the Hierarchical Meeting Recap system
 
 ## Proposed
 
-- `[add new design doc paths here]`
+- `paper-integration.md`: details the combination and synergy of the two core papers (Topic Segmentation + Hierarchical Recap)
 
 ## Deprecated
 

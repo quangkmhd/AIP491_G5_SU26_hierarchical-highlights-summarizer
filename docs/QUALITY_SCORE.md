@@ -14,9 +14,9 @@ time.
 
 | Domain | Grade | Verification | Agent Legibility | Test Stability | Key Gaps | Last Updated |
 |--------|-------|-------------|-----------------|---------------|----------|-------------|
-| `[domain-a]` | - | - | - | - | - | - |
-| `[domain-b]` | - | - | - | - | - | - |
-| `[domain-c]` | - | - | - | - | - | - |
+| `Topic Segmentation` | - | - | - | - | - | - |
+| `Hierarchical Recap` | - | - | - | - | - | - |
+| `CLI App` | - | - | - | - | - | - |
 
 ## Architectural Layers
 
@@ -37,4 +37,4 @@ time.
 
 | Date | Component Removed | Outcome | Decision |
 |------|-------------------|---------|----------|
-| YYYY-MM-DD | `[component]` | `[degraded / unchanged]` | `[restore / keep removed]` |
+| YYYY-MM-DD | `N/A` | `N/A` | `N/A` |

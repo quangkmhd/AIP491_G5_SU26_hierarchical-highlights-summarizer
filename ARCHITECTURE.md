@@ -5,17 +5,17 @@ to deeper documents when needed.
 
 ## System Shape
 
-- Product: `[replace with product name]`
-- Primary user workflow: `[replace with main workflow]`
-- Runtime surfaces: `[desktop / web / cli / services / workers]`
-- Source of truth for product behavior: `docs/product-specs/`
+- Product: LLM-Powered Hierarchical Meeting Recap System with Topic Segmentation
+- Primary user workflow: Ingest meeting transcripts, segment by topic using CoherenceNet (NSP BERT) TextTiling, and generate hierarchical meeting minutes.
+- Runtime surfaces: cli / services
+- Source of truth for product behavior: `docs/papers/`
 
 ## Domain Map
 
 | Domain | Purpose | Primary Entry Points | Related Spec |
 |--------|---------|----------------------|--------------|
-| `[domain-a]` | `[what it owns]` | `[modules / routes / commands]` | `[spec path]` |
-| `[domain-b]` | `[what it owns]` | `[modules / routes / commands]` | `[spec path]` |
+| `Topic Segmentation` | `Identifying coherent topics using NSP BERT & TextTiling` | `src/service/text_tiling.py` | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md` |
+| `Hierarchical Recap` | `Meeting summarization, action items, chapters generation` | `src/service/segmenter_service.py` | `docs/papers/llm-powered-meeting-recap-system.md` |
 
 ## Layer Model
 
@@ -38,15 +38,15 @@ boundaries instead of reaching across layers directly.
 
 | Concern | Approved Boundary | Notes |
 |--------|-------------------|-------|
-| Logging and tracing | `[provider / utility path]` | `[structured only, no ad hoc console use]` |
-| Auth | `[provider path]` | `[token/session rules]` |
-| External APIs | `[client or provider path]` | `[rate limit / retry guidance]` |
-| Feature flags | `[flag boundary]` | `[ownership]` |
+| Logging and tracing | `Standard Python logging` | `[structured only, console allowed for CLI]` |
+| Auth | `N/A` | `[token/session rules]` |
+| External APIs | `HuggingFace Transformers` | `[local model loading]` |
+| Feature flags | `N/A` | `[ownership]` |
 
 ## Current Hot Spots
 
-- `[area that is hardest for agents to change safely]`
-- `[area with weak boundaries or fragile tests]`
+- `CoherenceNet / NSP BERT integration with HuggingFace pipeline`
+- `Data loading and boundary scoring logic`
 
 ## Change Checklist
 
