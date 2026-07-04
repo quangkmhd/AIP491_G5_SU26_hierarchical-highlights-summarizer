@@ -15,3 +15,18 @@ ENV/
 # Logs & temporary files
 *.log
 .DS_Store
+
+# Type checking & linting cache
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# Experiment outputs
+outputs/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# External reference materials and code
+references/
+
