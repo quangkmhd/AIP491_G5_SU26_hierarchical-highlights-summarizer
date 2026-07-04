@@ -18,7 +18,7 @@ A **research pipeline for dialogue topic segmentation (DTS)** that combines:
 ├── AGENTS.md                  ← You are here (project map)
 ├── README.md                  ← Human-facing overview
 ├── CLAUDE.md                  ← Claude Code specific guidance (auto-loaded each session)
-├── PROGRESS.md                ← Session-to-session state tracker (READ THIS NEXT)
+├── progress.md                ← Session-to-session state tracker (READ THIS NEXT)
 ├── feature_list.json          ← Decomposed task list with pass/fail status
 ├── init.sh                    ← One-command reproducible dev environment
 ├── Makefile                   ← Common commands: lint, test, run, clean
@@ -134,24 +134,56 @@ This runs: `ruff check` → `mypy src/` → `pytest -x --cov=src/`. All must pas
 
 ## 5. Where Is the Project Now?
 
-**Read `PROGRESS.md`** — it tracks every completed task, current work-in-progress, and blocked items across sessions. Also check `feature_list.json` for detailed decomposed task status.
+**Read `progress.md`** — it tracks every completed task, current work-in-progress, and blocked items across sessions. Also check `feature_list.json` for detailed decomposed task status.
 
 Quick status: `git log --oneline -5` and `grep -c '"passes": true' feature_list.json`
 
 ---
 
+## Startup Workflow (every new session — follow EXACTLY)
+
+```
+1. Read AGENTS.md     ← You are here
+2. Read progress.md   ← Current state, active feature, blockers
+3. Read session-handoff.md ← Last session's detailed handoff (files touched, what's next)
+4. Run: git log --oneline -5   ← Recent commits for context
+5. Check feature_list.json     ← Find highest-priority `passes: false` task
+6. source .venv/bin/activate   ← Activate Python environment
+7. make verify                 ← Confirm baseline is clean before starting
+8. Pick ONE feature → work → verify → commit → handoff → DONE
+```
+
+**Scope boundary:** Work on exactly ONE feature per session. If you discover a separate issue, document it in `progress.md` under "Discovered Issues" but do NOT fix it. Stay on target.
+
+## Definition of Done (feature is NOT done until ALL gates pass)
+
+A feature marked `passes: true` MUST satisfy every gate:
+
+| Gate | Requirement | Evidence |
+|------|-------------|----------|
+| 1. Code | Implementation complete in `src/` | File diff in commit |
+| 2. Tests | Unit + integration tests written and passing | `make test` output |
+| 3. Lint | Zero ruff errors | `make lint` output |
+| 4. Types | Zero mypy errors | `make typecheck` output |
+| 5. Verify | `make verify` exits 0 | Terminal output appended to `progress.md` |
+| 6. Commit | Single, focused commit with `<type>: <what>` message | `git log -1` |
+| 7. Handoff | `session-handoff.md` filled with status, files, next steps | File committed |
+| 8. Feature list | `feature_list.json` updated (`passes: true`) | JSON diff in commit |
+
+**If any gate fails, the feature is NOT done.** Fix the harness issue, retry the gate, then proceed.
+
 ## Core Principles for Agents
 
 1. **Repo as Source of Truth.** Information not in this repo does not exist for you. Don't guess — read the relevant file in `docs/design-docs/` or `docs/references/`.
-2. **One Task Per Session.** Pick the highest-priority `passes: false` item from `feature_list.json`. Focus on it exclusively. Don't multi-task.
+2. **One Feature at a Time (one-feature-at-a-time).** Pick the highest-priority `passes: false` item from `feature_list.json`. Focus on it exclusively. Don't multi-task. Don't fix side issues you discover — document them and stay on target.
 3. **Clean Handoff.** Before ending a session, you MUST:
-
    - Run `make verify` and ensure all checks pass
    - Commit with a clear message: `git commit -m "<type>: <what was done>"`
    - Update `feature_list.json` — set `passes: true` for completed items
-   - Update `PROGRESS.md` — log what was done, what's next, any blockers
+   - Fill `session-handoff.md` — active feature, files touched, blockers, next steps
+   - Update `progress.md` — log what was done
 4. **Diagnostic Loop.** When something fails → classify the failure (vague spec? missing tool? env issue?) → fix the harness → retry. Do NOT silently skip failing checks.
-5. **Verify, Don't Assume.** Use `make verify` as concrete proof. "Looks correct" is not verification. If `make verify` fails, the task is NOT done.
+5. **Verify, Don't Assume.** Use `make verify` as concrete proof. "Looks correct" is not verification. If `make verify` fails, the task is NOT done. Record verification evidence.
 6. **Knowledge lives next to code.** Put architecture notes in the module's directory, not in a monolithic doc. Proximity > length.
 
 ---
