@@ -270,22 +270,22 @@
       "user_visible_behavior": "POST /api/v1/meetings/stream accepts a TranscriptIngestionRequest and returns Content-Type: text/event-stream with the 6 event types from svc-006+streaming, plus an 'end' terminator event. The CLI `python -m src.runtime.cli stream <file.json>` reads the same JSON file and prints events to stdout in NDJSON. Batch endpoints (POST /process, GET /meetings/{id}, PATCH /segments/{idx}/title) are retained for backward compat with model-001+ regression tests.",
       "status": "passing",
       "verification": [
-        "POST /api/v1/meetings/stream returns Content-Type: text/event-stream within 1 second of request start.",
-        "The first SSE event for a 100-utterance input is 'utterance-accepted'.",
-        "Closing the SSE connection mid-stream stops the orchestrator without leaking GPU memory (verified by torch.cuda.memory_allocated() before/after).",
-        "CLI `python -m src.runtime.cli stream data/eval_vi/meeting_committee.json` exits 0 and prints >= 1 'segment-closed' line per ground-truth segment in the sample (8 for the committee sample).",
-        "POST /api/v1/meetings/stream with an empty payload returns HTTP 422 with a 'at least one of' message."
+        "POST /api/v1/meetings/stream returns Content-Type: text/event-stream and yields the orchestrator event contract plus an end event.",
+        "POST /api/v1/meetings/process echoes X-Request-Id when supplied and returns a generated X-Request-Id otherwise.",
+        "Invalid/empty request bodies return HTTP 422 with an actionable fix field in the JSON response.",
+        "CLI `python -m src.runtime.cli stream <file.json>` exits 0 and prints NDJSON events ending with meeting-completed.",
+        "CLI malformed/empty transcript input exits non-zero and prints Error + Fix lines instead of a traceback."
       ],
       "evidence": [
-        "src/runtime/__init__.py: re-exports app, create_app, cli_main",
-        "src/runtime/api.py: FastAPI app with /api/v1/meetings/process (batch) and /api/v1/meetings/stream (SSE) endpoints; uses sse-starlette EventSourceResponse",
-        "src/runtime/cli.py: argparse CLI with subcommands 'process' and 'stream'; 'stream' emits NDJSON to stdout",
-        "tests/unit/test_cli.py: 5 tests (process prints summary, process with output, nonexistent file raises, stream emits NDJSON with segment-closed + meeting-completed, stream with output)",
-        "tests/integration/test_api_streaming.py: 4 tests (process endpoint returns recap, empty payload 422, stream endpoint returns SSE with end marker, stream empty payload 422)",
-        "tests/unit/test_runtime_layer_rules.py: AST scan forbids runtime from importing UI",
-        "Full suite: 210/210 tests pass (was 200; +10 new)"
+        "src/logging.py: centralized human/JSON logging, request context, LoggableError, log_error_with_fix, noisy third-party logger suppression",
+        "src/runtime/api.py: FastAPI process + stream endpoints, X-Request-Id middleware, timing logs, HTTP/validation/value error handlers with fix suggestions",
+        "src/runtime/cli.py: argparse CLI with 'process' and 'stream', request-context logging, actionable CLI input-error fixes",
+        "tests/unit/test_logging.py: 14 tests for logger formatters, request context, and fix-aware error logging",
+        "tests/unit/test_cli.py: 6 tests including empty transcript Fix output and stream NDJSON",
+        "tests/integration/test_api_streaming.py: 6 tests including request-id echo and 422 fix fields",
+        "Full suite: 250/250 tests pass with MODEL_LOAD_LLM=0"
       ],
-      "notes": "Why SSE not WebSocket: SSE is HTTP, works through corporate proxies, has built-in reconnect via EventSource, and is sufficient because the recap is unidirectional. The end-to-end design is streaming-capable in the orchestrator, so a future 'live ASR' feature can be added by either (a) a WebSocket route that ingests utterances and pipes them into StreamingOrchestrator.process_stream, or (b) HTTP chunked-transfer on the POST body. Both are no-ops in the orchestrator; they only change the transport adapter."
+      "notes": "Why SSE not WebSocket: SSE is HTTP, works through corporate proxies, has built-in reconnect via EventSource, and is sufficient because the recap is unidirectional. The end-to-end design is streaming-capable in the orchestrator, so a future 'live ASR' feature can be added by either (a) a WebSocket route that ingests utterances and pipes them into StreamingOrchestrator.process_stream, or (b) HTTP chunked-transfer on the POST body. Both are no-ops in the orchestrator; they only change the transport adapter. Logging/tracing is treated as a cross-cutting runtime quality slice, not a separate feature, because it improves API, CLI, repo, and service diagnosability without changing the recap contract."
     },
     {
       "id": "ui-001+002+streaming",

@@ -14,6 +14,7 @@ crash mid-write leaves the original `path` untouched.
 
 from __future__ import annotations
 
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -31,6 +32,7 @@ class RecapRepoError(Exception):
 
 # Accepted file extensions for recap JSON files.
 _VALID_EXTENSIONS: frozenset[str] = frozenset({".json"})
+logger = logging.getLogger("src.repo.recap_repo")
 
 
 class RecapRepo:
@@ -54,6 +56,12 @@ class RecapRepo:
                 fp.write(recap.model_dump_json(indent=2))
                 tmp_path = Path(fp.name)
             os.replace(tmp_path, p)
+            logger.info(
+                "recap written path=%s segments=%d chunks=%d",
+                p,
+                len(recap.segments),
+                sum(len(segment.chunks) for segment in recap.segments),
+            )
         except OSError as exc:
             if tmp_path is not None and tmp_path.exists():
                 try:
@@ -72,11 +80,13 @@ class RecapRepo:
         except RepoIOError as exc:
             raise RecapRepoError(str(exc)) from exc
         try:
-            return HierarchicalRecap.model_validate(raw)
+            recap = HierarchicalRecap.model_validate(raw)
         except ValidationError as exc:
             raise RecapRepoError(
                 f"Recap at {p} failed Pydantic validation: {exc}"
             ) from exc
+        logger.info("recap read path=%s segments=%d", p, len(recap.segments))
+        return recap
 
     @staticmethod
     def _check_extension(p: Path) -> None:

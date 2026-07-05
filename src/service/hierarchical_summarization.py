@@ -12,9 +12,12 @@ responses). The real Vistral-7B-Chat backbone is gated by MODEL_LOAD_LLM=1
 
 from __future__ import annotations
 
+from src.logging import get_logger
 from src.repo.model_loader import ModelLoader
 from src.types.segment import Chunk, SegmentResult
 from src.types.utterance import Utterance
+
+logger = get_logger("src.service.hierarchical_summarization")
 
 
 class HierarchicalSummarizationService:
@@ -36,6 +39,12 @@ class HierarchicalSummarizationService:
         # loaded once at construction.
         self._handle = self._loader.load_llm_backbone()
         self._backbone = self._handle.model
+        logger.info(
+            "summarization backbone ready kind=%s device=%s checkpoint=%s",
+            self._handle.kind.value,
+            self._handle.device,
+            self._handle.checkpoint_path or "mock",
+        )
 
     def _format_utterances(self, utterances: list[Utterance]) -> str:
         return "\n".join(f"- {u.speaker}: {u.text}" for u in utterances)
@@ -51,6 +60,7 @@ class HierarchicalSummarizationService:
         generated = self._backbone.generate(prompt_text, task="title")
         # Truncate to TITLE_MAX_CHARS as a safety net.
         if len(generated) > self.TITLE_MAX_CHARS:
+            logger.debug("title truncated chars=%d max=%d", len(generated), self.TITLE_MAX_CHARS)
             generated = generated[: self.TITLE_MAX_CHARS]
         return generated
 
@@ -61,6 +71,11 @@ class HierarchicalSummarizationService:
         prompt_text = self._format_utterances(chunk.utterances)
         generated = self._backbone.generate(prompt_text, task="abstractive")
         if len(generated) > self.ABSTRACTIVE_MAX_CHARS:
+            logger.debug(
+                "abstractive summary truncated chars=%d max=%d",
+                len(generated),
+                self.ABSTRACTIVE_MAX_CHARS,
+            )
             generated = generated[: self.ABSTRACTIVE_MAX_CHARS]
         return generated
 

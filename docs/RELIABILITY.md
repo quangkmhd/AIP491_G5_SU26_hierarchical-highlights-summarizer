@@ -4,18 +4,19 @@ This file defines how the system proves it is healthy and restartable.
 
 ## Standard Paths
 
-- Bootstrap: `uv sync` (once `pyproject.toml` is filled in; for now the project has no Python deps)
-- Unit tests: `python3 -m unittest discover -s tests -v`
+- Bootstrap: use the existing Python environment for now; keep `MODEL_LOAD_LLM=0` for deterministic offline verification.
+- Unit tests: `MODEL_LOAD_LLM=0 python3 -m unittest discover -v`
 - End-to-end smoke test: `python3 tests/manual/test_meeting_committee_sample.py`
-- Start app or service: `uv run src/runtime/cli.py` (not yet implemented; depends on `api-001` / `ui-001`)
-- Debug or inspect runtime: `uv run python -m pdb src/runtime/cli.py`
+- Start API: `MODEL_LOAD_LLM=0 uvicorn src.runtime.api:app --reload`
+- Run CLI: `MODEL_LOAD_LLM=0 python3 -m src.runtime.cli stream <transcript.json>`
+- Debug or inspect runtime: `MODEL_LOAD_LLM=0 python3 -m pdb -m src.runtime.cli`
 
 ## Required Runtime Signals
 
-- Structured logs for startup and critical flows (current: Python `logging` only)
-- Health checks for key services (planned in `api-001`)
-- Trace or timing data for slow paths (model loading, TextTiling, summarization) when available
-- User-visible error states for recoverable failures (the `HierarchicalRecap.status` and `MeetingProcessResponse.error` fields exist for this)
+- Structured logs for startup and critical flows through `src.logging`; default human format, `MEETING_RECAP_LOG_FORMAT=json` for machine parsing.
+- Request/CLI tracing with `request_id` and `event` context; FastAPI echoes `X-Request-Id`.
+- Trace or timing data for slow paths: request elapsed time, model loading, TextTiling boundary counts, orchestrator totals, repo read/write summaries.
+- User-visible error states for recoverable failures: API/CLI errors include actionable `fix` suggestions instead of bare status codes or tracebacks.
 
 ## Golden Journeys
 
@@ -27,14 +28,15 @@ This file defines how the system proves it is healthy and restartable.
 
 - **Running the unit suite end-to-end**
   Path: `python3 -m unittest discover -s tests -v`
-  Verifies: 39 tests across `Utterance`, `DialogueTranscript`, `Chunk`,
-  `SegmentResult`, `Highlight`, `HierarchicalRecap`, API schemas, and the
-  Vietnamese committee sample. Currently green.
+  Verifies: all unit, integration, e2e, and UI tests across the current
+  hierarchical-only streaming system. Current evidence: 250/250 tests green
+  with `MODEL_LOAD_LLM=0` on 2026-07-05.
 
-- **`POST /api/v1/meetings/process` end-to-end** (planned)
-  Path: `uv run src/runtime/api.py` + curl
+- **`POST /api/v1/meetings/process` end-to-end**
+  Path: `tests/integration/test_api_streaming.py`
   Verifies: a request with `flat_texts` materializes into a `DialogueTranscript`
-  that respects `MAX_UTTERANCES`, and the response carries a populated recap.
+  that respects `MAX_UTTERANCES`, response carries a populated recap, request-id
+  is echoed, and empty/invalid payloads return 422 with a `fix` field.
 
 - **Generating topic segment bounds matching ground truth** (planned)
   Path: `python3 tests/integration/test_text_tiling.py` (TBD)

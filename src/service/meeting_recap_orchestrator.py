@@ -33,6 +33,12 @@ from src.service.hierarchical_summarization import HierarchicalSummarizationServ
 from src.service.text_tiling import SegmentEvent, TextTilingService
 from src.types.hierarchical_recap import HierarchicalRecap, MeetingStatus
 from src.types.segment import Chunk, SegmentResult
+from src.logging import (
+    LoggableError,
+    get_logger,
+    log_error_with_fix,
+    request_context,
+)
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
 
@@ -72,6 +78,7 @@ class StreamingOrchestrator:
         chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
+        self.logger = get_logger("src.service.orchestrator")
         self.scorer = scorer or CoherenceScorer()
         self.tiler = tiler or TextTilingService(TextTilingConfig())
         self.chunker = chunker or ChunkingService()
@@ -90,14 +97,44 @@ class StreamingOrchestrator:
         """
         t0 = time.perf_counter()
         meeting_id = uuid4()
+        n = len(transcript.utterances)
+        if n == 0:
+            self.logger.warning("process_stream called with empty transcript")
+            raise LoggableError(
+                "transcript has no utterances",
+                fix="provide a TranscriptIngestionRequest with non-empty `utterances` or `flat_texts`",
+            )
+        self.logger.info(
+            "orchestrator start n_utterances=%d meeting_id=%s",
+            n, str(meeting_id),
+        )
         segments: list[SegmentResult] = []
         current_segment: SegmentResult | None = None
         pending_utts: list[Utterance] = []
         scores_buffer: list[float] = []
         chunk_counter = 0
         segment_counter = 0
-        n = len(transcript.utterances)
 
+        try:
+            yield from self._process_stream_body(
+                transcript, t0, meeting_id, segments, current_segment,
+                pending_utts, scores_buffer, chunk_counter, segment_counter,
+            )
+        except LoggableError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log_error_with_fix(
+                self.logger, e,
+                fix="check the traceback; common causes: invalid utterance "
+                    "structure, model OOM, or input out of bounds",
+            )
+            raise
+
+    def _process_stream_body(  # type: ignore[no-untyped-def]
+        self, transcript, t0, meeting_id, segments, current_segment,
+        pending_utts, scores_buffer, chunk_counter, segment_counter,
+    ):
+        n = len(transcript.utterances)
         for idx, utt in enumerate(transcript.utterances):
             if idx == 0:
                 # First utterance -- start the first segment
@@ -203,6 +240,10 @@ class StreamingOrchestrator:
             )
 
         processing_time_ms = int((time.perf_counter() - t0) * 1000)
+        self.logger.info(
+            "orchestrator done n_segments=%d n_chunks=%d processing_time_ms=%d",
+            len(segments), sum(len(s.chunks) for s in segments), processing_time_ms,
+        )
         recap = HierarchicalRecap(
             meeting_id=meeting_id,
             segments=segments,

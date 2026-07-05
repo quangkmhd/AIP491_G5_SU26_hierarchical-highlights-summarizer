@@ -15,6 +15,7 @@ from typing import Iterator
 
 import torch
 
+from src.logging import get_logger
 from src.repo.coherence_net import CoherenceNet
 from src.repo.model_loader import ModelLoader
 
@@ -32,21 +33,29 @@ class CoherenceScorer:
     """
 
     def __init__(self, loader: ModelLoader | None = None) -> None:
+        self.logger = get_logger("src.service.coherence_scorer")
         self._loader = loader or ModelLoader.instance()
         # Load the CoherenceNet handle once at construction; this caches the
         # per-process singleton.
+        self.logger.info("loading CoherenceNet (mode CM)")
         self._handle = self._loader.load_coherence_net()
         self._model: CoherenceNet = self._handle.model
         self._tokenizer = self._handle.tokenizer
         self._device = self._handle.device
         # Embedding vocab size for token-id clamping (C4 mitigation)
         self._vocab_size: int = self._model.bert.embeddings.word_embeddings.num_embeddings
+        self.logger.info("CoherenceNet loaded vocab_size=%d device=%s", self._vocab_size, self._device)
 
     def _clamp_input_ids(self, input_ids: torch.Tensor) -> torch.Tensor:
         """Clamp out-of-range token IDs to 0 (UNK) to avoid embedding lookup errors.
 
-        See model-002 _coerce_token_ids for the full rationale.
+        See model-002 _coerce_token_ids for the full rationale. Logs
+        a debug-level message when clamping occurs so operators can see
+        how often the C4 mitigation fires.
         """
+        n_clamped = int((input_ids >= self._vocab_size).sum().item())
+        if n_clamped > 0:
+            self.logger.debug("clamped %d out-of-range token ids to UNK", n_clamped)
         return torch.where(
             input_ids >= self._vocab_size,
             torch.zeros_like(input_ids),

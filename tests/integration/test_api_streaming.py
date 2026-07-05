@@ -50,6 +50,23 @@ class ApiProcessTests(unittest.TestCase):
                     json={"flat_texts": [], "utterances": []},
                 )
                 self.assertEqual(resp.status_code, 422)
+                data = resp.json()
+                self.assertIn("fix", data)
+                self.assertIn("utterances", data["fix"])
+                self.assertIn("X-Request-Id", resp.headers)
+        asyncio.run(_run())
+
+    def test_process_echoes_request_id_header(self) -> None:
+        async def _run() -> None:
+            transport = ASGITransport(app=self.app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(
+                    "/api/v1/meetings/process",
+                    headers={"X-Request-Id": "test-rid-123"},
+                    json={"flat_texts": ["Xin chào.", "Bắt đầu họp."]},
+                )
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.headers["X-Request-Id"], "test-rid-123")
         asyncio.run(_run())
 
 
@@ -87,4 +104,7 @@ class ApiStreamingTests(unittest.TestCase):
                     json={"flat_texts": []},
                 )
                 self.assertEqual(resp.status_code, 422)
+                data = resp.json()
+                self.assertIn("fix", data)
+                self.assertIn("utterances", data["fix"])
         asyncio.run(_run())

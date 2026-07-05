@@ -24,6 +24,7 @@ real utterances ("{vocalsound} Vâng, ạ."). The repo:
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -40,6 +41,7 @@ class TranscriptRepoError(Exception):
 # Placeholder tokens like `{vocalsound}`, `{gap}`, `{disfmarker}`.
 # Matched as standalone tokens (surrounded by whitespace or at boundaries).
 _PLACEHOLDER_PATTERN = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
+logger = logging.getLogger("src.repo.transcript_repo")
 
 
 class TranscriptRepo:
@@ -51,7 +53,14 @@ class TranscriptRepo:
     def load_all(self, path: str | Path) -> list[DialogueTranscript]:
         """Load every dialogue in `path` as a `DialogueTranscript`."""
         records = self._read_json(path)
-        return [self._build_transcript(rec) for rec in records]
+        transcripts = [self._build_transcript(rec) for rec in records]
+        logger.info(
+            "transcripts loaded path=%s records=%d utterances=%d",
+            Path(path),
+            len(transcripts),
+            sum(len(t.utterances) for t in transcripts),
+        )
+        return transcripts
 
     def get_by_dial_id(
         self, path: str | Path, dial_id: int
@@ -59,6 +68,7 @@ class TranscriptRepo:
         """Return the single dialogue with matching `dial_id`."""
         for t in self.load_all(path):
             if t.metadata.get("dial_id") == str(dial_id):
+                logger.debug("transcript found path=%s dial_id=%s utterances=%d", path, dial_id, len(t.utterances))
                 return t
         raise TranscriptRepoError(
             f"dial_id={dial_id} not found in {path}"
@@ -76,6 +86,7 @@ class TranscriptRepo:
             raise TranscriptRepoError(
                 f"Expected a list of records in {p}, got {type(data).__name__}"
             )
+        logger.debug("transcript json read path=%s records=%d", p, len(data))
         return data
 
     @staticmethod
