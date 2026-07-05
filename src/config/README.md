@@ -41,7 +41,7 @@ overrides `cfg.chunking.chunk_size`.
 | `TextTilingConfig` | `cutoff_policy` | `MEETING_RECAP_TEXT_TILING__CUTOFF_POLICY` | "mean+2std" |
 | `ChunkingConfig` | `chunk_size` | `MEETING_RECAP_CHUNKING__CHUNK_SIZE` | 8 (paper-2 §3.3) |
 | `ChunkingConfig` | `overlap` | `MEETING_RECAP_CHUNKING__OVERLAP` | 0 |
-| `HighlightsConfig` | `extractive_window` | `MEETING_RECAP_HIGHLIGHTS__EXTRACTIVE_WINDOW` | 10 (paper-2 §3.3) |
+| ~~`HighlightsConfig`~~ | ~~`extractive_window`~~ | ~~`MEETING_RECAP_HIGHLIGHTS__EXTRACTIVE_WINDOW`~~ | removed in config-001+ (D2) |
 | `AbstractiveConfig` | `context_window` | `MEETING_RECAP_ABSTRACTIVE__CONTEXT_WINDOW` | 512 (paper-2 §3.3) |
 | `LanguageConfig` | `tag` | `MEETING_RECAP_LANGUAGE__TAG` | "vi" |
 | `LanguageConfig` | `model_variant` | `MEETING_RECAP_LANGUAGE__MODEL_VARIANT` | "bert-base-multilingual-cased" |

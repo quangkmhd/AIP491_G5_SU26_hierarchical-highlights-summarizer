@@ -158,3 +158,18 @@ I3 directly).
 - Spec: `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` D1.
 - Plan: `docs/superpowers/plans/2026-07-05-model-001-patch-remove-highlights.md`.
 - Worktree: `.worktrees/feat-model-001-plus` (branch `feat/model-001-plus`).
+
+## config-001+ — Drop HighlightsConfig from MeetingRecapConfig (2026-07-05)
+
+**Status:** passing
+
+- Deleted `src/config/highlights.py` (HighlightsConfig).
+- Removed `HighlightsConfig` import + `__all__` entry from `src/config/__init__.py`.
+- Removed `highlights: HighlightsConfig` field from `MeetingRecapConfig` (now composes 4 sub-configs: TextTilingConfig, ChunkingConfig, AbstractiveConfig, LanguageConfig).
+- Updated `src/config/README.md` env-var table (HIGHLIGHTS__* row marked removed).
+- Deleted `tests/unit/test_config_highlights.py` (5 tests).
+- Updated `tests/unit/test_config_recap.py` (drop `cfg.highlights.*` assertion).
+- Verification: `python3 -m unittest discover -s tests` → 135/135 OK (was 140).
+- AST layer-rule test still green.
+- Spec: `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` D2.
+- Worktree: `.worktrees/feat-config-001-plus` (branch `feat/config-001-plus`).
