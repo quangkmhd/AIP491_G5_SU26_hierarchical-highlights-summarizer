@@ -7,11 +7,11 @@ from unittest import mock
 from src.repo.model_loader import (
     LLM_BACKBONE_ID,
     MockLLMBackbone,
-    ModelHandle,
     ModelKind,
     ModelLoader,
-    NSP_CKPT_PATH_REF,
 )
+from src.repo.prompts_vi import LLMTask
+from src.repo.coherence_net import NSP_CKPT_PATH
 
 
 class TestModelLoaderSingleton(unittest.TestCase):
@@ -33,9 +33,9 @@ class TestModelLoaderSingleton(unittest.TestCase):
         b = ModelLoader.instance()
         self.assertIsNot(a, b)
 
-    def test_nsp_ckpt_path_ref_is_the_project_artifact(self) -> None:
+    def test_nsp_ckpt_path_is_the_project_artifact(self) -> None:
         # Spec D1: cpt_4000.pth is the project's pre-trained artifact.
-        self.assertTrue(NSP_CKPT_PATH_REF.endswith("cpt_4000.pth"))
+        self.assertTrue(NSP_CKPT_PATH.endswith("cpt_4000.pth"))
 
     def test_llm_backbone_id_is_vistral(self) -> None:
         self.assertEqual(LLM_BACKBONE_ID, "Viet-Mistral/Vistral-7B-Chat")
@@ -52,10 +52,10 @@ class TestMockLLMBackbone(unittest.TestCase):
         self.assertEqual(mock_llm.call_count, 1)
         self.assertEqual(mock_llm.last_prompt, "Xin chào")
 
-    def test_mock_handles_all_four_tasks(self) -> None:
+    def test_mock_handles_all_hierarchical_tasks(self) -> None:
         mock_llm = MockLLMBackbone()
-        for task in ("segment", "abstractive", "title", "highlights"):
-            mock_llm.generate(prompt="x", task=task)
+        for task in LLMTask:
+            mock_llm.generate(prompt="x", task=task.value)
         self.assertEqual(mock_llm.call_count, 4)
 
 

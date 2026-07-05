@@ -1,7 +1,7 @@
 // app.js: streaming recap UI client.
 // Connects to /api/v1/meetings/stream and renders chapter cards in place.
 
-const API_BASE = window.__API_BASE__ || "http://localhost:8000";  // override via window.__API_BASE__ for tests
+const API_BASE = window.__API_BASE__ || (window.location.origin && window.location.origin !== "null" && !window.location.origin.startsWith("file:") ? window.location.origin : "http://localhost:8000");
 
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("transcript-input");

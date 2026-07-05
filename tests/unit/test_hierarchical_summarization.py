@@ -56,7 +56,7 @@ class HierarchicalSummarizationTests(unittest.TestCase):
 
     def test_abstractive_truncates_long_response(self) -> None:
         # Patch the mock backbone to return a > 256 char string
-        self.service._backbone.CANNED_RESPONSES["abstractive"] = "x" * 1000
+        self.service._backbone.CANNED_RESPONSES["hierarchical_abstractive"] = "x" * 1000
         chunk = Chunk(utterances=[_u(0)])
         summary = self.service.abstractive(chunk)
         self.assertLessEqual(len(summary), self.service.ABSTRACTIVE_MAX_CHARS)
@@ -75,7 +75,7 @@ class HierarchicalSummarizationTests(unittest.TestCase):
         self.assertLessEqual(len(title), self.service.TITLE_MAX_CHARS)
 
     def test_title_truncates_long_response(self) -> None:
-        self.service._backbone.CANNED_RESPONSES["title"] = "y" * 200
+        self.service._backbone.CANNED_RESPONSES["hierarchical_title"] = "y" * 200
         chunk = Chunk(utterances=[_u(0)])
         seg = SegmentResult(title="x", chunks=[chunk], utterances_start=0, utterances_end=0)
         title = self.service.title(seg)

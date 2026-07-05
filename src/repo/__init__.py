@@ -6,7 +6,6 @@ Public API:
     ModelKind           -- enum of cacheable model identifiers
     MockLLMBackbone     -- offline stand-in for the Vietnamese LLM
     CoherenceNet        -- paper-1 NSP-BERT coherence scorer
-    CoherenceScore      -- float in [0, 1] alias
     _coerce_token_ids   -- clamp token IDs to the model's embedding vocab
     TranscriptRepo      -- reads data/eval_vi JSON into DialogueTranscript
     TranscriptRepoError -- typed error for transcript IO failures
@@ -20,23 +19,23 @@ Public API:
 from __future__ import annotations
 
 from ._io import RepoIOError, read_json_file, write_json_file
-from .coherence_net import CoherenceNet, CoherenceScore, NSP_CKPT_PATH
+from .coherence_net import CoherenceNet, NSP_CKPT_PATH
 from .model_loader import (
     LLM_BACKBONE_ID,
     MockLLMBackbone,
     ModelHandle,
     ModelKind,
     ModelLoader,
-    NSP_CKPT_PATH_REF,
     NSP_ENCODER_ID,
     _coerce_token_ids,
 )
 from .prompts_vi import (
     HIERARCHIC_ABSTRACTIVE_PROMPT_VI,
-    HIERARCHIC_SEGMENT_PROMPT_VI,
     HIERARCHIC_TITLE_PROMPT_VI,
-    HIGHLIGHTS_PROMPT_VI,
     LLMTask,
+    SSDST_ABSTRACTIVE_PROMPT_VI,
+    SSDST_STATE_UPDATE_PROMPT_VI,
+    SYSTEM_PROMPT_VI,
     get_prompt,
 )
 from .recap_repo import RecapRepo, RecapRepoError
@@ -44,7 +43,6 @@ from .transcript_repo import TranscriptRepo, TranscriptRepoError
 
 __all__ = [
     "CoherenceNet",
-    "CoherenceScore",
     "NSP_CKPT_PATH",
     "ModelLoader",
     "ModelHandle",
@@ -52,7 +50,6 @@ __all__ = [
     "MockLLMBackbone",
     "LLM_BACKBONE_ID",
     "NSP_ENCODER_ID",
-    "NSP_CKPT_PATH_REF",
     "_coerce_token_ids",
     "TranscriptRepo",
     "TranscriptRepoError",
@@ -63,8 +60,9 @@ __all__ = [
     "write_json_file",
     "LLMTask",
     "get_prompt",
-    "HIERARCHIC_SEGMENT_PROMPT_VI",
+    "SYSTEM_PROMPT_VI",
     "HIERARCHIC_ABSTRACTIVE_PROMPT_VI",
     "HIERARCHIC_TITLE_PROMPT_VI",
-    "HIGHLIGHTS_PROMPT_VI",
+    "SSDST_ABSTRACTIVE_PROMPT_VI",
+    "SSDST_STATE_UPDATE_PROMPT_VI",
 ]

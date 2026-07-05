@@ -171,3 +171,39 @@ current milestone but should be addressed before the next major one.
     many utterance pairs in tight loops, so this matters at scale.
   - Fix: Stack input dicts across the batch, run BERT once per
     pair-type, then reshape back into `[B, 3, 768]`.
+
+### Important (from code-review-refactor, 2026-07-06)
+
+Five architecturally-confirmed correctness bugs; each needs a dedicated
+bug-fix branch with a failing reproducer test before fixing.
+
+- **C1: Token-ID clamp maps out-of-range IDs to `[PAD]` (0) not `[UNK]` (100)**
+  - File: `src/service/coherence_scorer.py:50-54`, `src/repo/model_loader.py:140-152`
+  - Issue: `_clamp_input_ids` uses `torch.zeros_like(input_ids)` (token ID 0), which is `[PAD]` in `bert-base-multilingual-cased`. The actual `[UNK]` token is ID **100**. Also `_coerce_token_ids` clamps to `vocab_size - 1` (38167), mapping to a random subword, not `[UNK]`. Every Vietnamese utterance produces corrupted coherence scores because padding embeddings replace real unknown-token embeddings.
+  - Fix: Replace `torch.zeros_like(input_ids)` with `torch.full_like(input_ids, 100)` (the actual UNK token id) or better, obtain a 38168-vocab tokenizer from the checkpoint author.
+  - Owner: next agent working on segmentation accuracy (svc-001/svc-002).
+
+- **C2: WinDiff summation cancels disagreements before `abs()` — metric mathematically invalid**
+  - File: `src/eval/segmentation_metrics.py:49-55`
+  - Issue: The implementation adds `+1` for predicted boundary changes and `-1` for true boundary changes BEFORE taking `abs()`. Positive and negative contributions cancel. Correct WinDiff counts disagreements: increment when `pred_change XOR true_change` is 1.
+  - Concrete failure: 5 pred boundaries + 5 true boundaries at different positions → sum=0, `abs(0)=0`, but true WinDiff=10.
+  - Fix: Replace summation logic with XOR-based disagreement counting.
+  - Owner: next agent running quantitative evaluation.
+
+- **H3: `_segments_from_ends` lacks `n` parameter — final segment truncated**
+  - File: `src/eval/segmentation_metrics.py:90-99`
+  - Issue: Docstring says "Last end is forced to n-1" but the function takes no `n` and performs no forcing. A 25-utterance dialogue with `ends=[13, 18, 22]` silently drops utterances 23-24.
+  - Fix: Add `n` parameter and force `ends[-1] = n - 1` at call sites.
+  - Owner: next agent running evaluation against real corpora.
+
+- **H5: `CHUNK_CLOSED` events not emitted for mid-segment chunks in `process_stream`**
+  - File: `src/service/meeting_recap_orchestrator.py:140-155`
+  - Issue: `_flush_chunks_up_to` fills chunks into `current_segment.chunks` via side-effect mutation but yields no `CHUNK_CLOSED` events. Only the trailing-segment closing path emits them. Consumers relying on `CHUNK_CLOSED` for incremental UI see zero chunk progress until the very end.
+  - Fix: Yield `CHUNK_CLOSED` from `_flush_chunks_up_to` (return events instead of mutating silently).
+  - Owner: next agent building the streaming UI or SSE client.
+
+- **H6/H7: Orchestrator boundary overlap — same utterance counted twice, metadata out-of-sync**
+  - File: `src/service/meeting_recap_orchestrator.py:131, 140, 163, 165, 253-254`
+  - Issue: When `_detect_boundary` returns `len(scores)`, the old segment's `utterances_end` is set to the boundary utterance, and the new segment's `utterances_start` is ALSO the boundary utterance — double-counting. Additionally, the old segment claims the boundary utterance via metadata but it was never chunked into that segment (transferred to new segment via `pending_utts = pending_utts[boundary:]`). Segment boundary metadata is inconsistent with chunk contents.
+  - Fix: (1) New segment starts at `boundary` not `boundary_index`; (2) Set `utterances_end` to the last utterance ACTUALLY chunked, not the one passed to `_flush_chunks_up_to`.
+  - Owner: next agent working on the orchestrator pipeline (runtime-002 or streaming-orchestrator).

@@ -27,6 +27,7 @@ import torch
 from src.repo import (
     LLMTask,
     ModelLoader,
+    SYSTEM_PROMPT_VI,
     get_prompt,
 )
 from src.repo.coherence_net import NSP_CKPT_PATH
@@ -66,10 +67,11 @@ def main() -> int:
         return 2
 
     # Sanity: prompts are present.
+    assert SYSTEM_PROMPT_VI.strip(), "empty system prompt"
     for task in LLMTask:
         prompt = get_prompt(task)
         assert prompt.strip(), f"empty prompt for {task}"
-    logger.info("4 Vietnamese prompt templates loaded")
+    logger.info("Vietnamese system prompt and %d task templates loaded", len(LLMTask))
 
     # LLM load (offline by default in this smoke run).
     if os.environ.get("MODEL_LOAD_LLM", "0") == "0":

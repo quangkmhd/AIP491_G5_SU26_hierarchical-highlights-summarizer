@@ -27,14 +27,9 @@ for pairwise scoring (Thakur et al., 2021).
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NewType
 
 import torch
 from torch import nn
-
-# CoherenceScore is a unit-less float in [0, 1]; declared as a NewType
-# for static type-checking only (it is a plain float at runtime).
-CoherenceScore = NewType("CoherenceScore", float)
 
 # Path to the project's pre-trained NSP checkpoint.
 # The file is git-ignored (see .gitignore) but ships in the local clone.

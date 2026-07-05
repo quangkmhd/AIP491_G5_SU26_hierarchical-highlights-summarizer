@@ -41,7 +41,6 @@ class ModelKind(str, Enum):
 # Backbone choices (spec D2).
 LLM_BACKBONE_ID: str = "Viet-Mistral/Vistral-7B-Chat"
 NSP_ENCODER_ID: str = "bert-base-multilingual-cased"
-NSP_CKPT_PATH_REF: str = NSP_CKPT_PATH
 
 
 @dataclass(frozen=True)
@@ -63,10 +62,10 @@ class MockLLMBackbone:
     """
 
     CANNED_RESPONSES: ClassVar[dict[str, str]] = {
-        "segment": "0.5",
-        "abstractive": "Nhóm đã thảo luận về chủ đề này.",
-        "title": "Chương mẫu",
-        "highlights": '[{"type": "key_point", "text": "Điểm nhấn mẫu."}]',
+        "hierarchical_abstractive": '{"notes": [{"chunk_id": "mock", "summary": "Nhóm đã thảo luận về chủ đề này.", "contains_key_point": false, "contains_action_item": false}]}',
+        "hierarchical_title": '{"title": "Chương mẫu", "one_line_summary": "none"}',
+        "ssdst_abstractive": '{"notes": [{"chunk_id": "mock", "summary": "Nhóm đã cập nhật trạng thái chủ đề.", "contains_key_point": false, "contains_action_item": false}]}',
+        "ssdst_state_update": '{"current_topic": "", "entities": [], "decisions": [], "open_actions": [], "resolved_references": []}',
     }
 
     def __init__(self) -> None:

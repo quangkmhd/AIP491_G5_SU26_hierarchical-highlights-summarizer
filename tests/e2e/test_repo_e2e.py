@@ -29,7 +29,6 @@ import unittest
 from pathlib import Path
 
 from src.repo import (
-    CoherenceScore,
     ModelLoader,
     NSP_CKPT_PATH,
     RecapRepo,
@@ -165,7 +164,7 @@ class TestRepoLayerEndToEnd(unittest.TestCase):
         # Shape [B, 3, 2]; pull the positive-pair score (index 0, dim 1).
         self.assertEqual(out.shape, (len(batch), 3, 2))
         for i, sample_pair in enumerate(batch):
-            score: CoherenceScore = float(out[i, 0, 0])
+            score: float = float(out[i, 0, 0])
             self.assertGreaterEqual(score, 0.0)
             self.assertLessEqual(score, 1.0)
 

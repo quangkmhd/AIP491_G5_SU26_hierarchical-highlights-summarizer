@@ -18,7 +18,7 @@ class Corpus(str, Enum):
 
 # Per-corpus metadata. avg_turns is computed once from the corpus file
 # and cached here; if the corpus file changes, recompute and update.
-CORPUS_METADATA: dict[Corpus, dict[str, str | int]] = {
+CORPUS_METADATA: dict[Corpus, dict[str, str]] = {
     Corpus.DIALSEG_711: {
         "language": "en",
         "source": "DialSeg_711 (Xu et al., 2021) -- task-oriented English dialogues",

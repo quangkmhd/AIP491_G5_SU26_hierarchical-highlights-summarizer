@@ -52,7 +52,6 @@ class DefaultsFlowTests(unittest.TestCase):
         self.assertEqual(cfg.text_tiling.window_size, 30)
         self.assertEqual(cfg.text_tiling.stride, 10)
         self.assertEqual(cfg.chunking.chunk_size, 8)
-        self.assertEqual(cfg.highlights.extractive_window, 10)
         self.assertEqual(cfg.abstractive.context_window, 512)
         self.assertEqual(cfg.language.tag, "vi")
 

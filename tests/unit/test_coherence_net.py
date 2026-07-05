@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 
-from src.repo.coherence_net import CoherenceNet, CoherenceScore, NSP_CKPT_PATH
+from src.repo.coherence_net import CoherenceNet, NSP_CKPT_PATH
 
 CKPT = Path(NSP_CKPT_PATH)
 CKPT_EXISTS = CKPT.exists()
@@ -98,14 +98,6 @@ class TestCoherenceNetLoad(unittest.TestCase):
         score = float(out[0, 0, 0])
         self.assertGreaterEqual(score, 0.0)
         self.assertLessEqual(score, 1.0)
-
-
-class TestCoherenceNetNoCheckpoint(unittest.TestCase):
-    def test_coherence_score_is_usable_as_float(self) -> None:
-        # NewType is a static-only annotation; the runtime is a plain float.
-        score: float = CoherenceScore(0.42)
-        self.assertEqual(score, 0.42)
-        self.assertIsInstance(score, float)
 
 
 if __name__ == "__main__":
