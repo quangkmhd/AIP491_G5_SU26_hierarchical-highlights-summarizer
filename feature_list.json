@@ -198,7 +198,7 @@
       "area": "service",
       "title": "Implement Hierarchical Chunking (8-utterance blocks)",
       "user_visible_behavior": "Given a SegmentResult with more than 8 utterances, ChunkingService returns an ordered list of Chunks each containing <= 8 contiguous utterances, ready to be fed into the abstractive summarizer.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "ChunkingService.chunk(segment) on a 30-utt segment returns 4 chunks (8+8+8+6).",
         "Each Chunk.utterances indices are contiguous and respect the parent segment's utterances_start/end range.",
@@ -206,8 +206,9 @@
         "Empty segment input raises a typed ValueError with 'empty segment' message."
       ],
       "evidence": [
-        "src/service/chunking_service.py: ChunkingService with deterministic 8-utt slicing.",
-        "tests/unit/test_chunking_service.py: 4 cases (exactly 8, less than 8, more than 8, empty)."
+        "src/service/chunking_service.py: ChunkingService with chunk() and chunk_indices(); CHUNK_SIZE = 8 = Chunk.MAX_CHUNK_SIZE",
+        "src/service/__init__.py: re-exports ChunkingService",
+        "tests/unit/test_chunking_service.py: 11 tests (8/30/7/1 utt cases, empty raises, indices, unique IDs, order preserved)"
       ],
       "notes": "Per paper-2 §3.2: 8-utterance chunks are the input size for hierarchical_abstractive. The Chunk model already enforces MAX_CHUNK_SIZE=8 (model-001+). No overlap in MVP — paper-2 doesn't specify an overlap, and the deBERTa context window (512 tokens) is well above 8 utt."
     },

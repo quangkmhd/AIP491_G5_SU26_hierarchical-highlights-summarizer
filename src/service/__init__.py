@@ -11,3 +11,5 @@ __all__ = [
     "SegmentEvent",
     "TextTilingService",
 ]
+from .chunking_service import ChunkingService
+__all__.append("ChunkingService")
