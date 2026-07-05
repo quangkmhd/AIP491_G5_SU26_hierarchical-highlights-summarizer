@@ -68,7 +68,7 @@
       "patch_of": "model-001",
       "merge_rationale": "Highlights pipeline (DR1) is removed from product scope; the Highlight, HighlightType, HighlightSource data models and the highlights_notes/highlights_tasks fields on HierarchicalRecap are deleted to keep the type system minimal. model-001 stays passing but loses 5-7 highlight-related test cases.",
       "user_visible_behavior": "The Types layer exposes Utterance, DialogueTranscript, Chunk, SegmentResult, HierarchicalRecap, MeetingStatus, TranscriptIngestionRequest, MeetingProcessResponse (no Highlight family). HierarchicalRecap.model_dump_json() contains only segments + meeting_id + generated_at + processing_time_ms + status. Utterance remains frozen; indices 0..N-1 contiguous; MAX_UTTERANCES=5000; MAX_CHUNK_SIZE=8 still enforced.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "src/types/highlight.py is deleted.",
         "HierarchicalRecap.model_dump_json() contains no 'highlights_notes' or 'highlights_tasks' keys.",
@@ -77,11 +77,13 @@
         "tests/manual/test_meeting_committee_sample.py: 370-utterance round-trip still produces a valid HierarchicalRecap with only segments."
       ],
       "evidence": [
-        "src/types/highlight.py: deleted.",
-        "src/types/hierarchical_recap.py: highlights_notes/highlights_tasks fields removed.",
-        "src/types/__init__.py: Highlight/HighlightType/HighlightSource re-exports removed.",
-        "tests/unit/test_types.py: 38 -> ~31 tests; highlight cases rewritten as 'no-highlights assertion'.",
-        "tests/manual/test_meeting_committee_sample.py: regression test still passes."
+        "src/types/highlight.py: deleted (model-001+ D1)",
+        "src/types/hierarchical_recap.py: highlights_notes/highlights_tasks fields removed; all_highlights property removed",
+        "src/types/schemas.py: HighlightUpsertRequest class + __all__ entry removed",
+        "src/types/__init__.py: Highlight/HighlightType/HighlightSource/HighlightUpsertRequest re-exports removed",
+        "tests/unit/test_types.py: HighlightTests class deleted; test_empty_recap and test_aggregates_segments rewritten; new test_model_dump_contains_no_highlights_keys + meeting-committee no-highlights assertions",
+        "tests/manual/test_meeting_committee_sample.py: Highlight import + highlights_notes/tasks construction removed; smoke test still green (8 segments, 50 chunks)",
+        "docs/superpowers/plans/2026-07-05-model-001-patch-remove-highlights.md: implementation plan (completed)"
       ],
       "notes": "Migration discipline: this is a patch to a passing feature. Per core-beliefs.md 'A code review that finds Important or Critical issues must result in code changes in the same session' — the decision to drop DR1 has the same urgency. Order: (1) update test_types.py to drop highlight cases, (2) delete src/types/highlight.py, (3) update src/types/hierarchical_recap.py to remove highlights_* fields, (4) update src/types/__init__.py re-exports, (5) re-run full suite — expect 31/31 (or 132/132 across the repo after all migrations) green."
     },

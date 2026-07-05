@@ -22,9 +22,6 @@ sys.path.insert(0, str(REPO_ROOT))
 from src.types import (
     Chunk,
     DialogueTranscript,
-    Highlight,
-    HighlightSource,
-    HighlightType,
     HierarchicalRecap,
     SegmentResult,
     TranscriptIngestionRequest,
@@ -72,20 +69,6 @@ def _build_recap(sample: dict) -> HierarchicalRecap:
         meeting_id=UUID(int=(sample["dial_id"] + 1) * (10**12)),
         segments=segments,
         meeting_title=transcript.meeting_title,
-        highlights_notes=[
-            Highlight(
-                text="Đây là một ghi chú AI mẫu.",
-                type=HighlightType.KEY_POINT,
-                source=HighlightSource.AUTO,
-            )
-        ],
-        highlights_tasks=[
-            Highlight(
-                text="Gửi báo cáo tuần tới cho Ủy ban.",
-                type=HighlightType.ACTION_ITEM,
-                source=HighlightSource.AUTO,
-            )
-        ],
     )
 
 
@@ -108,8 +91,6 @@ def main() -> int:
     print(f"meeting_title  : {recap.meeting_title}")
     print(f"segments       : {recap.segment_count}")
     print(f"total_chunks   : {recap.total_chunks}")
-    print(f"highlights     : notes={len(recap.highlights_notes)} "
-          f"tasks={len(recap.highlights_tasks)}")
     print(f"first segment  : '{recap.segments[0].title}' "
           f"({recap.segments[0].utterance_count} utts, "
           f"{recap.segments[0].chunk_count} chunks)")

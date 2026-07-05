@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from pydantic import Field
 
 from ._base import BaseSchema
-from .highlight import Highlight
+# Highlight family removed in model-001+ (DR1 dropped from scope).
 from .segment import SegmentResult
 
 
@@ -26,8 +26,9 @@ class MeetingStatus(str, Enum):
 class HierarchicalRecap(BaseSchema):
     """The complete hierarchical meeting recap output.
 
-    Contains all topic-segmented chapters with their titles, rolling summaries,
-    and all extracted/user-created highlights (notes and tasks).
+    Contains all topic-segmented chapters with their titles and rolling
+    summaries. Highlights (notes and tasks) were removed in model-001+ because
+    the product surface is hierarchical-only (DR1 dropped from scope).
     """
 
     meeting_id: UUID = Field(
@@ -42,14 +43,6 @@ class HierarchicalRecap(BaseSchema):
         default_factory=list,
         description="Topic-segmented chapters in chronological order.",
     )
-    highlights_notes: list[Highlight] = Field(
-        default_factory=list,
-        description="Global key-point highlights (UI calls these 'AI notes').",
-    )
-    highlights_tasks: list[Highlight] = Field(
-        default_factory=list,
-        description="Global action-item highlights (UI calls these 'AI tasks').",
-    )
     generated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="UTC timestamp the recap was generated.",
@@ -59,10 +52,6 @@ class HierarchicalRecap(BaseSchema):
         ge=0,
         description="Total processing time in milliseconds.",
     )
-
-    @property
-    def all_highlights(self) -> list[Highlight]:
-        return [*self.highlights_notes, *self.highlights_tasks]
 
     @property
     def segment_count(self) -> int:

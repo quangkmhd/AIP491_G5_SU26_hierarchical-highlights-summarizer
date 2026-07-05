@@ -141,3 +141,20 @@ I3 directly).
   `config-001-config` extended with the code-review summary.
 - `docs/exec-plans/tech-debt-tracker.md`: M2 (`_default_env_file`
   class-body resolution) recorded as Minor.
+
+## model-001+ — Remove Highlights Data Models (2026-07-05)
+
+**Status:** passing
+
+- Deleted `src/types/highlight.py` (Highlight, HighlightType, HighlightSource).
+- Removed `highlights_notes` and `highlights_tasks` fields from `HierarchicalRecap`; removed `all_highlights` property.
+- Removed `HighlightUpsertRequest` from `src/types/schemas.py` and the corresponding `__all__` entry.
+- Updated `src/types/__init__.py` to drop Highlight re-exports.
+- Rewrote `tests/unit/test_types.py`: deleted `HighlightTests` class; added `test_model_dump_contains_no_highlights_keys` in `HierarchicalRecapTests`; rewrote `MeetingCommitteeSampleTests` to drop highlights.
+- Updated `tests/manual/test_meeting_committee_sample.py` to drop Highlight imports and the highlights_* recap fields.
+- Verification: `python3 -m unittest discover -s tests -v` → 140/140 tests pass (was 144 before; 4 tests removed in HighlightTests class).
+- Manual smoke: `python3 tests/manual/test_meeting_committee_sample.py` → 8 segments, 50 chunks, output JSON has no `highlights_*` keys.
+- AST layer-rule test (`tests/unit/test_repo_layer_rules.py`) still green: no cross-layer imports introduced.
+- Spec: `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` D1.
+- Plan: `docs/superpowers/plans/2026-07-05-model-001-patch-remove-highlights.md`.
+- Worktree: `.worktrees/feat-model-001-plus` (branch `feat/model-001-plus`).

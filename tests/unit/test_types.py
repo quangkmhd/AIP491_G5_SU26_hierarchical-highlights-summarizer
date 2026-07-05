@@ -23,10 +23,6 @@ from src.types import (
     BaseSchema,
     Chunk,
     DialogueTranscript,
-    Highlight,
-    HighlightSource,
-    HighlightType,
-    HighlightUpsertRequest,
     HierarchicalRecap,
     MeetingProcessResponse,
     MeetingStatus,
@@ -200,52 +196,18 @@ class SegmentResultTests(unittest.TestCase):
         self.assertNotIn("segment_uuid", SegmentResult.model_fields)
 
 
-class HighlightTests(unittest.TestCase):
-    def test_default_is_key_point(self) -> None:
-        h = Highlight(text="something")
-        self.assertEqual(h.type, HighlightType.KEY_POINT)
-        self.assertEqual(h.source, HighlightSource.AUTO)
-        self.assertFalse(h.starred)
-        self.assertFalse(h.checked)
-        self.assertIsInstance(h.highlight_id, UUID)
-
-    def test_wire_format_uses_canonical_values(self) -> None:
-        """Wire format uses canonical 'key_point' / 'action_item'."""
-        self.assertEqual(
-            Highlight(text="n", type=HighlightType.KEY_POINT).model_dump()["type"],
-            "key_point",
-        )
-        self.assertEqual(
-            Highlight(text="t", type=HighlightType.ACTION_ITEM).model_dump()["type"],
-            "action_item",
-        )
-
-    def test_canonical_enum_values(self) -> None:
-        # The wire-format values are the canonical strings; UX labels
-        # ("note" / "task") are applied at the i18n boundary, not in the enum.
-        self.assertEqual(HighlightType.KEY_POINT.value, "key_point")
-        self.assertEqual(HighlightType.ACTION_ITEM.value, "action_item")
-        # The enum has exactly two members, no hidden aliases.
-        self.assertEqual(set(HighlightType), {HighlightType.KEY_POINT, HighlightType.ACTION_ITEM})
-
-    def test_toggle_star_and_check(self) -> None:
-        h = Highlight(text="x", type=HighlightType.ACTION_ITEM)
-        h2 = h.toggle_star()
-        self.assertTrue(h2.starred)
-        self.assertFalse(h.starred, "original should remain immutable")
-        h3 = h2.toggle_check()
-        self.assertTrue(h3.checked)
-
-
 class HierarchicalRecapTests(unittest.TestCase):
     def test_empty_recap(self) -> None:
         r = HierarchicalRecap()
         self.assertEqual(r.segment_count, 0)
         self.assertEqual(r.total_chunks, 0)
-        self.assertEqual(r.all_highlights, [])
         self.assertIsInstance(r.meeting_id, UUID)
+        # Highlights (notes/tasks) were removed in model-001+ (D1).
+        dumped = r.model_dump(mode="json")
+        self.assertNotIn("highlights_notes", dumped)
+        self.assertNotIn("highlights_tasks", dumped)
 
-    def test_aggregates_segments_and_highlights(self) -> None:
+    def test_aggregates_segments(self) -> None:
         seg = SegmentResult(
             title="t",
             chunks=[
@@ -255,18 +217,21 @@ class HierarchicalRecapTests(unittest.TestCase):
             utterances_start=0,
             utterances_end=1,
         )
-        note = Highlight(text="note-1", type=HighlightType.KEY_POINT)
-        task = Highlight(text="task-1", type=HighlightType.ACTION_ITEM)
-        recap = HierarchicalRecap(
-            segments=[seg],
-            highlights_notes=[note],
-            highlights_tasks=[task],
-        )
+        recap = HierarchicalRecap(segments=[seg])
         self.assertEqual(recap.segment_count, 1)
         self.assertEqual(recap.total_chunks, 2)
-        self.assertEqual(len(recap.all_highlights), 2)
-        self.assertIn(note, recap.all_highlights)
-        self.assertIn(task, recap.all_highlights)
+
+    def test_model_dump_contains_no_highlights_keys(self) -> None:
+        """After model-001+ (D1), the recap carries no highlights_* fields."""
+        recap = HierarchicalRecap()
+        dumped = recap.model_dump(mode="json")
+        self.assertNotIn("highlights_notes", dumped)
+        self.assertNotIn("highlights_tasks", dumped)
+        expected_keys = {
+            "meeting_id", "meeting_title", "segments",
+            "generated_at", "processing_time_ms",
+        }
+        self.assertEqual(set(dumped.keys()), expected_keys)
 
 
 class ApiSchemaTests(unittest.TestCase):
@@ -301,14 +266,6 @@ class ApiSchemaTests(unittest.TestCase):
             )
         self.assertIn("not both", str(ctx.exception))
 
-    def test_highlight_upsert_request(self) -> None:
-        h = HighlightUpsertRequest(
-            type=HighlightType.ACTION_ITEM,
-            text="Gửi báo cáo",
-            starred=True,
-        )
-        self.assertEqual(h.type, HighlightType.ACTION_ITEM)
-        self.assertTrue(h.starred)
 
     def test_meeting_process_response(self) -> None:
         resp = MeetingProcessResponse(
@@ -403,22 +360,16 @@ class MeetingCommitteeSampleTests(unittest.TestCase):
         recap = HierarchicalRecap(
             segments=segments,
             meeting_title=f"Committee Meeting {sample['dial_id']}",
-            highlights_notes=[
-                Highlight(text="AI note example", type=HighlightType.KEY_POINT),
-            ],
-            highlights_tasks=[
-                Highlight(
-                    text="Gửi báo cáo tuần tới",
-                    type=HighlightType.ACTION_ITEM,
-                ),
-            ],
         )
         self.assertEqual(recap.segment_count, len(seg_lengths))
         self.assertEqual(
             recap.total_chunks,
             sum(len(cs) for cs in chunks_per_segment),
         )
-        self.assertEqual(len(recap.all_highlights), 2)
+        # Highlights (notes/tasks) were removed in model-001+ (D1).
+        # The recap carries only segments and lifecycle metadata.
+        self.assertNotIn("highlights_notes", recap.model_dump(mode="json"))
+        self.assertNotIn("highlights_tasks", recap.model_dump(mode="json"))
 
         # Round-trip via JSON
         as_json = recap.model_dump_json()
