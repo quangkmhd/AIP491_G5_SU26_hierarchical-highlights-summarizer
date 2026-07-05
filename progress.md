@@ -240,3 +240,15 @@ I3 directly).
 - CLI: `python -m src.runtime.cli process|stream <transcript.json>` with `--output` flag.
 - 5 unit tests (CLI) + 4 integration tests (FastAPI via httpx ASGITransport) + 1 AST runtime-layer rule.
 - Verification: 210/210 tests pass (was 200; +10 new).
+
+## ui-001+002+streaming — Web Prototype (Hierarchical, Streaming) (2026-07-05)
+
+**Status:** passing (structure tests)
+
+- Created `src/ui/{__init__,index.html,styles.css,app.js}`.
+- Single-page prototype: textarea input + Process button; results area shows chapter cards as SSE events arrive.
+- SSE parsing: `event: <type>\ndata: <json>\n\n`. On `segment-closed` adds card with skeleton title; on `title-emitted` replaces skeleton; on `chunk-closed` appends chunk item with rolling_summary.
+- Each card has Copy (clipboard) + Show-Context (3 surrounding utt) buttons.
+- No Highlights tab (DR1 dropped).
+- 4 Playwright structure tests (title, input elements, no Highlights tab, static assets served). End-to-end streaming manually verified via curl.
+- Verification: 214/214 tests pass (was 210; +4 new).
