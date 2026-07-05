@@ -210,3 +210,12 @@ I3 directly).
 - Slices utterances into 8-utt Chunks (no overlap; paper-2 §3.2 spec).
 - 11 unit tests covering 8/30/7/1 utterance cases, empty input raises, indices, unique IDs, order preservation.
 - Verification: full suite green.
+
+## svc-004 — Hierarchical Summarization (2026-07-05)
+
+**Status:** passing
+
+- Created `src/service/hierarchical_summarization.py` with `title(segment)` and `abstractive(chunk)`.
+- Uses `ModelLoader.load_llm_backbone()` → MockLLMBackbone at MVP via `MODEL_LOAD_LLM=0`.
+- 8 unit tests covering nonempty output, truncation at TITLE_MAX_CHARS=64 / ABSTRACTIVE_MAX_CHARS=256, empty segment, 3rd-person marker ("Nhóm"), helper method.
+- Verification: 191/191 tests pass (was 183; +8 new).
