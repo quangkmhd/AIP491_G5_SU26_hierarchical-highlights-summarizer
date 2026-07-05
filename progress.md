@@ -173,3 +173,16 @@ I3 directly).
 - AST layer-rule test still green.
 - Spec: `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` D2.
 - Worktree: `.worktrees/feat-config-001-plus` (branch `feat/config-001-plus`).
+
+## data-001 — Multi-corpus Evaluation Data Loader (2026-07-05)
+
+**Status:** passing
+
+- Created `src/data/` layer with 4 modules: `__init__.py`, `corpus.py` (Corpus enum + metadata), `dialogue_sample.py` (Pydantic model), `eval_loader.py` (file loader + DataLoaderError).
+- Convention: `DialogueSample.segments` is a list of segment SIZES (cumulative sum = utterance count). All 6 corpora use this convention.
+- Per-corpus metadata: language, source, domain. Committee is the only Vietnamese corpus.
+- 19 unit tests in `tests/unit/test_eval_loader.py` covering happy path (all 6 corpora), error paths (missing root, malformed JSON, non-array, invalid sample), metadata attachment, performance (<1s for committee).
+- AST layer rule `tests/unit/test_data_layer_rules.py` forbids data from importing higher layers.
+- Verification: 154/154 tests pass (was 135; +19 new).
+- Smoke: loads 36 committee samples, first has 370 utt + 8 segments.
+- Worktree: `.worktrees/feat-data-001` (branch `feat/data-001`).

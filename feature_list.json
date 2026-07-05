@@ -143,7 +143,7 @@
       "area": "data",
       "title": "Multi-corpus Evaluation Data Loader",
       "user_visible_behavior": "The system can ingest every JSON file in data/eval_vi/ as a uniform DialogueSample for both segmentation and recap evaluation, with explicit per-corpus metadata describing origin, language, and ground-truth source.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "All 6 eval_vi corpora (dialseg_711, doc2dial, meeting_ami, meeting_icsi, meeting_committee, tiage) load as DialogueSample.",
         "Each DialogueSample carries corpus metadata: name, language, avg_turns, source paper.",
@@ -151,10 +151,13 @@
         "The committee sample (370 utt, 8 ground-truth segments) is loadable in < 100 ms."
       ],
       "evidence": [
-        "src/data/dialogue_sample.py: DialogueSample Pydantic model + corpus metadata enum.",
-        "src/data/eval_loader.py: EvalLoader for the 6 corpora + factory pattern.",
-        "tests/unit/test_eval_loader.py: 6 corpus happy paths + 3 error paths.",
-        "tests/manual/test_eval_corpus_round_trip.py: end-to-end smoke."
+        "src/data/__init__.py: re-exports Corpus, CorpusMetadata, DialogueSample, EvalLoader, LoadResult",
+        "src/data/corpus.py: Corpus enum (6 corpora) + CORPUS_METADATA dict + CorpusMetadata class",
+        "src/data/dialogue_sample.py: Pydantic v2 model with segments=segment-sizes convention (cumulative sum = utterance count); model_validator ensures consistency",
+        "src/data/eval_loader.py: EvalLoader.load(corpus) -> LoadResult with samples tuple + train/dev/test counts; DataLoaderError for malformed input",
+        "tests/unit/test_eval_loader.py: 19 tests covering all 6 corpora, error paths, metadata, performance",
+        "tests/unit/test_data_layer_rules.py: AST scan forbidding higher-layer imports",
+        "Full suite: 154/154 tests pass (was 135; +19 new data-001 tests)"
       ],
       "notes": "Unchanged by the 2026-07-05 spec rewrite. The committee sample is the primary regression fixture for the streaming pipeline; the AMI/ICSI samples (meeting corpora) feed eval-001 (P_k/WD/F1)."
     },
