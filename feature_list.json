@@ -118,7 +118,7 @@
       "patch_of": "config-001",
       "merge_rationale": "HighlightsConfig only existed to feed svc-005 (highlights pipeline), which is removed. With the consumer gone, the config is dead code; keeping it would mean a config option whose consumer is gone.",
       "user_visible_behavior": "MeetingRecapConfig composes 4 sub-configs (TextTilingConfig, ChunkingConfig, AbstractiveConfig, LanguageConfig). All paper-derived magic numbers (window=30, stride=10, chunk_size=8, 106/225/512 token contexts) are exposed as named, validated Pydantic-Settings objects. Env-var namespace MEETING_RECAP_<SUB>__<FIELD> works; MEETING_RECAP_HIGHLIGHTS__* is no longer recognised.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "src/config/highlights.py is deleted.",
         "tests/unit/test_config_highlights.py is deleted.",
@@ -127,11 +127,13 @@
         "AST layer rule still green: src/config/ has zero imports from types/repo/service/runtime/ui."
       ],
       "evidence": [
-        "src/config/highlights.py: deleted.",
-        "src/config/recap.py: highlights field removed from MeetingRecapConfig.",
-        "src/config/__init__.py: HighlightsConfig removed from re-exports.",
-        "src/config/README.md: MEETING_RECAP_HIGHLIGHTS__* env-var row deleted.",
-        "tests/unit/test_config_recap.py: HIGHLIGHTS env-var tests removed."
+        "src/config/highlights.py: deleted (config-001+ D2)",
+        "src/config/__init__.py: HighlightsConfig import + __all__ entry removed; docstring updated",
+        "src/config/recap.py: highlights field + HighlightsConfig import removed from MeetingRecapConfig (now 4 sub-configs)",
+        "src/config/README.md: HIGHLIGHTS__* env-var row marked removed",
+        "tests/unit/test_config_highlights.py: deleted (5 tests removed)",
+        "tests/unit/test_config_recap.py: cfg.highlights.extractive_window assertion + sub loop updated",
+        "Full suite: 135/135 tests pass (was 140; 5 tests from test_config_highlights.py removed)"
       ],
       "notes": "Same migration discipline as model-001+ — delete + test update in the same session. Order: (1) update test_config_recap.py to drop HIGHLIGHTS tests, (2) delete src/config/highlights.py, (3) update src/config/recap.py to remove the highlights field, (4) update src/config/__init__.py re-exports, (5) re-run full suite."
     },

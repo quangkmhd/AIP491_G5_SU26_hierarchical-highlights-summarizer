@@ -38,7 +38,7 @@ class ComposeTests(unittest.TestCase):
         self.assertEqual(cfg.text_tiling.stride, 10)
         self.assertEqual(cfg.chunking.chunk_size, 8)
         self.assertEqual(cfg.chunking.overlap, 0)
-        self.assertEqual(cfg.highlights.extractive_window, 10)
+        # HighlightsConfig removed in config-001+ (D2).
         self.assertEqual(cfg.abstractive.context_window, 512)
         self.assertEqual(cfg.language.tag, "vi")
         self.assertEqual(cfg.language.model_variant, "bert-base-multilingual-cased")
@@ -49,7 +49,7 @@ class ComposeTests(unittest.TestCase):
     def test_sub_configs_are_frozen_instances(self) -> None:
         cfg = MeetingRecapConfig(_env_file=None)
         # Sub-configs are BaseSettings instances and are frozen.
-        for sub in (cfg.text_tiling, cfg.chunking, cfg.highlights,
+        for sub in (cfg.text_tiling, cfg.chunking,
                     cfg.abstractive, cfg.language):
             self.assertIsInstance(sub, ConfigBase)
             with self.assertRaises(ConfigError):

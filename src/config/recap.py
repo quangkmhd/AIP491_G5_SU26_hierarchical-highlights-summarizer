@@ -24,7 +24,7 @@ from pydantic_settings import SettingsConfigDict
 from ._base import ConfigBase
 from .abstractive import AbstractiveConfig
 from .chunking import ChunkingConfig
-from .highlights import HighlightsConfig
+# HighlightsConfig removed in config-001+ (D2).
 from .language import LanguageConfig
 from .text_tiling import TextTilingConfig
 
@@ -57,7 +57,7 @@ class MeetingRecapConfig(ConfigBase):
 
     text_tiling: TextTilingConfig = Field(default_factory=TextTilingConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
-    highlights: HighlightsConfig = Field(default_factory=HighlightsConfig)
+    # highlights: HighlightsConfig -- removed in config-001+ (D2).
     abstractive: AbstractiveConfig = Field(default_factory=AbstractiveConfig)
     language: LanguageConfig = Field(default_factory=LanguageConfig)
 
