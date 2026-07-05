@@ -15,11 +15,7 @@ sys.path.insert(0, str(ROOT))
 import pydantic
 
 from src.config import (
-    AbstractiveConfig,
-    ChunkingConfig,
     ConfigBase,
-    HighlightsConfig,
-    LanguageConfig,
     MeetingRecapConfig,
     TextTilingConfig,
 )

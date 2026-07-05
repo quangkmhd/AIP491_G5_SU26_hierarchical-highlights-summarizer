@@ -79,3 +79,10 @@ None at this time. All 6 decisions (D1-D6) from the spec are locked.
 - Commits: 11 commits (337af7c .. 65eebce)
 - Files: 9 src + 7 test + 3 docs (spec amendment, plan note, this archive move) = 19 files.
 - Plan corrections applied during execution: 3 (documented in plan's "Implementation findings" section + spec D3/D5).
+
+
+## Code review
+
+- 2026-07-05: inline code review (`docs/generated/review-2026-07-05-config-001.md`).
+  Verdict: ready to merge with 1 Minor fix applied (unused imports in test_config_recap.py) and 1 Minor filed as tech debt (`_default_env_file()` class-body resolution).
+  No critical or important issues.

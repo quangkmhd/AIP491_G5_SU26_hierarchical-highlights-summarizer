@@ -84,6 +84,15 @@ current milestone but should be addressed before the next major one.
     The next repo added will copy one of these two patterns.
   - Required before: adding a third repo (e.g. `HighlightsRepo`).
 
+### Minor (from config-001 code review, 2026-07-05)
+
+- **`_default_env_file()` runs at class-body definition**
+  - File: `src/config/recap.py:32-38` (function) and `src/config/recap.py:50` (use)
+  - Issue: `env_file=_default_env_file()` is evaluated once when `MeetingRecapConfig` is first imported. If a caller sets `MEETING_RECAP_ENV_FILE` *after* import (e.g. in a test setUp), the override is silently ignored and the class falls back to the env-var-or-default value captured at import time.
+  - Impact: Low for the current `.env` workflow (file is set once at process start), but a test using the env var directly would surprise.
+  - Fix: replace the class-body `env_file=...` with a `model_validator(mode="before")` that reads `os.getenv("MEETING_RECAP_ENV_FILE", ".env")` at construction time.
+  - Owner: next agent touching `recap.py` (or first agent that needs the env-var override path).
+
 ### Minor (from model-002 code review, 2026-07-05)
 
 - **M1: `ModelLoader.reset_instance()` does not evict model weights**

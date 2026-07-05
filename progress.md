@@ -109,3 +109,35 @@ I3 directly).
 
 **Verification:** `python3 -m unittest discover -s tests -v` (144/144 OK) and `python3 tests/manual/test_config_end_to_end.py` (7/7 OK).
 
+
+
+## config-001 — Code Review & Fixes (2026-07-05)
+
+**Reviewer:** `docs/generated/review-2026-07-05-config-001.md` (inline review; `spawn_agent` not available in this Codex session).
+**Verdict (initial):** Ready to merge with one Minor fix.
+
+**Fixes applied (same session):**
+- **M1** (`tests/unit/test_config_recap.py:17-25`): removed 4 unused
+  sub-config imports (`AbstractiveConfig`, `ChunkingConfig`,
+  `HighlightsConfig`, `LanguageConfig`) — the test constructs
+  `MeetingRecapConfig` directly and only references
+  `TextTilingConfig` explicitly. Re-verified suite: 144/144 + 7/7
+  still green.
+
+**Tech debt filed:**
+- **M2** (`src/config/recap.py:32-38`): `_default_env_file()` runs at
+  class-body definition. If a caller sets `MEETING_RECAP_ENV_FILE`
+  *after* import, the override is silently ignored. Fix: replace
+  with a `model_validator(mode="before")` resolver. Tracked in
+  `docs/exec-plans/tech-debt-tracker.md` (Minor).
+
+**Acknowledged but not fixed:**
+- **M3** (project convention): `from __future__ import annotations`
+  in every test file is unused (tests don't ship as libraries) but
+  matches the project-wide convention. Leave as-is.
+
+**Documentation:**
+- `docs/QUALITY_SCORE.md`: `Benchmark Snapshots` row for
+  `config-001-config` extended with the code-review summary.
+- `docs/exec-plans/tech-debt-tracker.md`: M2 (`_default_env_file`
+  class-body resolution) recorded as Minor.
