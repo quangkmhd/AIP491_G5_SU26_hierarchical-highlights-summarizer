@@ -31,3 +31,6 @@ outputs/
 references/
 references_code/
 vibert_checkpoints_vi/
+
+# Git worktrees (isolated feature workspaces)
+.worktrees/
