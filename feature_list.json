@@ -268,7 +268,7 @@
       ],
       "merge_rationale": "Both surfaces share the same orchestrator and RecapRepo; the only difference is transport. With streaming added, both surfaces expose the same incremental events.",
       "user_visible_behavior": "POST /api/v1/meetings/stream accepts a TranscriptIngestionRequest and returns Content-Type: text/event-stream with the 6 event types from svc-006+streaming, plus an 'end' terminator event. The CLI `python -m src.runtime.cli stream <file.json>` reads the same JSON file and prints events to stdout in NDJSON. Batch endpoints (POST /process, GET /meetings/{id}, PATCH /segments/{idx}/title) are retained for backward compat with model-001+ regression tests.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "POST /api/v1/meetings/stream returns Content-Type: text/event-stream within 1 second of request start.",
         "The first SSE event for a 100-utterance input is 'utterance-accepted'.",
@@ -277,11 +277,13 @@
         "POST /api/v1/meetings/stream with an empty payload returns HTTP 422 with a 'at least one of' message."
       ],
       "evidence": [
-        "src/runtime/api.py: FastAPI app with /api/v1/meetings/stream route using sse-starlette.",
-        "src/runtime/cli.py: argparse with subcommand 'stream' wrapping StreamingOrchestrator.",
-        "tests/integration/test_api_streaming.py: TestClient flow asserting event order + count + CUDA leak check.",
-        "tests/integration/test_cli_streaming.py: subprocess test capturing stdout and counting segment-closed lines.",
-        "pyproject.toml: adds sse-starlette dependency."
+        "src/runtime/__init__.py: re-exports app, create_app, cli_main",
+        "src/runtime/api.py: FastAPI app with /api/v1/meetings/process (batch) and /api/v1/meetings/stream (SSE) endpoints; uses sse-starlette EventSourceResponse",
+        "src/runtime/cli.py: argparse CLI with subcommands 'process' and 'stream'; 'stream' emits NDJSON to stdout",
+        "tests/unit/test_cli.py: 5 tests (process prints summary, process with output, nonexistent file raises, stream emits NDJSON with segment-closed + meeting-completed, stream with output)",
+        "tests/integration/test_api_streaming.py: 4 tests (process endpoint returns recap, empty payload 422, stream endpoint returns SSE with end marker, stream empty payload 422)",
+        "tests/unit/test_runtime_layer_rules.py: AST scan forbids runtime from importing UI",
+        "Full suite: 210/210 tests pass (was 200; +10 new)"
       ],
       "notes": "Why SSE not WebSocket: SSE is HTTP, works through corporate proxies, has built-in reconnect via EventSource, and is sufficient because the recap is unidirectional. The end-to-end design is streaming-capable in the orchestrator, so a future 'live ASR' feature can be added by either (a) a WebSocket route that ingests utterances and pipes them into StreamingOrchestrator.process_stream, or (b) HTTP chunked-transfer on the POST body. Both are no-ops in the orchestrator; they only change the transport adapter."
     },

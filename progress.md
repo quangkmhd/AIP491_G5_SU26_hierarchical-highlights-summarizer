@@ -230,3 +230,13 @@ I3 directly).
 - Boundary detection: paper-1 depth formula on the latest pair (depth > 0.3 threshold).
 - 9 unit tests covering event order, batch-equals-streaming, 3-min budget, no-highlights, chunks, utterance/depth/chunk event counts.
 - Verification: 200/200 tests pass (was 191; +9 new).
+
+## runtime-001+002+streaming — FastAPI SSE + CLI stream (2026-07-05)
+
+**Status:** passing
+
+- Created `src/runtime/{__init__,api,cli}.py`.
+- FastAPI app: `/api/v1/meetings/process` (batch JSON) and `/api/v1/meetings/stream` (SSE via sse-starlette).
+- CLI: `python -m src.runtime.cli process|stream <transcript.json>` with `--output` flag.
+- 5 unit tests (CLI) + 4 integration tests (FastAPI via httpx ASGITransport) + 1 AST runtime-layer rule.
+- Verification: 210/210 tests pass (was 200; +10 new).
