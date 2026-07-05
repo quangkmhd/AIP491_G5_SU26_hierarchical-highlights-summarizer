@@ -84,6 +84,27 @@ current milestone but should be addressed before the next major one.
     The next repo added will copy one of these two patterns.
   - Required before: adding a third repo (e.g. `HighlightsRepo`).
 
+### Important (from config-001 code review, 2026-07-05)
+
+- **I2: Sub-configs inherit bare (unprefixed) env var reads when composed inside `MeetingRecapConfig`**
+  - File: `src/config/recap.py:54-58` (the `default_factory=TextTilingConfig` and similar), all sub-config files
+  - Issue: When `MeetingRecapConfig()` constructs nested sub-configs via `default_factory`, the sub-config's own `BaseSettings` applies bare, unprefixed env var matching. `WINDOW_SIZE=999` in the process env overrides `cfg.text_tiling.window_size`, bypassing the `MEETING_RECAP_` prefix contract.
+  - Impact: High for production — variables set by parent shells, CI systems, or container orchestration that coincidentally match field names silently override configuration.
+  - Fix options: (A) Give sub-configs their own `env_prefix` matching nested-delimiter convention; (B) Construct sub-configs in a `model_validator(mode="before")` that temporarily clears bare env vars; (C) Accept and document prominently.
+  - Owner: next agent touching config layer or first agent deploying to production.
+
+- **I3: No upper bounds on integer fields — unbounded values can cause memory exhaustion**
+  - File: `src/config/text_tiling.py:29-30` (window_size, stride), `src/config/chunking.py:18-19` (chunk_size, overlap), `src/config/abstractive.py:17` (context_window), `src/config/highlights.py:20` (extractive_window)
+  - Issue: All integer fields bounded only by `ge=1` (or `ge=0`). A value like `WINDOW_SIZE=2147483647` passes validation and would cause enormous array allocations.
+  - Fix: Add `le=` bounds aligned with pipeline limits: window_size/stride ≤500, chunk_size ≤100, context_window ≤32768, extractive_window ≤100.
+  - Owner: first agent wiring these fields into orchestrator array allocations.
+
+- **I5: Unvalidated `env_file` path — directory traversal risk**
+  - File: `src/config/recap.py:38` (os.getenv + Path resolution), `src/config/recap.py` (_env_file kwarg)
+  - Issue: Arbitrary relative or absolute paths accepted via `MEETING_RECAP_ENV_FILE` or `_env_file` kwarg with no traversal validation. Path resolved relative to project root (fix for M5 applied 2026-07-05) but still allows `../../secrets.env`.
+  - Fix: Add `@field_validator` rejecting paths with `..` traversal or that resolve outside project root.
+  - Owner: next agent touching `recap.py`.
+
 ### Minor (from config-001 code review, 2026-07-05)
 
 - **`_default_env_file()` runs at class-body definition**
@@ -92,6 +113,36 @@ current milestone but should be addressed before the next major one.
   - Impact: Low for the current `.env` workflow (file is set once at process start), but a test using the env var directly would surprise.
   - Fix: replace the class-body `env_file=...` with a `model_validator(mode="before")` that reads `os.getenv("MEETING_RECAP_ENV_FILE", ".env")` at construction time.
   - Owner: next agent touching `recap.py` (or first agent that needs the env-var override path).
+
+- **M1: `AbstractiveConfig` unit test missing `EnvOverrideTests` class**
+  - File: `tests/unit/test_config_abstractive.py`
+  - Issue: Every other sub-config test file has `EnvOverrideTests`; AbstractiveConfig is the only one without.
+  - Fix: Add `EnvOverrideTests` with `CONTEXT_WINDOW=1024` env override test.
+  - Owner: next agent touching config tests.
+
+- **M2: Partial env-override test coverage for string/optional fields**
+  - File: `tests/unit/test_config_chunking.py` (missing `OVERLAP`), `tests/unit/test_config_text_tiling.py` (missing `SMOOTHING`, `CUTOFF_POLICY`), `tests/unit/test_config_language.py` (missing `MODEL_VARIANT`)
+  - Issue: Env-override tests exist for some fields but not all; the README documents these env vars but not all are exercise-tested.
+  - Fix: Add env-override tests for remaining fields in each `EnvOverrideTests` class.
+  - Owner: next agent touching config tests.
+
+- **M3: Boundary `stride == window_size` not explicitly tested**
+  - File: `tests/unit/test_config_text_tiling.py`
+  - Issue: The cross-field validator allows `stride <= window_size`. The tightest valid config (`stride=10, window=10`) has no explicit success test.
+  - Fix: Add `test_stride_equals_window_allowed` constructing `TextTilingConfig(window_size=10, stride=10)` and asserting success.
+  - Owner: next agent touching config tests.
+
+- **M4: `data_dir` and `artifacts_dir` accept arbitrary paths with no traversal validation**
+  - File: `src/config/recap.py:62-70`
+  - Issue: When wired into service/runtime layer, attacker-controlled paths could redirect output to sensitive locations.
+  - Fix: Add `@field_validator` ensuring resolved paths stay within project root.
+  - Owner: next agent wiring data_dir/artifacts_dir into runtime code.
+
+- **M5: `extra="forbid"` silently ignores unknown `MEETING_RECAP_*` env vars**
+  - File: `src/config/_base.py:28`, tested as accepted contract in `tests/unit/test_config_recap.py:107-119`
+  - Issue: Typos like `MEETING_RECAP_CHUNKING_CHUNK_SIZE=12` (single underscore) silently fall back to default.
+  - Fix: Consider `warnings.warn` for env vars matching `MEETING_RECAP_` prefix but not mapping to any known field.
+  - Owner: DX polish pass before production deployment.
 
 ### Minor (from model-002 code review, 2026-07-05)
 

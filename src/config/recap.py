@@ -34,8 +34,12 @@ def _default_env_file() -> str | None:
 
     Honors the MEETING_RECAP_ENV_FILE override (so tests can point at
     .env.test or set None to skip file loading entirely).
+
+    The default ".env" is resolved relative to the project root (not CWD),
+    so it works reliably in Docker containers, systemd services, and
+    subprocesses with different working directories.
     """
-    return os.getenv("MEETING_RECAP_ENV_FILE", ".env")
+    return os.getenv("MEETING_RECAP_ENV_FILE", str(Path(__file__).resolve().parents[2] / ".env"))
 
 
 Device = Literal["auto", "cpu", "cuda"]

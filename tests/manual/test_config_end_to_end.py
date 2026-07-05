@@ -31,6 +31,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from src.config import (
     ChunkingConfig,
     ConfigError,
+    LanguageConfig,
     MeetingRecapConfig,
     TextTilingConfig,
 )
@@ -48,12 +49,12 @@ class DefaultsFlowTests(unittest.TestCase):
 
     def test_default_compose_matches_paper(self) -> None:
         cfg = MeetingRecapConfig(_env_file=None)
-        assert cfg.text_tiling.window_size == 30
-        assert cfg.text_tiling.stride == 10
-        assert cfg.chunking.chunk_size == 8
-        assert cfg.highlights.extractive_window == 10
-        assert cfg.abstractive.context_window == 512
-        assert cfg.language.tag == "vi"
+        self.assertEqual(cfg.text_tiling.window_size, 30)
+        self.assertEqual(cfg.text_tiling.stride, 10)
+        self.assertEqual(cfg.chunking.chunk_size, 8)
+        self.assertEqual(cfg.highlights.extractive_window, 10)
+        self.assertEqual(cfg.abstractive.context_window, 512)
+        self.assertEqual(cfg.language.tag, "vi")
 
 
 class DotEnvOverrideTests(unittest.TestCase):
@@ -67,8 +68,8 @@ class DotEnvOverrideTests(unittest.TestCase):
             env_path = f.name
         try:
             cfg = MeetingRecapConfig(_env_file=env_path)
-            assert cfg.chunking.chunk_size == 12
-            assert cfg.text_tiling.stride == 20
+            self.assertEqual(cfg.chunking.chunk_size, 12)
+            self.assertEqual(cfg.text_tiling.stride, 20)
         finally:
             os.unlink(env_path)
             _clear_recap_env()
@@ -80,7 +81,7 @@ class DotEnvOverrideTests(unittest.TestCase):
         os.environ["MEETING_RECAP_CHUNKING__CHUNK_SIZE"] = "16"
         try:
             cfg = MeetingRecapConfig(_env_file=env_path)
-            assert cfg.chunking.chunk_size == 16
+            self.assertEqual(cfg.chunking.chunk_size, 16)
         finally:
             os.unlink(env_path)
             _clear_recap_env()
@@ -91,7 +92,7 @@ class DotEnvOverrideTests(unittest.TestCase):
             env_path = f.name
         try:
             cfg = MeetingRecapConfig(_env_file=None)
-            assert cfg.chunking.chunk_size == 8  # default
+            self.assertEqual(cfg.chunking.chunk_size, 8)  # default
         finally:
             os.unlink(env_path)
             _clear_recap_env()
@@ -106,6 +107,20 @@ class CrossFieldRejectionTests(unittest.TestCase):
             MeetingRecapConfig(
                 _env_file=None,
                 text_tiling=TextTilingConfig(window_size=10, stride=20),
+            )
+
+    def test_overlap_ge_chunk_size_raises(self) -> None:
+        with self.assertRaises(ConfigError):
+            MeetingRecapConfig(
+                _env_file=None,
+                chunking=ChunkingConfig(chunk_size=8, overlap=8),
+            )
+
+    def test_tag_variant_mismatch_raises(self) -> None:
+        with self.assertRaises(ConfigError):
+            MeetingRecapConfig(
+                _env_file=None,
+                language=LanguageConfig(tag="vi", model_variant="bert-base-chinese"),
             )
 
 
@@ -135,9 +150,9 @@ class Model001RoundTripTests(unittest.TestCase):
             for i in range(0, len(utts), cfg.chunking.chunk_size)
         ]
         # Every chunk respects the cap.
-        assert all(len(c.utterances) <= cfg.chunking.chunk_size for c in chunks)
+        self.assertTrue(all(len(c.utterances) <= cfg.chunking.chunk_size for c in chunks))
         # At least one chunk hits the cap (370 utt / 8 = 46 full + 1 partial).
-        assert any(len(c.utterances) == cfg.chunking.chunk_size for c in chunks)
+        self.assertTrue(any(len(c.utterances) == cfg.chunking.chunk_size for c in chunks))
 
 
 class ExtraForbidTests(unittest.TestCase):
@@ -151,7 +166,7 @@ class ExtraForbidTests(unittest.TestCase):
         try:
             cfg = MeetingRecapConfig(_env_file=None)
             # Defaults still apply; the bogus env var is silently dropped.
-            assert cfg.chunking.chunk_size == 8
+            self.assertEqual(cfg.chunking.chunk_size, 8)
         finally:
             _clear_recap_env()
 
