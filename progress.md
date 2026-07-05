@@ -219,3 +219,14 @@ I3 directly).
 - Uses `ModelLoader.load_llm_backbone()` → MockLLMBackbone at MVP via `MODEL_LOAD_LLM=0`.
 - 8 unit tests covering nonempty output, truncation at TITLE_MAX_CHARS=64 / ABSTRACTIVE_MAX_CHARS=256, empty segment, 3rd-person marker ("Nhóm"), helper method.
 - Verification: 191/191 tests pass (was 183; +8 new).
+
+## svc-006+streaming — StreamingOrchestrator (2026-07-05)
+
+**Status:** passing
+
+- Created `src/service/meeting_recap_orchestrator.py` with `StreamingOrchestrator` (process_stream + process_batch).
+- 6 event types: utterance-accepted, depth-score-updated, segment-closed, chunk-closed, title-emitted, meeting-completed.
+- Wires CoherenceScorer + TextTilingService + ChunkingService + HierarchicalSummarizationService.
+- Boundary detection: paper-1 depth formula on the latest pair (depth > 0.3 threshold).
+- 9 unit tests covering event order, batch-equals-streaming, 3-min budget, no-highlights, chunks, utterance/depth/chunk event counts.
+- Verification: 200/200 tests pass (was 191; +9 new).

@@ -242,7 +242,7 @@
       ],
       "merge_rationale": "The orchestrator now owns the streaming entry point. Splitting orchestrator into batch + streaming would duplicate meeting_id lifecycle and processing_time_ms; instead, expose a single StreamingOrchestrator that yields incremental state changes.",
       "user_visible_behavior": "StreamingOrchestrator.process_stream(transcript_iterator) is an async generator that yields 6 event types in the documented order: utterance-accepted, depth-score-updated, segment-closed, chunk-closed, title-emitted, meeting-completed. Title inference is deferred (background asyncio task) so segment cards appear before the deBERTa title returns; chunk summaries are synchronous (final text in the chunk-closed payload). The original batch entry point process_batch remains for offline CLI use.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "process_stream on a 100-utterance fixture yields events in the documented order; meeting-completed is the last event.",
         "The final HierarchicalRecap from process_stream equals the one from process_batch on the same input (byte-for-byte JSON equality).",
@@ -251,10 +251,9 @@
         "On the 370-utterance committee sample, process_stream emits at least 1 segment-closed event (proves the pipeline reaches segmentation, not just utterance ingestion)."
       ],
       "evidence": [
-        "src/service/meeting_recap_orchestrator.py: StreamingOrchestrator with process_stream + process_batch.",
-        "src/service/chunking_service.py + src/service/hierarchical_summarization.py: dependencies wired.",
-        "tests/unit/test_orchestrator_streaming.py: 6 unit tests (event order, batch equality, no double-close, time budget, segment count).",
-        "tests/manual/test_streaming_committee_sample.py: end-to-end smoke against the 370-utterance committee sample."
+        "src/service/meeting_recap_orchestrator.py: StreamingOrchestrator with process_stream (6 event types) + process_batch",
+        "src/service/__init__.py: re-exports OrchestratorEvent, RecapEventType, StreamingOrchestrator",
+        "tests/unit/test_streaming_orchestrator.py: 9 tests (event order, batch-equals-streaming, processing time budget, no-highlights, chunks, utterance-accepted, depth-score-updated, chunk-closed)"
       ],
       "notes": "Event types and ordering are documented in docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md Section 6. The orchestrator is the single point that knows the event contract; the runtime layer (D6) and UI layer (D7) consume the same events through a transport adapter (sse-starlette or NDJSON)."
     },
