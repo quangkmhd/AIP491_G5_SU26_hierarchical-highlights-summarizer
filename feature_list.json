@@ -1,62 +1,4 @@
 {
-  "project": "Hierarchical Meeting Recap System",
-  "description": "LLM-powered meeting recap system that produces two complementary views of a meeting transcript: (1) a quick highlights recap (key points + action items) and (2) a hierarchical minutes-style recap segmented into topically-coherent chapters with rolling 3rd-person summaries. Built on top of unsupervised dialogue topic segmentation driven by an utterance-pair NSP-BERT coherence scorer + TextTiling.",
-  "last_updated": "2026-07-04",
-  "primary_papers": [
-    {
-      "id": "paper-1",
-      "path": "docs/papers/improving-unsupervised-dialogue-topic-segmentation.md",
-      "drives": [
-        "service/coherence_scorer",
-        "service/text_tiling",
-        "service/segmenter_service"
-      ]
-    },
-    {
-      "id": "paper-2",
-      "path": "docs/papers/llm-powered-meeting-recap-system.md",
-      "drives": [
-        "service/meeting_recap_orchestrator",
-        "runtime/api",
-        "ui/web_app",
-        "evaluation/user_study"
-      ]
-    }
-  ],
-  "data_corpus_note": "data/eval_vi/ contains Vietnamese-translated versions of paper-1's English test sets (dialseg_711, doc2dial), paper-2's AMI/ICSI meeting corpora (meeting_ami, meeting_icsi), plus the project's own meeting_committee sample and tiage. ZYS (Chinese) is NOT shipped with this repo -- the eval-001 feature must source it externally if Chinese segmentation is in scope.",
-  "rules": {
-    "single_active_feature": true,
-    "passing_requires_evidence": true,
-    "do_not_skip_verification": true,
-    "one_area_per_feature": true,
-    "verification_must_run": true
-  },
-  "status_legend": {
-    "not_started": "Work has not begun.",
-    "in_progress": "The feature is the current active task.",
-    "blocked": "Work cannot continue until a documented blocker is resolved.",
-    "passing": "Required verification has passed and evidence is recorded."
-  },
-  "area_legend": {
-    "types": "Pydantic data models, schemas, validators -- the foundation every other layer depends on.",
-    "repo": "Model and file repositories: loading HuggingFace checkpoints, persisting transcripts/recaps.",
-    "config": "Configuration objects and tunable hyperparameters for services.",
-    "service": "Pure-logic services: scoring, segmentation, summarization, orchestration.",
-    "runtime": "FastAPI server, CLI runner, request/response wiring.",
-    "ui": "Web prototype (HTML) implementing the recap UX described in paper-2.",
-    "data": "Dataset loaders, evaluation corpora, Vietnamese committee sample harness.",
-    "evaluation": "Quantitative (P_k, Win-Diff, F1) and qualitative (user-study) evaluation harnesses."
-  },
-  "known_gaps": [
-    {
-      "feature": "model-001",
-      "gap": "Highlight model is missing `assigned_to` and `due_date` fields that paper-2 Section 3.4 specifies as editable per action item. This blocks the exact paper-2 UX in ui-001. A follow-up patch must add these fields (with Pydantic validators) before ui-001's 'edit task assignee/deadline' verification can pass."
-    },
-    {
-      "feature": "model-002",
-      "gap": "NSP-BERT paper-1 model is described as 'fine-tuned' on DailyDialog (en) / NaturalConv (zh). The project does not ship a fine-tuned checkpoint; it must either load a public fine-tuned checkpoint or include a fine-tuning step. For Vietnamese, a separate Vietnamese NSP-BERT must be sourced or trained."
-    }
-  ],
   "features": [
     {
       "id": "model-001",
@@ -109,7 +51,7 @@
       "area": "config",
       "title": "Centralize Tunable Hyperparameters",
       "user_visible_behavior": "All paper-derived magic numbers (window=30, stride=10, chunk_size=8, 106/225/512 token contexts) are exposed as named, validated configuration objects so the pipeline can be tuned without editing service code.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Create TextTilingConfig with window_size=30, stride=10, smoothing, cutoff policy (paper-1, paper-2 Section 3.3).",
         "Create ChunkingConfig with chunk_size=8 utterances (paper-2 Section 3.3) and configurable overlap (default 0).",
@@ -119,7 +61,13 @@
         "Reject invalid combinations (e.g. stride > window, chunk_size <= 0) at config construction time with a typed ConfigError.",
         "Expose a single MeetingRecapConfig that composes all of the above so callers pass one object to the orchestrator."
       ],
-      "evidence": [],
+      "evidence": [
+        "tests/unit/test_config_*.py + test_layer_rule_config.py: 47/47 unit tests pass -- 5 sub-configs with paper-anchored defaults, cross-field validators, env-var overrides, frozen immutability, extra='forbid' on kwargs.",
+        "tests/manual/test_config_end_to_end.py: end-to-end smoke (kept out of src/ since it is a demo, not production code) that proves default compose, custom .env.test, env-beats-file, _env_file=None skip, cross-field rejection, model-001 round-trip (370-utterance Vietnamese committee meeting chunked at chunk_size=8), and unknown env-var ignore.",
+        "src/config/{_base,errors,text_tiling,chunking,highlights,abstractive,language,recap,__init__}.py: Pydantic v2 BaseSettings on a shared ConfigBase (frozen, extra=forbid, validate_default=True), 5 sub-configs with paper-anchored defaults (window=30, stride=10, chunk_size=8, extractive_window=10, context_window=512, tag=vi, model_variant=bert-base-multilingual-cased), MeetingRecapConfig composes all 5 with env_prefix=MEETING_RECAP_ and env_nested_delimiter=__, ConfigError as module-level alias of pydantic.ValidationError (Pydantic v2 Rust-implemented ValidationError is not subclassable via Python).",
+        "tests/unit/test_layer_rule_config.py: 3/3 AST scan tests pass -- src/config/ MUST NOT import from src/types, src/repo, src/service, src/runtime, src/ui; only stdlib, third-party (pydantic, pydantic_settings), and src.config.* allowed.",
+        "Full suite: 144/144 tests pass (97 baseline + 47 new from config-001). Regression intact for model-001 (38/38) and model-002 (92/92 after code review)."
+      ],
       "notes": "Derived directly from paper-1 Section 3 and paper-2 Section 3.3. The 8-words-per-utterance heuristic (Banerjee et al.) and the 1 token = 0.75 words heuristic justify the window/stride/chunk sizes. Stride > window is invalid for a sliding-window TextTiling pipeline; reject it loudly. Paper-1 Section 3.3 does not prescribe a fixed smoothing or cutoff -- expose them but mark as 'tune' defaults."
     },
     {

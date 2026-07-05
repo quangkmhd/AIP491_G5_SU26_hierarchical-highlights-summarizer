@@ -26,15 +26,15 @@
 
 ### Session 002
 
-- Date:
-- Goal:
-- Completed:
-- Verification run:
-- Evidence captured:
-- Commits:
-- Files or artifacts updated:
-- Known risk or unresolved issue:
-- Next best step:
+- Date: 2026-07-05
+- Goal: Implement config-001 (Centralize Tunable Hyperparameters) on branch feat/config-001-centralized-config.
+- Completed: 9 modules in src/config/ (_base, errors, 5 sub-configs, recap, __init__); ConfigBase as frozen BaseSettings with extra='forbid', validate_default=True; 5 sub-configs (TextTilingConfig/ChunkingConfig/HighlightsConfig/AbstractiveConfig/LanguageConfig) with paper-anchored defaults; MeetingRecapConfig composes all 5 with env_prefix=MEETING_RECAP_, env_nested_delimiter=__; ConfigError is module-level alias of pydantic.ValidationError; 7 unit test files + 1 layer-rule AST test + 1 end-to-end manual test; 47 new tests; 144/144 full suite green.
+- Verification run: `python3 -m unittest discover -s tests -v` -> 144/144 OK (~27s). `python3 tests/manual/test_config_end_to_end.py` -> 7/7 OK.
+- Evidence captured: tests/unit/test_config_{text_tiling,chunking,highlights,abstractive,language,recap}.py (40 unit tests), tests/unit/test_layer_rule_config.py (3 AST tests), tests/manual/test_config_end_to_end.py (7 e2e tests), src/config/{_base,errors,text_tiling,chunking,highlights,abstractive,language,recap,__init__}.py, feature_list.json (config-001 -> passing), docs/QUALITY_SCORE.md (Config layer C -> B), docs/superpowers/specs/2026-07-05-config-001-centralized-config-design.md (updated D3 + D5), docs/superpowers/plans/2026-07-05-config-001-centralized-config.md (implementation findings note).
+- Commits: 11 commits on feat/config-001-centralized-config (337af7c .. 65eebce).
+- Files or artifacts updated: 9 src files, 7 test files, 3 docs files; total 19 files.
+- Known risk or unresolved issue: 3 plan corrections were applied during execution -- (1) ConfigError implemented as module-level alias of pydantic.ValidationError (not Python subclass, because Pydantic v2's ValidationError is Rust-implemented and bypasses __init_subclass__); (2) sub-configs use bare field names for env override (no nested delimiter, no prefix -- only MeetingRecapConfig uses MEETING_RECAP_<SUB>__<FIELD>); (3) extra='forbid' applies to model kwargs only, not to env vars (Pydantic-Settings treats unknown env vars as 'ignore'). All three are now reflected in the spec and README.
+- Next best step: Either merge feat/config-001-centralized-config to main, or proceed to data-001 (Multi-corpus Evaluation Data Loader) which can now consume MeetingRecapConfig.data_dir.
 
 ## model-002 — AI Model Loader & File Repository (2026-07-04)
 
@@ -94,3 +94,18 @@ I3 directly).
 - `docs/exec-plans/tech-debt-tracker.md`: C4 (vocab mismatch) and
   I2 (incomplete _io adoption) recorded as Important; M1, M2, M3
   recorded as Minor.
+
+## config-001 — Centralized Tunable Hyperparameters (2026-07-05)
+
+**Status:** passing
+
+- Implemented `src/config/{_base,errors,text_tiling,chunking,highlights,abstractive,language,recap,__init__}.py` (9 modules).
+- 5 sub-configs (TextTilingConfig / ChunkingConfig / HighlightsConfig / AbstractiveConfig / LanguageConfig) are independently instantiable and frozen.
+- MeetingRecapConfig composes all 5 with `env_prefix="MEETING_RECAP_"`, `env_nested_delimiter="__"`, and an overridable `_env_file`. Defaults match paper-1 §3.3 and paper-2 §3.3 exactly.
+- ConfigError is a module-level alias of pydantic.ValidationError (Pydantic v2's ValidationError is Rust-implemented and cannot be subclassed via Python).
+- AST layer-rule test (test_layer_rule_config.py) enforces no imports from `src/types`, `src/repo`, `src/service`, `src/runtime`, `src/ui`.
+- End-to-end manual test (tests/manual/test_config_end_to_end.py) exercises default flow, custom .env.test, env-beats-file, `_env_file=None`, cross-field rejection, model-001 round-trip, and unknown env-var ignore.
+- 47 new tests (40 unit + 3 layer-rule + 4 boundary checks I added beyond the plan; +7 manual). Full suite green at 144/144.
+
+**Verification:** `python3 -m unittest discover -s tests -v` (144/144 OK) and `python3 tests/manual/test_config_end_to_end.py` (7/7 OK).
+
