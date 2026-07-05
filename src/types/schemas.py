@@ -10,7 +10,7 @@ Highlights (DR1) product surface is out of scope.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Annotated, Optional
 
 from pydantic import Field, model_validator
 
@@ -37,13 +37,14 @@ class TranscriptIngestionRequest(BaseSchema):
 
     meeting_title: Optional[str] = Field(
         default=None,
+        max_length=256,
         description="Optional human-readable title for the meeting.",
     )
     utterances: list[Utterance] = Field(
         default_factory=list,
         description="Optional list of pre-built Utterance objects.",
     )
-    flat_texts: list[str] = Field(
+    flat_texts: list[Annotated[str, Field(min_length=1, max_length=4000)]] = Field(
         default_factory=list,
         description="Optional list of plain utterance strings (no speaker info).",
     )
@@ -51,10 +52,12 @@ class TranscriptIngestionRequest(BaseSchema):
         default="en",
         min_length=2,
         max_length=8,
+        pattern=r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$",
         description="BCP-47 language tag for the transcript (e.g. 'en', 'vi').",
     )
     metadata: dict[str, str] = Field(
         default_factory=dict,
+        max_length=32,
         description="Optional key-value metadata.",
     )
 

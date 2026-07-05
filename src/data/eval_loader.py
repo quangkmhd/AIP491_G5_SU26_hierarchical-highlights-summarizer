@@ -94,10 +94,6 @@ class EvalLoader:
         )
 
     def load_all(self) -> Iterator[LoadResult]:
-        """Yield LoadResult for every known corpus. Skips missing files with no error."""
+        """Yield LoadResult for every known corpus. Raises on first missing/malformed file."""
         for corpus in Corpus:
-            try:
-                yield self.load(corpus)
-            except DataLoaderError as e:
-                # Surface the error but continue so callers can decide.
-                raise
+            yield self.load(corpus)

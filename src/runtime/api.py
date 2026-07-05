@@ -23,14 +23,9 @@ from src.logging import (
     log_error_with_fix,
     request_context,
 )
-
-from src.service import (
-    RecapEventType,
-    StreamingOrchestrator,
-)
+from src.service import StreamingOrchestrator
 from src.types.schemas import TranscriptIngestionRequest
 from src.types.transcript import DialogueTranscript
-from src.types.utterance import Utterance
 
 
 def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
@@ -76,13 +71,15 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
             )
             return response
 
-    # CORS for local dev: allow the static file:// page to call our API
-    # In production this should be restricted to known origins
+    # CORS: local development permits any origin so the static file://
+    # page can call the API.  In production this must be an explicit
+    # allowlist — see FastAPI docs (cors.md): wildcard + credentials
+    # is rejected, and `["*"]` exposes every browser-trusted origin.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["POST", "GET", "OPTIONS"],
+        allow_headers=["Content-Type"],
     )
     # Serve the static UI so the page can be loaded from the same origin
     # (avoids file:// CORS quirks in headless browsers)
@@ -94,7 +91,9 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
         async def index() -> FileResponse:
             index_path = ui_dir / "index.html"
             if not index_path.is_file():
-                return FileResponse(content="UI not built", status_code=404)
+                return JSONResponse(
+                    content={"detail": "UI not built"}, status_code=404
+                )
             return FileResponse(str(index_path))
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
@@ -192,24 +191,20 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
 
 def _materialize(payload: TranscriptIngestionRequest) -> DialogueTranscript:
-    """Convert a TranscriptIngestionRequest to a DialogueTranscript."""
-    if payload.utterances:
-        utts = list(payload.utterances)
-    elif payload.flat_texts:
-        utts = [
-            Utterance(speaker=f"S{i + 1}", text=t, index=i)
-            for i, t in enumerate(payload.flat_texts)
-        ]
-    else:
-        raise ValueError("at least one of `utterances` or `flat_texts` must be provided")
-    return DialogueTranscript(
-        utterances=utts,
-        meeting_title=payload.meeting_title,
-    )
+    """Convert a TranscriptIngestionRequest to a DialogueTranscript.
+
+    Delegates to the schema's materialize() method which also enforces
+    MAX_UTTERANCES and carries language + metadata forward.
+    """
+    return payload.materialize()
 
 
-# Module-level app for uvicorn: `uvicorn src.runtime.api:app`
-app = create_app()
+# No eager module-level `app` -- it would trigger the full model-load
+# chain (StreamingOrchestrator → CoherenceScorer → NSP checkpoint)
+# at import time, breaking every test that touches src.runtime.
+#
+# Start the server with the --factory flag:
+#    uvicorn src.runtime.api:create_app --factory
 
 
 def _suggest_fix_for_http(exc: HTTPException) -> str:
