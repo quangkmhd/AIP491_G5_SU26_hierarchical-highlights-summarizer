@@ -1,0 +1,75 @@
+"""MeetingRecapConfig: the single entry point for the orchestrator.
+
+Composes all five sub-configs and is the ONLY object in the config
+layer that reads `.env` and applies `env_prefix`. Sub-configs are
+independently instantiable for unit testing without env interference.
+
+Env contract (see spec D5):
+  * prefix       = MEETING_RECAP_
+  * nested delim = __
+  * file         = .env (overridable via MEETING_RECAP_ENV_FILE or _env_file kwarg)
+  * file         = None skips loading
+  * env var beats .env file beats default_factory
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import SettingsConfigDict
+
+from ._base import ConfigBase
+from .abstractive import AbstractiveConfig
+from .chunking import ChunkingConfig
+from .highlights import HighlightsConfig
+from .language import LanguageConfig
+from .text_tiling import TextTilingConfig
+
+
+def _default_env_file() -> str | None:
+    """Resolve the .env file path at construction time.
+
+    Honors the MEETING_RECAP_ENV_FILE override (so tests can point at
+    .env.test or set None to skip file loading entirely).
+
+    The default ".env" is resolved relative to the project root (not CWD),
+    so it works reliably in Docker containers, systemd services, and
+    subprocesses with different working directories.
+    """
+    return os.getenv("MEETING_RECAP_ENV_FILE", str(Path(__file__).resolve().parents[2] / ".env"))
+
+
+Device = Literal["auto", "cpu", "cuda"]
+
+
+class MeetingRecapConfig(ConfigBase):
+    """Top-level config consumed by the meeting-recap orchestrator."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="MEETING_RECAP_",
+        env_nested_delimiter="__",
+        env_file=_default_env_file(),
+        env_file_encoding="utf-8",
+    )
+
+    text_tiling: TextTilingConfig = Field(default_factory=TextTilingConfig)
+    chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
+    highlights: HighlightsConfig = Field(default_factory=HighlightsConfig)
+    abstractive: AbstractiveConfig = Field(default_factory=AbstractiveConfig)
+    language: LanguageConfig = Field(default_factory=LanguageConfig)
+
+    device: Device = Field(
+        default="auto",
+        description="device resolver hint (auto prefers cuda when available)",
+    )
+    data_dir: Path = Field(
+        default=Path("data/eval_vi"),
+        description="directory containing the Vietnamese evaluation corpora",
+    )
+    artifacts_dir: Path = Field(
+        default=Path("docs/generated"),
+        description="directory for generated recap / demo artifacts",
+    )

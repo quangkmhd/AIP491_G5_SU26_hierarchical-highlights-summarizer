@@ -1,7 +1,7 @@
 {
   "project": "Hierarchical Meeting Recap System",
   "description": "LLM-powered meeting recap system that produces two complementary views of a meeting transcript: (1) a quick highlights recap (key points + action items) and (2) a hierarchical minutes-style recap segmented into topically-coherent chapters with rolling 3rd-person summaries. Built on top of unsupervised dialogue topic segmentation driven by an utterance-pair NSP-BERT coherence scorer + TextTiling.",
-  "last_updated": "2026-07-04",
+  "last_updated": "2026-07-05",
   "primary_papers": [
     {
       "id": "paper-1",
@@ -88,7 +88,7 @@
       "area": "repo",
       "title": "Build AI Model Loader & File Repository",
       "user_visible_behavior": "System successfully loads the four Hugging Face checkpoints required by paper-2 (hierarchical_segment BART, hierarchical_abstractive deBERTa, hierarchical_title deBERTa, highlights_extractive BART, highlights_abstractive deBERTa) plus the utterance-pair NSP-BERT coherence model from paper-1, and can read/write local transcript and recap JSON files.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Initialize ModelLoader and assert hierarchical_segment (BART) weights load successfully.",
         "Initialize ModelLoader and assert hierarchical_abstractive / hierarchical_title (deBERTa) weights load successfully.",
@@ -100,7 +100,13 @@
         "Provide offline stubs/fakes for environments without network access to HuggingFace.",
         "Lazy-load each checkpoint on first use; assert the second access does not re-read from disk."
       ],
-      "evidence": [],
+      "evidence": [
+        "tests/unit/test_*.py: 92/92 unit tests pass after the 2026-07-05 code review (was 76, +16 new tests covering C1-C4 + I1-I3).",
+        "tests/manual/* (smoke_loader): MODEL_LOAD_LLM=0 path returns a MockLLMBackbone for offline CI; the 4-bit Vistral path is gated behind MODEL_LOAD_LLM=1 for production.",
+        "src/repo/{coherence_net,model_loader,transcript_repo,recap_repo,smoke_loader}.py: CoherenceNet loads from vibert_checkpoints_vi/cpt_4000.pth (paper-1 NSP-BERT architecture, BERT-base multilingual, vocab 38168); ModelLoader is a per-process singleton with per-kind cache + cache lock; TranscriptRepo reads data/eval_vi/*.json into DialogueTranscript with synthesised speaker labels; RecapRepo round-trips HierarchicalRecap via atomic write (NamedTemporaryFile + os.replace); Vistral-7B-Chat selected as the single Vietnamese LLM backbone (4-bit via bitsandbytes, deferred behind env var).",
+        "docs/exec-plans/completed/model-002-model-loader.md: full plan with verification at archive time.",
+        "Layer-rule AST check green: src/repo/ MUST NOT import from src/config/src/service/src/runtime/src/ui (mirrors test_layer_rule_config.py for the config layer)."
+      ],
       "notes": "Bộ tải AI Models phải được thiết lập trước khi viết các logic xử lý NLP. Five transformers total: one BART for hierarchical_segment, two deBERTa for hierarchical_abstractive / hierarchical_title, one BART for highlights_extractive, one deBERTa for highlights_abstractive (paper-2 Table 1), plus the NSP-BERT coherence scorer from paper-1. All weights must be lazy-loaded and cacheable; the loader must support both online (HuggingFace hub) and offline (local snapshot) modes so CI does not depend on the network. KNOWN GAP: NSP-BERT must be either fine-tuned from BERT_base (paper-1 Section 3.2) on DailyDialog/NaturalConv, or sourced from a public fine-tuned checkpoint. Vietnamese NSP-BERT is not shipped; a separate per-language checkpoint strategy is required (paper-1 Section 4.5 reports smaller gains for Chinese, suggesting per-language fine-tuning is necessary)."
     },
     {
@@ -109,7 +115,7 @@
       "area": "config",
       "title": "Centralize Tunable Hyperparameters",
       "user_visible_behavior": "All paper-derived magic numbers (window=30, stride=10, chunk_size=8, 106/225/512 token contexts) are exposed as named, validated configuration objects so the pipeline can be tuned without editing service code.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Create TextTilingConfig with window_size=30, stride=10, smoothing, cutoff policy (paper-1, paper-2 Section 3.3).",
         "Create ChunkingConfig with chunk_size=8 utterances (paper-2 Section 3.3) and configurable overlap (default 0).",
@@ -119,7 +125,13 @@
         "Reject invalid combinations (e.g. stride > window, chunk_size <= 0) at config construction time with a typed ConfigError.",
         "Expose a single MeetingRecapConfig that composes all of the above so callers pass one object to the orchestrator."
       ],
-      "evidence": [],
+      "evidence": [
+        "tests/unit/test_config_*.py + test_layer_rule_config.py: 47/47 unit tests pass -- 5 sub-configs with paper-anchored defaults, cross-field validators, env-var overrides, frozen immutability, extra='forbid' on kwargs.",
+        "tests/manual/test_config_end_to_end.py: end-to-end smoke (kept out of src/ since it is a demo, not production code) that proves default compose, custom .env.test, env-beats-file, _env_file=None skip, cross-field rejection, model-001 round-trip (370-utterance Vietnamese committee meeting chunked at chunk_size=8), and unknown env-var ignore.",
+        "src/config/{_base,errors,text_tiling,chunking,highlights,abstractive,language,recap,__init__}.py: Pydantic v2 BaseSettings on a shared ConfigBase (frozen, extra=forbid, validate_default=True), 5 sub-configs with paper-anchored defaults (window=30, stride=10, chunk_size=8, extractive_window=10, context_window=512, tag=vi, model_variant=bert-base-multilingual-cased), MeetingRecapConfig composes all 5 with env_prefix=MEETING_RECAP_ and env_nested_delimiter=__, ConfigError as module-level alias of pydantic.ValidationError (Pydantic v2 Rust-implemented ValidationError is not subclassable via Python).",
+        "tests/unit/test_layer_rule_config.py: 3/3 AST scan tests pass -- src/config/ MUST NOT import from src/types, src/repo, src/service, src/runtime, src/ui; only stdlib, third-party (pydantic, pydantic_settings), and src.config.* allowed.",
+        "Full suite: 144/144 tests pass (97 baseline + 47 new from config-001). Regression intact for model-001 (38/38) and model-002 (92/92 after code review)."
+      ],
       "notes": "Derived directly from paper-1 Section 3 and paper-2 Section 3.3. The 8-words-per-utterance heuristic (Banerjee et al.) and the 1 token = 0.75 words heuristic justify the window/stride/chunk sizes. Stride > window is invalid for a sliding-window TextTiling pipeline; reject it loudly. Paper-1 Section 3.3 does not prescribe a fixed smoothing or cutoff -- expose them but mark as 'tune' defaults."
     },
     {

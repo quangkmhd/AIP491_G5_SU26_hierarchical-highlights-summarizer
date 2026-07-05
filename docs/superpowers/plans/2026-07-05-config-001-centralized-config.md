@@ -8,6 +8,12 @@
 
 **Tech Stack:** Pydantic v2 (already pinned `>=2.0`; resolved 2.13.4 in this env), pydantic-settings v2 (resolved 2.14.1 in this env — no install step required; just add the import), `unittest` (project convention; pytest not used), `ast` stdlib (layer-rule scan).
 
+
+**Implementation findings (added 2026-07-05 after Task 3):**
+
+1. **`ConfigError` must be a module-level alias, not a subclass.** Pydantic v2's `ValidationError` is implemented in Rust; Python subclasses of it do NOT match `isinstance` against the runtime class (Pydantic constructs the exact class, bypassing `__init_subclass__`). The implementation uses `ConfigError = pydantic.ValidationError`. This is reflected in `src/config/errors.py` and updated in the spec D3.
+2. **Sub-configs use bare field names for env-var override, NOT nested.** `TextTilingConfig` has no `env_prefix` and no `env_nested_delimiter`, so setting `WINDOW_SIZE=45` (not `TEXT_TILING__WINDOW_SIZE`) overrides `TextTilingConfig.window_size`. The nested-delimiter behaviour only kicks in inside `MeetingRecapConfig` via the `MEETING_RECAP_<SUB>__<FIELD>` form. The remaining tasks (4-8) follow this pattern; the env-override tests for sub-configs use bare field names. The `MeetingRecapConfig` env-override tests in Task 8 use the `MEETING_RECAP_` prefix correctly.
+
 **Spec:** `docs/superpowers/specs/2026-07-05-config-001-centralized-config-design.md`
 **Reference patterns:**
 - `src/repo/__init__.py` for the re-export docstring + `__all__` pattern

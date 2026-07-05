@@ -24,7 +24,7 @@ time.
 | Layer | Grade | Boundary Enforcement | Agent Legibility | Key Gaps | Last Updated |
 |-------|-------|---------------------|-----------------|----------|-------------|
 | Types | B | 38/38 unit tests pass; AST scan confirms zero imports from `config`/`repo`/`service`/`runtime` | High | None blocking; canonical-value enum wire format + ClassVar limits enforced; see Minor items in `docs/exec-plans/tech-debt-tracker.md` | 2026-07-04 |
-| Config | C | - | Medium | Skeleton code complete; .env loading not integration-tested | 2026-07-04 |
+| `Config` | B | 47/47 unit tests pass; AST scan confirms zero imports from `types`/`repo`/`service`/`runtime`/`ui`; .env loading integrated via `MeetingRecapConfig(_env_file=...)`; env_prefix + env_nested_delimiter mapping covered; `ConfigError` is module-level alias of `pydantic.ValidationError` | High | None blocking | 2026-07-05 |
 | Repo | B | 5 modules implemented (CoherenceNet, ModelLoader, TranscriptRepo, RecapRepo, smoke_loader); layer-rule AST check green; full unit suite + smoke loader pass; offline mock LLM allows CI without network | High | - | None blocking; real 4-bit Vistral load deferred behind MODEL_LOAD_LLM=1 to keep CI deterministic | 2026-07-04 |
 | Services | C | - | Medium | Four service modules with algorithm skeletons; all ML inference paths are placeholders | 2026-07-04 |
 | Runtime | D | - | Low | No runtime layer implemented yet | 2026-07-04 |
@@ -36,6 +36,7 @@ time.
 |------|-----------------|----------------|--------|-----------------------|------|
 | 2026-07-04 | `model-001-types` | 100% (38/38 unit) | 0 | 0 | First Vietnamese committee meeting (dial_id=0) end-to-end round-trip into `HierarchicalRecap` JSON; includes post-review hardening (MAX_UTTERANCES, payload validators, JSON wire-format lock) | 2026-07-04 |
 | 2026-07-05 | `model-002-repo` | 100% (92/92 unit, +16 from code review) | 0 | 4 | Repo layer passed 4-critical-bug code review on 2026-07-05; fixes for C1 (inline placeholder strip), C2 (original-index speaker labels), C3 (per-loader cache lock), C4 (token-ID clamp for real Vietnamese text); I1 (atomic RecapRepo.write) + I2 (shared _io.py) + I3 (REQUIRE_CUDA flag) also applied | 2026-07-05 |
+| 2026-07-05 | `config-001-config` | 100% (144/144 unit, +47 from config-001) | 0 | 0 | Config layer with 5 sub-configs + 1 compose (MeetingRecapConfig), env_prefix=MEETING_RECAP_ + env_nested_delimiter=__ contract, layer-rule AST check green, end-to-end manual demo closes .env integration gap; 3 plan corrections applied during execution (ConfigError as module-level alias, sub-config bare-field env vars, extra='forbid' only on kwargs not env); code review on 2026-07-05 returned 0 critical / 0 important / 3 minor; 1 minor fixed inline (unused imports in test_config_recap.py), 1 minor filed as tech debt (`_default_env_file()` class-body resolution), 1 noted as project convention | 2026-07-05 |
 
 ## Simplification Log
 
