@@ -262,3 +262,14 @@ I3 directly).
 - CLI harness: `python -m src.eval.run_segmentation_eval --corpus meeting_committee --output report.json`.
 - 8 unit tests (metric correctness) + 4 integration tests (against data-001 corpora) + 1 AST eval-layer rule.
 - Verification: 227/227 tests pass (was 214; +13 new).
+
+## eval-002 — Streaming UX Evaluation Harness (2026-07-05)
+
+**Status:** passing
+
+- Created `src/eval/streaming_ux_harness.py` with ParticipantRatings dataclass + collect_ratings + aggregate + render_markdown.
+- 4 metrics: time-to-first-chapter (s), comfort with skeleton (1-5), discoverability (1-5), overall UX (1-5).
+- CLI: `python -m src.eval.streaming_ux_harness --participants N --output path/to/report.md`.
+- 5 unit tests + 1 manual smoke test.
+- Report excludes any 'highlights' column (DR1 out of scope per spec D3).
+- Verification: 232/232 tests pass (was 227; +5 new).

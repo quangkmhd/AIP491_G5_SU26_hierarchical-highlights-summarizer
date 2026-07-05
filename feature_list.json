@@ -349,16 +349,17 @@
       "patch_of": "eval-002",
       "merge_rationale": "Original eval-002 compared 'highlights vs hierarchical' as two recap types. With DR1 dropped, the comparison is no longer meaningful; the harness now evaluates streaming UX quality of the Hierarchical recap only.",
       "user_visible_behavior": "An evaluator script runs a small-N user study (target N=7 like paper-2 §4) with the Hierarchical streaming prototype. Captures per-participant ratings for: (1) time-to-first-chapter (seconds), (2) comfort with skeleton state (1-5 Likert), (3) discoverability of copy + show-context (1-5 Likert), (4) overall streaming UX score (1-5 Likert). Output: a streaming-UX report at docs/generated/streaming-ux-report.md.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Running the harness on a synthetic participant (no real humans) produces a report with the 4 metrics and N=7 participant rows.",
         "The report excludes any 'highlights' column (proves DR1 is out of scope in evaluation too).",
         "Per-participant time-to-first-chapter is measured (seconds, from SSE connection open to first segment-closed event received in browser)."
       ],
       "evidence": [
-        "src/eval/streaming_ux_harness.py: the harness script.",
-        "tests/manual/test_streaming_ux_harness.py: runs the harness with a synthetic participant and asserts the report shape.",
-        "docs/generated/streaming-ux-report.md: produced by the harness; placeholders for real participants (no PII)."
+        "src/eval/streaming_ux_harness.py: ParticipantRatings + collect_ratings + aggregate + render_markdown; CLI writes to docs/generated/streaming-ux-report.md",
+        "tests/unit/test_streaming_ux_harness.py: 5 tests (default 7 participants, aggregate means, markdown has 4 metrics, no highlights column, ratings in [1,5])",
+        "tests/manual/test_streaming_ux_harness.py: end-to-end smoke runs harness with 3 synthetic participants, asserts report shape and no-highlights",
+        "Full suite: 232/232 tests pass (was 227; +5 new)"
       ],
       "notes": "Since this is a manual harness run with real humans, the verification is structural (the report has the right shape); the actual N=7 study is out of scope for agent execution. The harness + synthetic run is what we verify."
     }
