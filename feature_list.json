@@ -218,7 +218,7 @@
       "area": "service",
       "title": "Implement Hierarchical Summarization (deBERTa title + abstractive, mocked at MVP)",
       "user_visible_behavior": "HierarchicalSummarizationService.title(segment) returns a chapter title (deBERTa hierarchical_title model, 512-token context, 3rd-person). HierarchicalSummarizationService.abstractive(chunk) returns a 3rd-person rolling summary (deBERTa hierarchical_abstractive model, 512-token context). At MVP both call into MockLLMBackbone from model-002 (canned Vietnamese responses in src/repo/prompts_vi.py).",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "title(segment) returns a non-empty string <= 64 chars.",
         "abstractive(chunk) returns a non-empty string in 3rd person (regex assert on 'nhóm', 'cuộc họp', or similar Vietnamese 3rd-person markers).",
@@ -226,9 +226,9 @@
         "When MODEL_LOAD_LLM=1, the real Vistral-7B-Chat is loaded (gated; not exercised in unit tests)."
       ],
       "evidence": [
-        "src/service/hierarchical_summarization.py: HierarchicalSummarizationService wrapping ModelLoader.",
-        "tests/unit/test_hierarchical_summarization.py: title and abstractive mocked, output shape verified.",
-        "src/repo/prompts_vi.py: existing 'title' / 'abstractive' prompts (reused; 'highlights' prompt removed in spec D1)."
+        "src/service/hierarchical_summarization.py: title() and abstractive() methods; uses ModelLoader.load_llm_backbone() (MockLLMBackbone at MVP via MODEL_LOAD_LLM=0)",
+        "src/service/__init__.py: re-exports HierarchicalSummarizationService",
+        "tests/unit/test_hierarchical_summarization.py: 8 tests (nonempty output, truncation, empty segment, 3rd-person marker, helper method)"
       ],
       "notes": "Unchanged from original spec; the only diff is that the highlights prompt is removed (D1) and the deBERTa calls go through MockLLMBackbone at MVP. The real deBERTa checkpoints are not yet publicly available for Vietnamese; the canned responses are realistic Vietnamese 3rd-person summaries for testing the streaming pipeline."
     },

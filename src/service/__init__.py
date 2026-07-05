@@ -13,3 +13,5 @@ __all__ = [
 ]
 from .chunking_service import ChunkingService
 __all__.append("ChunkingService")
+from .hierarchical_summarization import HierarchicalSummarizationService
+__all__.append("HierarchicalSummarizationService")
