@@ -5,18 +5,17 @@ to deeper documents when needed.
 
 ## System Shape
 
-- Product: LLM-Powered Hierarchical Meeting Recap System with Topic Segmentation
-- Primary user workflow: Ingest meeting transcripts, segment by topic using CoherenceNet (NSP BERT) TextTiling, and generate hierarchical meeting minutes.
-- Runtime surfaces: cli / services
-- Source of truth for product behavior: `docs/papers/`
+- Product: Streaming LLM-Powered Hierarchical Meeting Recap System with Topic Segmentation
+- Primary user workflow: Ingest a meeting transcript, segment by topic using the user-fine-tuned CoherenceNet (NSP-BERT `bert-base-multilingual-cased`) + TextTiling pipeline, and stream chapter cards (segment + chunk + title) to the user as soon as the pipeline produces them. Highlights pipeline (paper-2 DR1) is out of scope.
+- Runtime surfaces: cli (NDJSON) / services (FastAPI SSE)
+- Source of truth for product behavior: `docs/papers/` + `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md`
 
 ## Domain Map
 
 | Domain | Purpose | Primary Entry Points | Related Spec |
 |--------|---------|----------------------|--------------|
-| `Topic Segmentation` | `Identifying coherent topics using NSP BERT & TextTiling` | `src/service/text_tiling.py`, `src/service/coherence_scorer.py` | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md` |
-| `Hierarchical Recap` | `Meeting summarization, chapter titles, rolling summaries` | `src/service/segmenter_service.py`, `src/service/meeting_recap_orchestrator.py` | `docs/papers/llm-powered-meeting-recap-system.md` |
-| `Highlights & Action Items` | `Key-point extraction and task/action-item generation via BART` | `src/service/meeting_recap_orchestrator.py` | `docs/papers/llm-powered-meeting-recap-system.md` |
+| `Topic Segmentation` | `Identifying coherent topics using user-fine-tuned NSP-BERT + TextTiling (paper-1 *Ours (full)* method)` | `src/service/text_tiling.py`, `src/service/coherence_scorer.py` | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md` |
+| `Hierarchical Recap` | `Meeting summarization, chapter titles, rolling summaries (deBERTa, mocked at MVP), streaming end-to-end` | `src/service/meeting_recap_orchestrator.py` (StreamingOrchestrator) | `docs/papers/llm-powered-meeting-recap-system.md` + `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` |
 
 ## Layer Model
 
@@ -39,26 +38,28 @@ boundaries instead of reaching across layers directly.
 
 | Concern | Approved Boundary | Notes |
 |--------|-------------------|-------|
-| Logging and tracing | `Standard Python logging` | `[structured only, console allowed for CLI]` |
-| Auth | `N/A` | `[token/session rules]` |
-| External APIs | `HuggingFace Transformers` | `[local model loading]` |
-| Feature flags | `N/A` | `[ownership]` |
+| Logging and tracing | `Standard Python logging` | `structured only, console allowed for CLI` |
+| Auth | `N/A` | `token/session rules` |
+| External APIs | `HuggingFace Transformers` | `local model loading; cpt_4000.pth is the user-fine-tuned checkpoint` |
+| Feature flags | `MODEL_LOAD_LLM` env var | `0 = MockLLMBackbone (offline CI); 1 = real Vistral-7B-Chat` |
+| Streaming transport | `sse-starlette` for HTTP / `ndjson` for CLI | `event contract in docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md Section 6` |
 
 ## Current Hot Spots
 
-- `CoherenceNet / NSP BERT integration with HuggingFace pipeline`
-- `Data loading and boundary scoring logic`
-- `MeetingRecapOrchestrator: wiring segmentation → summarization → highlights pipeline`
-- `FastAPI router + CLI runtime (not yet implemented)`
+- `CoherenceNet / NSP-BERT integration with HuggingFace pipeline (mode CM = Coherence Modeling, not raw NSP)`
+- `TextTilingService sliding-window depth-score cutoffs (τ = μ - σ/2)`
+- `StreamingOrchestrator: 6-event end-to-end pipeline with deferred title inference`
+- `FastAPI SSE route + CLI NDJSON runner (not yet implemented)`
 
 ## Service Map
 
-| Service | File | Layer | Depends On |
-|---------|------|-------|------------|
-| `CoherenceScorer` | `src/service/coherence_scorer.py` | Service | `ModelLoader` (Repo), `CoherenceNet` (Repo) |
-| `TextTilingService` | `src/service/text_tiling.py` | Service | `CoherenceScorer` (Service), `TextTilingConfig` (Config) |
-| `SegmenterService` | `src/service/segmenter_service.py` | Service | `TextTilingService` (Service), `TextTilingConfig` (Config) |
-| `MeetingRecapOrchestrator` | `src/service/meeting_recap_orchestrator.py` | Service | `SegmenterService` (Service), `ModelLoader` (Repo) |
+| Service | File | Layer | Depends On | Streaming? |
+|---------|------|-------|------------|------------|
+| `CoherenceScorer` | `src/service/coherence_scorer.py` | Service | `CoherenceNet` (Repo), `ModelLoader` (Repo) | yes — pair scoring per utterance |
+| `TextTilingService` | `src/service/text_tiling.py` | Service | `CoherenceScorer` (Service), `TextTilingConfig` (Config) | yes — sliding depth-score array |
+| `ChunkingService` | `src/service/chunking_service.py` | Service | (none) | yes — 8-utt chunk accumulator |
+| `HierarchicalSummarizationService` | `src/service/hierarchical_summarization.py` | Service | `ModelLoader` (Repo), `MockLLMBackbone` (Repo) | yes — title deferred, chunk summary synchronous at MVP |
+| `StreamingOrchestrator` | `src/service/meeting_recap_orchestrator.py` | Service | All above + `ModelLoader` (Repo) | yes — main entry point (6 event types) |
 
 ## Change Checklist
 
