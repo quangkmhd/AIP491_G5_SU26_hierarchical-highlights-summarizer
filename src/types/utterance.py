@@ -27,11 +27,13 @@ class Utterance(BaseSchema):
     speaker: str = Field(
         ...,
         min_length=1,
+        max_length=128,
         description="Speaker label (e.g. 'A', 'B', or a real name).",
     )
     text: str = Field(
         ...,
         min_length=1,
+        max_length=4000,
         description="Verbatim text of the spoken utterance.",
     )
     index: int = Field(

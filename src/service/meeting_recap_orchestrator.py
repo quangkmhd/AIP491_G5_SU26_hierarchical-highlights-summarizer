@@ -136,10 +136,23 @@ class StreamingOrchestrator:
             # could optimize by maintaining a sliding window.
             boundary = self._detect_boundary(scores_buffer)
             if boundary is not None and boundary > 0:
-                # Close chunks in current_segment up to (but not including) boundary
-                self._flush_chunks_up_to(
-                    current_segment, pending_utts, boundary
-                )
+                # `boundary` is the index of the utterance that starts the
+                # next segment. Close the current segment at the utterance
+                # immediately before it.
+                current_segment.utterances_end = pending_utts[boundary - 1].index
+
+                # Close chunks in current_segment up to (but not including) boundary.
+                for chunk in self._flush_chunks_up_to(current_segment, pending_utts, boundary):
+                    yield OrchestratorEvent(
+                        type=RecapEventType.CHUNK_CLOSED,
+                        data={
+                            "chunk_id": str(chunk.chunk_id),
+                            "segment_id": str(current_segment.segment_id),
+                            "utterances_start": chunk.utterances[0].index,
+                            "utterances_end": chunk.utterances[-1].index,
+                            "rolling_summary": chunk.rolling_summary,
+                        },
+                    )
                 # Emit segment-closed
                 yield OrchestratorEvent(
                     type=RecapEventType.SEGMENT_CLOSED,
@@ -241,7 +254,7 @@ class StreamingOrchestrator:
         is high enough to indicate a topic shift, return the index of the
         new segment's start. Uses TextTilingService's depth formula.
         """
-        if len(scores) < 2:
+        if len(scores) < 1:
             return None
         # Compute depth for the last score using paper-1 formula
         from src.service.text_tiling import depth_computing
@@ -259,8 +272,9 @@ class StreamingOrchestrator:
         segment: SegmentResult,
         pending_utts: list[Utterance],
         boundary: int,
-    ) -> None:
+    ) -> list[Chunk]:
         """Flush complete chunks up to (but not including) boundary index."""
+        flushed: list[Chunk] = []
         for i in range(0, boundary, self.chunker.CHUNK_SIZE):
             chunk_utts = pending_utts[i : i + self.chunker.CHUNK_SIZE]
             if not chunk_utts:
@@ -268,3 +282,5 @@ class StreamingOrchestrator:
             chunk = Chunk(utterances=chunk_utts)
             chunk.rolling_summary = self.summarizer.abstractive(chunk)
             segment.chunks.append(chunk)
+            flushed.append(chunk)
+        return flushed

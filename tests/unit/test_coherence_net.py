@@ -36,7 +36,7 @@ class TestCoherenceNetLoad(unittest.TestCase):
         net = CoherenceNet(bert=bert, device="cpu")
 
         # Mirror the loader's filter strategy: match keys with the same shape.
-        state = torch.load(NSP_CKPT_PATH, map_location="cpu", weights_only=False)
+        state = torch.load(NSP_CKPT_PATH, map_location="cpu", weights_only=True)
         # Resize embeddings to match the checkpoint's vocab (38168).
         net.bert.resize_token_embeddings(
             state["bert.embeddings.word_embeddings.weight"].shape[0]

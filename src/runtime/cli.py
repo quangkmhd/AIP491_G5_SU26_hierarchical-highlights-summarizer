@@ -23,7 +23,7 @@ def _load_transcript(file) -> DialogueTranscript:
         # Single transcript object
         raw = [raw]
     if not isinstance(raw, list) or not raw:
-        raise ValueError(f"{path} must contain a JSON array of transcripts")
+        raise ValueError("Input file must contain a JSON array of transcripts")
 
     # For MVP: process only the first transcript
     item = raw[0]
@@ -59,21 +59,20 @@ def cmd_stream(args: argparse.Namespace) -> int:
     transcript = _load_transcript(args.file)
     orchestrator = StreamingOrchestrator()
     seg_count = 0
+    final_recap: dict | None = None
     for event in orchestrator.process_stream(transcript):
         if event.type.value == "segment-closed":
             seg_count += 1
+        # Capture the final recap from the meeting-completed event
+        if event.type.value == "meeting-completed":
+            final_recap = event.data["hierarchical_recap"]
         # NDJSON output: one event per line
         print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
-    if args.output:
-        # The last meeting-completed event contains the final recap
-        events = list(orchestrator.process_stream(transcript))
-        for ev in events:
-            if ev.type.value == "meeting-completed":
-                Path(args.output).write_text(
-                    json.dumps(ev.data["hierarchical_recap"], indent=2, ensure_ascii=False),
-                    encoding="utf-8",
-                )
-                break
+    if args.output and final_recap is not None:
+        Path(args.output).write_text(
+            json.dumps(final_recap, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
     print(f"# stream finished: {seg_count} segments", file=sys.stderr)
     return 0
 

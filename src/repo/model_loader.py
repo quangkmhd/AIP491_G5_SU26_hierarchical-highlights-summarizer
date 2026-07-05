@@ -110,7 +110,7 @@ def _load_nsp_weights(ckpt_path: str | Path, device: str) -> CoherenceNet:
             f"Expected the pre-trained cpt_4000.pth at the project root."
         )
     bert = AutoModel.from_pretrained(NSP_ENCODER_ID)
-    state = torch.load(p, map_location="cpu", weights_only=False)
+    state = torch.load(p, map_location="cpu", weights_only=True)
 
     # Resize the inner BertModel's embedding to match the checkpoint's vocab.
     ck_vocab = state["bert.embeddings.word_embeddings.weight"].shape[0]

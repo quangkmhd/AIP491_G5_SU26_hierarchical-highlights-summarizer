@@ -46,13 +46,13 @@ def win_diff(predicted: list[int], true: list[int], window: int | None = None) -
     n = max(n, 2 * window + 1)
     pred_set = _to_boundary_set(predicted, n)
     true_set = _to_boundary_set(true, n)
-    diffs = 0
+    mismatches = 0
     for i in range(n - window):
-        if pred_set[i] != pred_set[i + window]:
-            diffs += 1
-        if true_set[i] != true_set[i + window]:
-            diffs -= 1
-    return abs(diffs) / (n - window)
+        pred_diff = pred_set[i] != pred_set[i + window]
+        true_diff = true_set[i] != true_set[i + window]
+        if pred_diff != true_diff:
+            mismatches += 1
+    return mismatches / (n - window)
 
 
 def f1_score(predicted: list[int], true: list[int]) -> float:
@@ -63,8 +63,9 @@ def f1_score(predicted: list[int], true: list[int]) -> float:
     """
     if not predicted or not true:
         return 0.0
-    pred_segs = _segments_from_ends(predicted)
-    true_segs = _segments_from_ends(true)
+    n = _total(predicted, true)
+    pred_segs = _segments_from_ends(predicted, n)
+    true_segs = _segments_from_ends(true, n)
     true_set = set(true_segs)
     pred_set = set(pred_segs)
     tp = len(pred_set & true_set)
@@ -87,8 +88,12 @@ def _to_boundary_set(ends: list[int], n: int) -> list[int]:
     return out
 
 
-def _segments_from_ends(ends: list[int]) -> list[tuple[int, int]]:
-    """Convert end indices to (start, end) tuples. Last end is forced to n-1."""
+def _segments_from_ends(ends: list[int], n: int | None = None) -> list[tuple[int, int]]:
+    """Convert end indices to (start, end) tuples.
+
+    When `n` is provided, force the final segment to cover through n - 1
+    even if the supplied boundary list stops early.
+    """
     if not ends:
         return []
     result: list[tuple[int, int]] = []
@@ -96,6 +101,8 @@ def _segments_from_ends(ends: list[int]) -> list[tuple[int, int]]:
     for e in ends:
         result.append((prev, e))
         prev = e + 1
+    if n is not None and prev < n:
+        result.append((prev, n - 1))
     return result
 
 
@@ -108,8 +115,5 @@ def _median_segment_length(ends: list[int]) -> int:
 
 
 def _total(predicted: list[int], true: list[int]) -> int:
-    """Total number of utterances (max of last ends + 1)."""
-    return max(
-        (max(predicted) + 1) if predicted else 0,
-        (max(true) + 1) if true else 0,
-    )
+    """Total number of utterances (ground truth length)."""
+    return (max(true) + 1) if true else 0

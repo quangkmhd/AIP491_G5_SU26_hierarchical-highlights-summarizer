@@ -52,7 +52,7 @@ def write_json_file(path: str | Path, payload: Any) -> Path:
     """
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = p.with_suffix(p.suffix + ".tmp")
+    tmp_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
             mode="w",
