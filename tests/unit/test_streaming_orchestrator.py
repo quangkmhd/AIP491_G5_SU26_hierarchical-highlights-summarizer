@@ -1,0 +1,135 @@
+"""Unit tests for StreamingOrchestrator (svc-006+streaming).
+
+Tests use a tiny synthetic transcript (8 utterances, 1 clear boundary) so
+the pipeline can run quickly on CPU with MockLLMBackbone. The NSP-BERT
+scoring is real but for a tiny input it finishes in <1s.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+import unittest
+from pathlib import Path
+
+os.environ.setdefault("MODEL_LOAD_LLM", "0")
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from src.service import (
+    ChunkingService,
+    CoherenceScorer,
+    HierarchicalSummarizationService,
+    RecapEventType,
+    StreamingOrchestrator,
+    TextTilingService,
+)
+from src.types.transcript import DialogueTranscript
+from src.types.utterance import Utterance
+
+
+def _t(texts: list[str]) -> DialogueTranscript:
+    return DialogueTranscript(
+        utterances=[Utterance(speaker="S1", text=t, index=i) for i, t in enumerate(texts)],
+    )
+
+
+class StreamingOrchestratorEventTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.orchestrator = StreamingOrchestrator()
+
+    def test_event_order_for_tiny_transcript(self) -> None:
+        # 6 utterances, one likely topic shift at index 2
+        transcript = _t([
+            "Chào buổi sáng.",
+            "Hôm nay chúng ta thảo luận về dự án X.",
+            "Dự án X tiến triển tốt.",  # possibly same topic
+            "Chuyển sang chủ đề mới: ngân sách.",  # topic shift
+            "Ngân sách quý này là 500 triệu.",
+            "Đồng ý phân bổ cho team A.",
+        ])
+        events = list(self.orchestrator.process_stream(transcript))
+        # Last event is always MEETING_COMPLETED
+        self.assertEqual(events[-1].type, RecapEventType.MEETING_COMPLETED)
+        # At least one SEGMENT_CLOSED
+        seg_events = [e for e in events if e.type == RecapEventType.SEGMENT_CLOSED]
+        self.assertGreaterEqual(len(seg_events), 1)
+        # At least one TITLE_EMITTED
+        title_events = [e for e in events if e.type == RecapEventType.TITLE_EMITTED]
+        self.assertEqual(len(title_events), len(seg_events))
+
+    def test_process_batch_returns_hierarchical_recap(self) -> None:
+        transcript = _t([
+            "Xin chào.",
+            "Chúng ta bắt đầu họp.",
+            "Mục tiêu hôm nay là thống nhất kế hoạch.",
+        ])
+        recap = self.orchestrator.process_batch(transcript)
+        self.assertIsNotNone(recap.meeting_id)
+        self.assertGreaterEqual(len(recap.segments), 1)
+        # Each segment has a non-empty title
+        for seg in recap.segments:
+            self.assertGreater(len(seg.title), 0)
+        # processing_time_ms is recorded
+        self.assertIsNotNone(recap.processing_time_ms)
+        self.assertGreaterEqual(recap.processing_time_ms, 0)
+
+    def test_processing_time_under_3_minutes(self) -> None:
+        transcript = _t(["a", "b", "c", "d", "e", "f", "g", "h"])
+        recap = self.orchestrator.process_batch(transcript)
+        self.assertLessEqual(recap.processing_time_ms, 180_000)
+
+    def test_no_highlights_keys(self) -> None:
+        transcript = _t(["x", "y", "z"])
+        recap = self.orchestrator.process_batch(transcript)
+        dumped = recap.model_dump(mode="json")
+        self.assertNotIn("highlights_notes", dumped)
+        self.assertNotIn("highlights_tasks", dumped)
+
+    def test_segments_have_chunks(self) -> None:
+        # 16 utterances, likely 1+ segments, each with chunks
+        texts = [f"câu {i}" for i in range(16)]
+        transcript = _t(texts)
+        recap = self.orchestrator.process_batch(transcript)
+        self.assertGreater(len(recap.segments), 0)
+        for seg in recap.segments:
+            # 16 utt, 1 segment -> 2 chunks (8+8)
+            self.assertGreater(len(seg.chunks), 0)
+            for chunk in seg.chunks:
+                self.assertLessEqual(len(chunk.utterances), ChunkingService.CHUNK_SIZE)
+
+    def test_streaming_emits_utterance_accepted(self) -> None:
+        # For 4+ utterances, we should get at least 3 UTTERANCE_ACCEPTED events
+        # (the first utterance is the segment start, not "accepted")
+        transcript = _t(["a", "b", "c", "d", "e"])
+        events = list(self.orchestrator.process_stream(transcript))
+        utt_events = [e for e in events if e.type == RecapEventType.UTTERANCE_ACCEPTED]
+        self.assertEqual(len(utt_events), 4)  # 5 utt - 1 first
+
+    def test_streaming_emits_depth_score_updated(self) -> None:
+        transcript = _t(["a", "b", "c", "d"])
+        events = list(self.orchestrator.process_stream(transcript))
+        depth_events = [e for e in events if e.type == RecapEventType.DEPTH_SCORE_UPDATED]
+        self.assertEqual(len(depth_events), 3)  # 4 utt - 1 first
+
+    def test_chunk_closed_events_present(self) -> None:
+        # 10 utterances, likely 1 segment, 2 chunks
+        transcript = _t([f"u{i}" for i in range(10)])
+        events = list(self.orchestrator.process_stream(transcript))
+        chunk_events = [e for e in events if e.type == RecapEventType.CHUNK_CLOSED]
+        self.assertGreaterEqual(len(chunk_events), 1)
+
+    def test_batch_equals_streaming_final_recap(self) -> None:
+        # process_batch and process_stream should produce equivalent recaps
+        transcript = _t(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+        recap_batch = self.orchestrator.process_batch(transcript)
+        events = list(self.orchestrator.process_stream(transcript))
+        final = [e for e in events if e.type == RecapEventType.MEETING_COMPLETED][0]
+        recap_stream = final.data["hierarchical_recap"]
+        # Compare structure (not generated_at / processing_time_ms)
+        self.assertEqual(len(recap_batch.segments), len(recap_stream["segments"]))
+        for a, b in zip(recap_batch.segments, recap_stream["segments"]):
+            self.assertEqual(a.utterances_start, b["utterances_start"])
+            self.assertEqual(a.utterances_end, b["utterances_end"])

@@ -15,3 +15,9 @@ from .chunking_service import ChunkingService
 __all__.append("ChunkingService")
 from .hierarchical_summarization import HierarchicalSummarizationService
 __all__.append("HierarchicalSummarizationService")
+from .meeting_recap_orchestrator import (
+    OrchestratorEvent,
+    RecapEventType,
+    StreamingOrchestrator,
+)
+__all__ += ["OrchestratorEvent", "RecapEventType", "StreamingOrchestrator"]
