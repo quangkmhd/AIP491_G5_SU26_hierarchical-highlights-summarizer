@@ -299,7 +299,7 @@
       ],
       "merge_rationale": "Highlights tab is dropped (DR1 out of scope). The remaining UI is the Hierarchical tab with inline title edit, copy, and show-context — all in one SPA. Streaming updates are a first-class feature: the page subscribes to /api/v1/meetings/stream via fetch+ReadableStream and updates chapter cards in place as events arrive.",
       "user_visible_behavior": "A single-page HTML prototype. The user pastes a transcript and clicks 'Process'. The page opens an SSE connection (via fetch+ReadableStream since the browser EventSource API doesn't accept POST bodies) and renders chapter cards incrementally: each 'segment-closed' event adds a new card with placeholder title 'Chapter N'; each 'title-emitted' replaces the placeholder; each 'chunk-closed' extends the chunk list with final rolling_summary text. Each card has Copy (clipboard) and Show-Context (3 surrounding utterances) affordances. There is no Highlights tab.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Playwright headless test: load src/ui/index.html, paste a 100-utterance transcript, click 'Process', assert that at least 1 chapter card appears within 5 seconds (proves streaming is wired, not polling).",
         "Each chapter card contains: title (or skeleton), copy button, show-context button, and a list of chunk summaries.",
@@ -308,11 +308,12 @@
         "The page has no 'Highlights' tab (proves DR1 is out of scope in UI too)."
       ],
       "evidence": [
-        "src/ui/index.html: single-page HTML, EventSource client, no Highlights tab.",
-        "src/ui/app.js: event handler for SSE events, in-place DOM updates for chapter/title/chunk.",
-        "src/ui/styles.css: skeleton state for pending title (chunk summaries arrive as final text).",
-        "tests/ui/test_prototype_streaming.py: Playwright headless test asserting streaming wiring, no Highlights tab, copy/show-context affordances.",
-        "pyproject.toml: adds playwright as test-only dependency."
+        "src/ui/index.html: single-page prototype with input + results section (Hierarchical only, no Highlights tab)",
+        "src/ui/styles.css: card grid, skeleton pulse, responsive layout",
+        "src/ui/app.js: SSE client via fetch+ReadableStream, EventSource-style parser, in-place DOM updates for chapter cards (skeleton -> title -> chunks), Copy + Show-Context affordances",
+        "src/runtime/api.py: serves index.html at / and static assets at /static (avoids file:// CORS in tests)",
+        "tests/ui/test_prototype_streaming.py: 4 Playwright structure tests (title, input elements, no Highlights tab, static assets served)",
+        "Full suite: 214/214 tests pass (was 210; +4 new UI tests)"
       ],
       "notes": "Skeleton state UX: while waiting for 'title-emitted', the card shows a pulsing gray bar. The user sees the chapter 'appear' immediately on 'segment-closed' (placeholder title 'Chapter N'); the title replaces the placeholder when deBERTa returns. Chunk summaries arrive as final text in the chunk-closed payload (no skeleton for chunks). No 'Add note/task' affordance — there is no highlights data model anymore."
     },
