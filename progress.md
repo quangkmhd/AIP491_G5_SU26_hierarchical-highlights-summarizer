@@ -201,3 +201,12 @@ I3 directly).
 - 1 AST layer-rule test in `tests/unit/test_service_layer_rules.py`.
 - 1 end-to-end smoke in `tests/manual/test_svc_001_002_smoke.py` loads cpt_4000.pth, scores 369 pairs, runs TextTiling, emits 192 segments (partial fine-tuning; expected to over-segment vs ground truth).
 - Verification: 172/172 tests pass (was 155; +17 new).
+
+## svc-003 — Hierarchical Chunking (8-utt blocks) (2026-07-05)
+
+**Status:** passing
+
+- Created `src/service/chunking_service.py` with `ChunkingService.chunk(utterances)` and `chunk_indices(n)`.
+- Slices utterances into 8-utt Chunks (no overlap; paper-2 §3.2 spec).
+- 11 unit tests covering 8/30/7/1 utterance cases, empty input raises, indices, unique IDs, order preservation.
+- Verification: full suite green.
