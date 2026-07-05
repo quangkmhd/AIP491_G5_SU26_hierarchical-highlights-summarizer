@@ -17,6 +17,7 @@ expensive HF load (which would double VRAM usage).
 from __future__ import annotations
 
 import os
+import logging
 import threading
 from dataclasses import dataclass
 from enum import Enum
@@ -26,6 +27,8 @@ from typing import Any, ClassVar
 import torch
 
 from .coherence_net import NSP_CKPT_PATH, CoherenceNet
+
+logger = logging.getLogger("src.repo.model_loader")
 
 
 class ModelKind(str, Enum):
@@ -104,6 +107,7 @@ def _load_nsp_weights(ckpt_path: str | Path, device: str) -> CoherenceNet:
     from transformers import AutoModel  # local import to keep module import cheap
 
     p = Path(ckpt_path)
+    logger.info("loading NSP checkpoint path=%s device=%s", p, device)
     if not p.is_file():
         raise FileNotFoundError(
             f"NSP checkpoint not found at {p}. "
@@ -135,6 +139,12 @@ def _load_nsp_weights(ckpt_path: str | Path, device: str) -> CoherenceNet:
 
     # C4: attach vocab info for the token-ID clamp helper.
     net._checkpoint_vocab_size = ck_vocab  # type: ignore[attr-defined]
+    logger.info(
+        "NSP checkpoint loaded vocab_size=%d matched_bert_keys=%d decoder_keys=%d",
+        ck_vocab,
+        len(matched),
+        len(decoder_state),
+    )
     return net
 
 
@@ -161,6 +171,7 @@ def _load_llm_backbone(device: str) -> ModelHandle:
     offline unit tests can still construct a usable handle.
     """
     if os.environ.get("MODEL_LOAD_LLM", "1") == "0":
+        logger.info("loading LLM backbone mode=mock MODEL_LOAD_LLM=0 device=cpu")
         return ModelHandle(
             kind=ModelKind.LLM_BACKBONE,
             model=MockLLMBackbone(),
@@ -170,6 +181,7 @@ def _load_llm_backbone(device: str) -> ModelHandle:
 
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
+    logger.info("loading LLM backbone id=%s mode=4bit device=%s", LLM_BACKBONE_ID, device)
     bnb = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_compute_dtype=torch.float16,
@@ -222,6 +234,7 @@ class ModelLoader:
     def load_coherence_net(self) -> ModelHandle:
         with self._cache_lock:
             if ModelKind.NSP in self._cache:
+                logger.debug("model cache hit kind=%s", ModelKind.NSP.value)
                 return self._cache[ModelKind.NSP]
             device = _resolve_device()
             net = _load_nsp_weights(NSP_CKPT_PATH, device)
@@ -236,13 +249,21 @@ class ModelLoader:
                 tokenizer=tokenizer,
             )
             self._cache[ModelKind.NSP] = handle
+            logger.info("model cache store kind=%s device=%s", ModelKind.NSP.value, device)
             return handle
 
     def load_llm_backbone(self) -> ModelHandle:
         with self._cache_lock:
             if ModelKind.LLM_BACKBONE in self._cache:
+                logger.debug("model cache hit kind=%s", ModelKind.LLM_BACKBONE.value)
                 return self._cache[ModelKind.LLM_BACKBONE]
             device = _resolve_device()
             handle = _load_llm_backbone(device)
             self._cache[ModelKind.LLM_BACKBONE] = handle
+            logger.info(
+                "model cache store kind=%s device=%s checkpoint=%s",
+                ModelKind.LLM_BACKBONE.value,
+                handle.device,
+                handle.checkpoint_path or "mock",
+            )
             return handle

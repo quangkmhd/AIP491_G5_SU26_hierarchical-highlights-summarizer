@@ -68,6 +68,23 @@ class CliProcessTests(unittest.TestCase):
         finally:
             sys.argv = old_argv
 
+    def test_empty_json_array_returns_fix_message(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tf = Path(tmp) / "empty.json"
+            tf.write_text("[]", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, "-m", "src.runtime.cli", "process", str(tf)],
+                capture_output=True,
+                text=True,
+                env={**os.environ, "MODEL_LOAD_LLM": "0"},
+                cwd=ROOT,
+                timeout=60,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Fix:", result.stderr)
+            self.assertIn("JSON array", result.stderr)
+
 
 class CliStreamTests(unittest.TestCase):
     def test_stream_emits_ndjson(self) -> None:

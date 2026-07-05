@@ -73,6 +73,15 @@ class TestOfflineMode(unittest.TestCase):
         self.assertIsInstance(handle.model, MockLLMBackbone)
         self.assertEqual(handle.kind, ModelKind.LLM_BACKBONE)
 
+    def test_offline_llm_load_logs_mode_and_device(self) -> None:
+        with mock.patch.dict(os.environ, {"MODEL_LOAD_LLM": "0"}):
+            loader = ModelLoader.instance()
+            with self.assertLogs("src.repo.model_loader", level="INFO") as logs:
+                loader.load_llm_backbone()
+        text = "\n".join(logs.output)
+        self.assertIn("loading LLM backbone", text)
+        self.assertIn("MODEL_LOAD_LLM=0", text)
+
 
 class TestCaching(unittest.TestCase):
     def setUp(self) -> None:
@@ -91,6 +100,16 @@ class TestCaching(unittest.TestCase):
         self.assertIs(a, b)
         # Only one underlying load call.
         self.assertEqual(fresh.call_count, 1)
+
+    def test_nsp_cache_hit_logs_debug_only(self) -> None:
+        loader = ModelLoader.instance()
+        with mock.patch("src.repo.model_loader._load_nsp_weights") as fresh:
+            fresh.return_value = object()
+            with mock.patch("transformers.AutoTokenizer.from_pretrained"):
+                loader.load_coherence_net()
+                with self.assertLogs("src.repo.model_loader", level="DEBUG") as logs:
+                    loader.load_coherence_net()
+        self.assertIn("model cache hit kind=nsp", "\n".join(logs.output))
 
 
 if __name__ == "__main__":

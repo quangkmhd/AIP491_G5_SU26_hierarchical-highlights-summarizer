@@ -21,6 +21,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from src.config.text_tiling import TextTilingConfig
+from src.logging import get_logger
 
 
 @dataclass(frozen=True)
@@ -110,6 +111,7 @@ class TextTilingService:
     """
 
     def __init__(self, config: TextTilingConfig | None = None) -> None:
+        self.logger = get_logger("src.service.text_tiling")
         self.config = config or TextTilingConfig()
         self._segment_counter = 0
         self._current_start = 0
@@ -138,6 +140,11 @@ class TextTilingService:
 
         depths = depth_computing(scores)
         tau = cutoff_threshold(depths, policy="mean-std/2")
+        n_boundaries = int((depths > tau).sum())
+        self.logger.debug(
+            "text_tiling depths min=%.3f max=%.3f tau=%.3f boundaries=%d",
+            float(depths.min()), float(depths.max()), tau, n_boundaries,
+        )
 
         events: list[SegmentEvent] = []
         # boundary i means the i-th pair's first utterance starts a new

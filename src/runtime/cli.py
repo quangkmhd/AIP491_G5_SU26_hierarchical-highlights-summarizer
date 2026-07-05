@@ -10,20 +10,25 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import uuid
 from pathlib import Path
+from typing import TextIO
 
+from src.logging import get_logger, log_error_with_fix, request_context
 from src.service import StreamingOrchestrator
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
 
+logger = get_logger("src.runtime.cli")
 
-def _load_transcript(file) -> DialogueTranscript:
+def _load_transcript(file: TextIO) -> DialogueTranscript:
     raw = json.load(file)
     if isinstance(raw, dict):
         # Single transcript object
         raw = [raw]
     if not isinstance(raw, list) or not raw:
-        raise ValueError(f"{path} must contain a JSON array of transcripts")
+        path = getattr(file, "name", "<stdin>")
+        raise ValueError(f"{path} must contain a non-empty JSON array of transcripts")
 
     # For MVP: process only the first transcript
     item = raw[0]
@@ -40,6 +45,7 @@ def _load_transcript(file) -> DialogueTranscript:
 
 
 def cmd_process(args: argparse.Namespace) -> int:
+    logger.info("cli process start file=%s output=%s", args.file.name, args.output or "-")
     transcript = _load_transcript(args.file)
     orchestrator = StreamingOrchestrator()
     recap = orchestrator.process_batch(transcript)
@@ -52,10 +58,16 @@ def cmd_process(args: argparse.Namespace) -> int:
         print(f"segments:   {len(output['segments'])}")
         print(f"chunks:     {sum(len(s['chunks']) for s in output['segments'])}")
         print(f"time_ms:    {output['processing_time_ms']}")
+    logger.info(
+        "cli process done meeting_id=%s segments=%d",
+        output["meeting_id"],
+        len(output["segments"]),
+    )
     return 0
 
 
 def cmd_stream(args: argparse.Namespace) -> int:
+    logger.info("cli stream start file=%s output=%s", args.file.name, args.output or "-")
     transcript = _load_transcript(args.file)
     orchestrator = StreamingOrchestrator()
     seg_count = 0
@@ -75,6 +87,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
                 )
                 break
     print(f"# stream finished: {seg_count} segments", file=sys.stderr)
+    logger.info("cli stream done segments=%d output=%s", seg_count, args.output or "-")
     return 0
 
 
@@ -98,7 +111,31 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    return args.func(args)
+    request_id = uuid.uuid4().hex[:12]
+    with request_context(request_id=request_id, event=f"cli {args.command}"):
+        try:
+            return args.func(args)
+        except (json.JSONDecodeError, ValueError) as exc:
+            fix = _suggest_fix_for_cli_error(exc)
+            log_error_with_fix(logger, exc, fix=fix)
+            print(f"Error: {exc}", file=sys.stderr)
+            print(f"Fix: {fix}", file=sys.stderr)
+            return 2
+        finally:
+            file_obj = getattr(args, "file", None)
+            if file_obj is not None and hasattr(file_obj, "close"):
+                file_obj.close()
+
+
+def _suggest_fix_for_cli_error(exc: BaseException) -> str:
+    msg = str(exc).lower()
+    if isinstance(exc, json.JSONDecodeError):
+        return "provide a valid UTF-8 JSON file containing a transcript array"
+    if "json array" in msg or "transcripts" in msg:
+        return "wrap the transcript object in a non-empty JSON array, or pass a single transcript JSON object"
+    if "utterance" in msg or "flat_texts" in msg:
+        return "include at least one utterance item in `utterances` or `flat_texts`"
+    return "check the input file shape against the CLI transcript JSON format"
 
 
 if __name__ == "__main__":
