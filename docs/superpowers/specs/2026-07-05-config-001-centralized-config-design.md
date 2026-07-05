@@ -64,16 +64,18 @@ src/config/
   case_sensitive=False, validate_default=True)`. All sub-configs and
   `MeetingRecapConfig` inherit it.
 
-### D3. Error semantics: `ConfigError` is an alias of `ValidationError`
+### D3. Error semantics: `ConfigError` is a module-level alias of `pydantic.ValidationError`
 
-- `src/config/errors.py` defines
-  `class ConfigError(pydantic.ValidationError): ...`.
-- Sub-config validators raise Pydantic errors as usual; the alias
-  exists so call sites can `except ConfigError` and still get the
-  full Pydantic `.errors()` structure (used by FastAPI 422 in
-  `runtime-001`).
-- Rationale: keeps the door open for typed catching without
-  breaking Pydantic's well-defined error format.
+- `src/config/errors.py` defines `ConfigError = pydantic.ValidationError`
+  (a module-level alias, NOT a Python subclass).
+- Reason: Pydantic v2's `ValidationError` is implemented in Rust and
+  raised by `pydantic_core` directly. Python subclasses do not match
+  `isinstance` against the runtime class (the Rust core constructs
+  exceptions of the exact class, bypassing `__init_subclass__`). A
+  module-level alias guarantees `except ConfigError` and
+  `except pydantic.ValidationError` behave identically.
+- Call sites can still write `except ConfigError` and get the full
+  Pydantic `.errors()` structure (used by FastAPI 422 in `runtime-001`).
 
 ### D4. Sub-config schema (each field = one paper hyper-parameter)
 
