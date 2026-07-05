@@ -3,6 +3,9 @@
 These schemas are intentionally separate from the domain types so the wire
 contract can evolve independently of the core data structures. They reuse the
 shared types so round-trips stay type-safe.
+
+Note (model-001+, D1): `HighlightUpsertRequest` was removed because the
+Highlights (DR1) product surface is out of scope.
 """
 
 from __future__ import annotations
@@ -12,14 +15,13 @@ from typing import Optional
 from pydantic import Field, model_validator
 
 from ._base import BaseSchema
-from .highlight import Highlight, HighlightType
+# Highlight family removed in model-001+ (DR1 dropped from scope).
 from .hierarchical_recap import HierarchicalRecap, MeetingStatus
 from .transcript import DialogueTranscript
 from .utterance import Utterance
 
 __all__ = [
     "TranscriptIngestionRequest",
-    "HighlightUpsertRequest",
     "MeetingProcessResponse",
 ]
 
@@ -96,26 +98,6 @@ class TranscriptIngestionRequest(BaseSchema):
             meeting_title=self.meeting_title,
             metadata={"language": self.language, **self.metadata},
         )
-
-
-class HighlightUpsertRequest(BaseSchema):
-    """Payload accepted by `POST /api/v1/meetings/{id}/highlights`."""
-
-    type: HighlightType = Field(
-        default=HighlightType.KEY_POINT,
-        description="KEY_POINT or ACTION_ITEM.",
-    )
-    text: str = Field(..., min_length=1, description="Highlight text.")
-    segment_id: Optional[str] = Field(
-        default=None,
-        description="Optional owning segment UUID as a string.",
-    )
-    chunk_id: Optional[str] = Field(
-        default=None,
-        description="Optional owning chunk UUID as a string.",
-    )
-    starred: bool = Field(default=False)
-    checked: bool = Field(default=False)
 
 
 class MeetingProcessResponse(BaseSchema):

@@ -5,9 +5,8 @@ No dependencies on any other layer. Pure data definitions only.
 
 from ._base import BaseSchema
 from .hierarchical_recap import HierarchicalRecap, MeetingStatus
-from .highlight import Highlight, HighlightSource, HighlightType
+# Highlight family removed in model-001+ (DR1 dropped from scope).
 from .schemas import (
-    HighlightUpsertRequest,
     MeetingProcessResponse,
     TranscriptIngestionRequest,
 )
@@ -23,13 +22,9 @@ __all__ = [
     "DialogueTranscript",
     "Chunk",
     "SegmentResult",
-    "Highlight",
-    "HighlightType",
-    "HighlightSource",
     "HierarchicalRecap",
     "MeetingStatus",
     # API request/response schemas
     "TranscriptIngestionRequest",
-    "HighlightUpsertRequest",
     "MeetingProcessResponse",
 ]
