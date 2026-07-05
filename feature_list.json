@@ -172,7 +172,7 @@
       ],
       "merge_rationale": "TextTilingService (svc-002) is a hard consumer of CoherenceScorer (svc-001); splitting forces a stub scorer and double verification for a single coupled pipeline. Both are ported from references_code/dialogue-topic-segmenter (paper-1 reference impl) and share the same checkpoint.",
       "user_visible_behavior": "CoherenceScorer.score_pair(utt_i, utt_i_plus_1) returns a float in [0, 1] using the fine-tuned NSP-BERT model from paper-1 *Ours (full)* (cross-encoder BERT_base 12L/12H/768, marginal ranking loss η=1, dialog-flow + dialog-topic negative sampling). TextTilingService consumes a score stream, computes depth scores 0.5*(hl+hr-2*s[i]), and emits SegmentEvents when depth_score > τ (τ = μ - σ/2). Sliding window params (window=30, stride=10) come from TextTilingConfig (config-001+).",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "test_coherence_scorer.py: CoherenceScorer.score_pair returns a float in [0, 1] on a synthetic Vietnamese pair.",
         "test_text_tiling.py: TextTilingService.process_stream on a 100-utt fixture yields at least 1 SegmentEvent.",
@@ -182,10 +182,13 @@
         "Full 100-utterance inference finishes in < 5 seconds on a CPU (MockLLMBackbone fast-path not used for NSP)."
       ],
       "evidence": [
-        "src/service/coherence_scorer.py: CoherenceScorer wrapping CoherenceNet from model-002 (mode CM = Coherence Modeling, not raw NSP).",
-        "src/service/text_tiling.py: TextTilingService with depth_computing, cutoff_threshold, boundaries_to_segments ported line-for-line from references_code/dialogue-topic-segmenter/neural_texttiling.py.",
-        "tests/unit/test_coherence_scorer.py: scorer unit tests (shape, determinism, edge cases).",
-        "tests/unit/test_text_tiling.py: TextTiling unit tests with synthetic transcripts and 100-utterance integration test."
+        "src/service/__init__.py: re-exports CoherenceScorer, SegmentEvent, TextTilingService",
+        "src/service/coherence_scorer.py: CoherenceScorer wraps CoherenceNet in mode CM (paper-1 segment.py:79-81); score_pair returns float in [0, 1]; includes C4 token-id clamp mitigation",
+        "src/service/text_tiling.py: depth_computing ported from paper-1 neural_texttiling.py:54-80; cutoff_threshold = mu - sigma/2 (paper-1 §3); TextTilingService emits SegmentEvent with utterances_start/end + depth_score",
+        "tests/unit/test_text_tiling.py: 16 tests (depth_computing, cutoff_threshold, boundaries_to_segments, TextTilingService.process with 3-valley synthetic, full coverage, segment-id uniqueness, non-overlapping)",
+        "tests/unit/test_service_layer_rules.py: AST scan forbids service from importing runtime/ui",
+        "tests/manual/test_svc_001_002_smoke.py: end-to-end smoke loads CoherenceNet from cpt_4000.pth, scores 369 pairs on committee sample, runs TextTiling, emits SegmentEvents",
+        "Full suite: 172/172 tests pass (was 155; +17 new svc-001+002 tests)"
       ],
       "notes": "Architectural note: paper-1 *Ours (full)* beats every baseline on every metric (P_k=26.80/45.23, F1=0.776/0.660 on DialSeg_711/Doc2Dial — see docs/papers/improving-unsupervised-dialogue-topic-segmentation.md Table 4). The user's checkpoint vibert_checkpoints_vi/cpt_4000.pth is a partial fine-tuning (4k/36k steps, val_acc 0.7752) of this architecture with bert-base-multilingual-cased backbone instead of aws-ai/dse-bert-base; model-002's _coerce_token_ids + embedding resize handle the vocab mismatch (multilingual 119547 vs checkpoint 38168). The neural_texttiling.py code is ported verbatim for the depth_score and boundaries_to_segments functions; the encoder call goes through our CoherenceScorer (mode CM) rather than the paper's segment.py to keep a single code path."
     },

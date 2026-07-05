@@ -186,3 +186,18 @@ I3 directly).
 - Verification: 154/154 tests pass (was 135; +19 new).
 - Smoke: loads 36 committee samples, first has 370 utt + 8 segments.
 - Worktree: `.worktrees/feat-data-001` (branch `feat/data-001`).
+
+## svc-001+002 — Topic Segmentation Pipeline (paper-1 *Ours full*) (2026-07-05)
+
+**Status:** passing
+
+- Created `src/service/{__init__,coherence_scorer,text_tiling}.py`.
+- `CoherenceScorer` wraps `CoherenceNet` in paper-1 mode CM (fine-tuned coherence scoring model). `score_pair(utt_i, utt_i_plus_1) -> float ∈ [0, 1]`. Includes C4 token-id clamp (mitigates vocab mismatch 38168 vs 119547).
+- `TextTilingService` ports paper-1 `neural_texttiling.py`:
+  - `depth_computing(scores)`: `0.5 * (hl + hr - 2 * s[i])` per score.
+  - `cutoff_threshold`: `tau = mu - sigma/2` (paper-1 §3 spec).
+  - Emits `SegmentEvent(segment_id, utterances_start, utterances_end, depth_score, boundary_index)`.
+- 16 unit tests in `tests/unit/test_text_tiling.py` (depth formula, cutoff, sliding, 3-valley synthetic, coverage, ID uniqueness, non-overlap).
+- 1 AST layer-rule test in `tests/unit/test_service_layer_rules.py`.
+- 1 end-to-end smoke in `tests/manual/test_svc_001_002_smoke.py` loads cpt_4000.pth, scores 369 pairs, runs TextTiling, emits 192 segments (partial fine-tuning; expected to over-segment vs ground truth).
+- Verification: 172/172 tests pass (was 155; +17 new).
