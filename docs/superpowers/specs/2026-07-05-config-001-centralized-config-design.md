@@ -130,8 +130,11 @@ class MeetingRecapConfig(ConfigBase):
 - Env var precedence: process env > `.env` file > `default_factory`
   sub-config default. Guaranteed by Pydantic-Settings.
 - `_env_file=None` skips the file (kwarg override).
-- `extra="forbid"` rejects unknown env vars (e.g.
-  `MEETING_RECAP_BLOOPER=1` raises `ConfigError`).
+- `extra="forbid"` rejects unknown kwargs at model construction
+  time. **Note**: Pydantic-Settings treats unknown env vars as
+  `extra="ignore"` (the model-level `extra` does not propagate to
+  the env source). This is the standard 12-factor config behavior;
+  a stricter env-var forbid is deferred.
 
 ### D6. Layer rule (mechanical, not by convention)
 
