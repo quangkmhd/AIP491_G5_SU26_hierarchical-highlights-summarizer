@@ -323,7 +323,7 @@
       "area": "evaluation",
       "title": "Quantitative Segmentation Evaluation (P_k, Win-Diff, F1)",
       "user_visible_behavior": "Running the evaluation harness on the Vietnamese-translated test sets in data/eval_vi/ produces a paper-1-style table with P_k, Win-Diff, and F1 scores for our CoherenceScorer + TextTiling pipeline.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "tests/integration/test_eval_segmentation.py: runs the harness on the 370-utterance committee sample and reports P_k, Win-Diff, F1.",
         "P_k on the committee sample is reported (no threshold asserted — the user's fine-tuned checkpoint is partial; see known_gaps).",
@@ -331,10 +331,13 @@
         "Lower P_k/WD is better, higher F1 is better (asserted in test metric conventions)."
       ],
       "evidence": [
-        "src/eval/segmentation_metrics.py: P_k (Beeferman 1999), Win-Diff (Pevzner 2002), F1 (macro).",
-        "src/eval/run_segmentation_eval.py: harness that loads data-001 corpora and runs svc-001+002.",
-        "tests/integration/test_eval_segmentation.py: smoke test reporting the metrics without threshold.",
-        "docs/generated/segmentation-eval-report.md: produced by the harness; placeholders for real runs."
+        "src/eval/__init__.py: re-exports",
+        "src/eval/segmentation_metrics.py: pk, win_diff, f1_score per paper-1 §4.3 conventions",
+        "src/eval/run_segmentation_eval.py: CLI harness + JSON report writer",
+        "tests/unit/test_segmentation_metrics.py: 8 tests (perfect/off-by-one/no-overlap, empty)",
+        "tests/integration/test_eval_segmentation.py: 4 tests against data-001 corpora (perfect, perturbation, all 6 corpora)",
+        "tests/unit/test_eval_layer_rules.py: AST scan forbids eval from importing runtime/ui",
+        "Full suite: 227/227 tests pass (was 214; +13 new)"
       ],
       "notes": "Unchanged by the 2026-07-05 spec rewrite. The metrics follow paper-1 Table 4 conventions. The user's checkpoint vibert_checkpoints_vi/cpt_4000.pth is a partial fine-tuning; the actual P_k/F1 may not match paper-1 numbers but the harness structure is in place. Future work svc-009-extended-finetune can resume training and re-run."
     },

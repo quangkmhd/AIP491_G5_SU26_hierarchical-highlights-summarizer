@@ -252,3 +252,13 @@ I3 directly).
 - No Highlights tab (DR1 dropped).
 - 4 Playwright structure tests (title, input elements, no Highlights tab, static assets served). End-to-end streaming manually verified via curl.
 - Verification: 214/214 tests pass (was 210; +4 new).
+
+## eval-001 — Quantitative Segmentation Evaluation (2026-07-05)
+
+**Status:** passing
+
+- Created `src/eval/{__init__,segmentation_metrics.py,run_segmentation_eval.py}`.
+- 3 metrics: P_k (Beeferman 1999), Win-Diff (Pevzner 2002), F1 (segment-boundary exact match).
+- CLI harness: `python -m src.eval.run_segmentation_eval --corpus meeting_committee --output report.json`.
+- 8 unit tests (metric correctness) + 4 integration tests (against data-001 corpora) + 1 AST eval-layer rule.
+- Verification: 227/227 tests pass (was 214; +13 new).
