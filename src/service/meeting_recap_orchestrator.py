@@ -30,17 +30,15 @@ from src.config.text_tiling import TextTilingConfig
 from src.service.chunking_service import ChunkingService
 from src.service.coherence_scorer import CoherenceScorer
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
-from src.service.text_tiling import SegmentEvent, TextTilingService
-from src.types.hierarchical_recap import HierarchicalRecap, MeetingStatus
+from src.service.text_tiling import TextTilingService
+from src.types.hierarchical_recap import HierarchicalRecap
 from src.types.segment import Chunk, SegmentResult
 from src.logging import (
     LoggableError,
     get_logger,
     log_error_with_fix,
-    request_context,
 )
 from src.types.transcript import DialogueTranscript
-from src.types.utterance import Utterance
 
 
 class RecapEventType(str, Enum):
@@ -89,11 +87,16 @@ class StreamingOrchestrator:
     ) -> Iterator[OrchestratorEvent]:
         """Process a transcript; yield events as the pipeline produces them.
 
-        On the first utterance, emits a depth-score-updated event for the
-        first pair as soon as it is scored. Emits segment-closed when the
-        TextTiling cutoff is crossed, then chunk-closed + title-emitted
-        for each chunk and the segment title. Emits meeting-completed at
-        the end with the final HierarchicalRecap.
+        Phase 1 — real-time scoring: yields utterance-accepted and
+        depth-score-updated events for every utterance after the first.
+
+        Phase 2 — batch segmentation: runs TextTilingService.process()
+        over all accumulated scores to detect topic boundaries using the
+        paper-1 depth formula and adaptive tau = mu - sigma/2 cutoff.
+
+        Phase 3 — segment assembly: yields chunk-closed, segment-closed,
+        and title-emitted for each detected segment. Yields meeting-completed
+        at the end with the final HierarchicalRecap.
         """
         t0 = time.perf_counter()
         meeting_id = uuid4()
@@ -109,16 +112,10 @@ class StreamingOrchestrator:
             n, str(meeting_id),
         )
         segments: list[SegmentResult] = []
-        current_segment: SegmentResult | None = None
-        pending_utts: list[Utterance] = []
-        scores_buffer: list[float] = []
-        chunk_counter = 0
-        segment_counter = 0
 
         try:
             yield from self._process_stream_body(
-                transcript, t0, meeting_id, segments, current_segment,
-                pending_utts, scores_buffer, chunk_counter, segment_counter,
+                transcript, t0, meeting_id, segments,
             )
         except LoggableError:
             raise
@@ -131,125 +128,119 @@ class StreamingOrchestrator:
             raise
 
     def _process_stream_body(  # type: ignore[no-untyped-def]
-        self, transcript, t0, meeting_id, segments, current_segment,
-        pending_utts, scores_buffer, chunk_counter, segment_counter,
+        self, transcript, t0, meeting_id, segments,
     ):
         n = len(transcript.utterances)
-        for idx, utt in enumerate(transcript.utterances):
+        all_utterances = transcript.utterances
+        all_scores: list[float] = []
+        for idx, utt in enumerate(all_utterances):
             if idx == 0:
-                # First utterance -- start the first segment
-                current_segment = self._new_segment(segment_counter, idx, utt)
-                segment_counter += 1
                 pending_utts = [utt]
                 continue
 
-            # Emit utterance-accepted for subsequent utterances
             yield OrchestratorEvent(
                 type=RecapEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
             )
 
-            # Score the pair (prev, curr)
-            prev = transcript.utterances[idx - 1]
+            prev = all_utterances[idx - 1]
             score = self.scorer.score_pair(prev.text, utt.text)
-            scores_buffer.append(score)
+            all_scores.append(score)
+            self.logger.info(
+                "coherence pair=%d score=%.4f  utt[%d]=\"%s\" -> utt[%d]=\"%s\"",
+                idx - 1, score,
+                idx - 1, prev.text[:60],
+                idx, utt.text[:60],
+            )
             yield OrchestratorEvent(
                 type=RecapEventType.DEPTH_SCORE_UPDATED,
                 data={
                     "pair_index": idx - 1,
                     "score": score,
-                    "pair": [prev.text, utt.text],
                 },
             )
 
-            # Add to current segment
             pending_utts.append(utt)
-            if current_segment is not None:
-                current_segment.utterances_end = utt.index
 
-            # Check TextTiling: if the latest score crosses the cutoff, close
-            # the segment. We run TextTiling on the full score buffer each
-            # time; this is simple and correct, though a streaming variant
-            # could optimize by maintaining a sliding window.
-            boundary = self._detect_boundary(scores_buffer)
-            if boundary is not None and boundary > 0:
-                # `boundary` is the index of the utterance that starts the
-                # next segment. Close the current segment at the utterance
-                # immediately before it.
-                current_segment.utterances_end = pending_utts[boundary - 1].index
+        # Phase 2: Batch segmentation using TextTilingService
+        if n < 2:
+            bounds: list[int] = []
+        else:
+            seg_events = self.tiler.process(all_scores, n)
+            bounds = [e.boundary_index for e in seg_events if e.boundary_index >= 0]
 
-                # Close chunks in current_segment up to (but not including) boundary.
-                for chunk in self._flush_chunks_up_to(current_segment, pending_utts, boundary):
-                    yield OrchestratorEvent(
-                        type=RecapEventType.CHUNK_CLOSED,
-                        data={
-                            "chunk_id": str(chunk.chunk_id),
-                            "segment_id": str(current_segment.segment_id),
-                            "utterances_start": chunk.utterances[0].index,
-                            "utterances_end": chunk.utterances[-1].index,
-                            "rolling_summary": chunk.rolling_summary,
-                        },
-                    )
-                # Emit segment-closed
-                yield OrchestratorEvent(
-                    type=RecapEventType.SEGMENT_CLOSED,
-                    data={
-                        "segment_id": str(current_segment.segment_id),
-                        "utterances_start": current_segment.utterances_start,
-                        "utterances_end": current_segment.utterances_end,
-                    },
-                )
-                # Generate title (deferred semantically; here it's a quick mock call)
-                title = self.summarizer.title(current_segment)
-                current_segment.title = title
-                segments.append(current_segment)
-                yield OrchestratorEvent(
-                    type=RecapEventType.TITLE_EMITTED,
-                    data={"segment_id": str(current_segment.segment_id), "title": title},
-                )
-                # Start a new segment from the boundary
-                current_segment = self._new_segment(
-                    segment_counter, boundary, transcript.utterances[boundary]
-                )
-                segment_counter += 1
-                pending_utts = pending_utts[boundary:]
-                scores_buffer = []  # reset for new segment
+        # Build segment utterance ranges from boundaries
+        seg_ranges: list[tuple[int, int]] = []
+        seg_start = 0
+        for b in bounds:
+            seg_ranges.append((seg_start, b))
+            seg_start = b + 1
+        if seg_start <= n - 1:
+            seg_ranges.append((seg_start, n - 1))
 
-        # After loop: close the trailing segment
-        if current_segment is not None and pending_utts:
-            # Flush remaining chunks
-            for i in range(0, len(pending_utts), self.chunker.CHUNK_SIZE):
-                chunk_utts = pending_utts[i : i + self.chunker.CHUNK_SIZE]
-                if not chunk_utts:
-                    continue
+        self.logger.info(
+            "segmentation complete n_segments=%d ranges=%s",
+            len(seg_ranges), seg_ranges,
+        )
+        for i, (s, e) in enumerate(seg_ranges):
+            utt_texts = [all_utterances[j].text[:50] for j in range(s, e + 1)]
+            self.logger.info(
+                "  segment %d: utt[%d..%d] (%d utts) %s",
+                i + 1, s, e, e - s + 1, utt_texts,
+            )
+
+        # Phase 3: Build segments, emit events
+        for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
+            segment_utts = all_utterances[start_utt:end_utt + 1]
+            seg = SegmentResult(
+                title=f"Chapter {seg_idx + 1}",
+                utterances_start=start_utt,
+                utterances_end=end_utt,
+            )
+
+            for i in range(0, len(segment_utts), self.chunker.CHUNK_SIZE):
+                chunk_utts = segment_utts[i:i + self.chunker.CHUNK_SIZE]
                 chunk = Chunk(utterances=chunk_utts)
-                chunk.rolling_summary = self.summarizer.abstractive(chunk)
-                current_segment.chunks.append(chunk)
+                chunk.rolling_summary = self.summarizer.abstractive(
+                    chunk, chapter_number=seg_idx + 1, chunk_index=i // self.chunker.CHUNK_SIZE,
+                )
+                seg.chunks.append(chunk)
+                self.logger.info(
+                    "  chunk seg=%d utt[%d..%d] summary=\"%s\"",
+                    seg_idx + 1,
+                    chunk_utts[0].index, chunk_utts[-1].index,
+                    chunk.rolling_summary,
+                )
                 yield OrchestratorEvent(
                     type=RecapEventType.CHUNK_CLOSED,
                     data={
                         "chunk_id": str(chunk.chunk_id),
-                        "segment_id": str(current_segment.segment_id),
+                        "segment_id": str(seg.segment_id),
                         "utterances_start": chunk_utts[0].index,
                         "utterances_end": chunk_utts[-1].index,
                         "rolling_summary": chunk.rolling_summary,
                     },
                 )
-            # Emit final segment-closed
+
             yield OrchestratorEvent(
                 type=RecapEventType.SEGMENT_CLOSED,
                 data={
-                    "segment_id": str(current_segment.segment_id),
-                    "utterances_start": current_segment.utterances_start,
-                    "utterances_end": current_segment.utterances_end,
+                    "segment_id": str(seg.segment_id),
+                    "utterances_start": seg.utterances_start,
+                    "utterances_end": seg.utterances_end,
                 },
             )
-            title = self.summarizer.title(current_segment)
-            current_segment.title = title
-            segments.append(current_segment)
+
+            title = self.summarizer.title(seg, chapter_number=seg_idx + 1)
+            seg.title = title
+            segments.append(seg)
+            self.logger.info(
+                "  title seg=%d title=\"%s\"",
+                seg_idx + 1, title,
+            )
             yield OrchestratorEvent(
                 type=RecapEventType.TITLE_EMITTED,
-                data={"segment_id": str(current_segment.segment_id), "title": title},
+                data={"segment_id": str(seg.segment_id), "title": title},
             )
 
         processing_time_ms = int((time.perf_counter() - t0) * 1000)
@@ -278,50 +269,4 @@ class StreamingOrchestrator:
                 recap_dict = event.data["hierarchical_recap"]
         return HierarchicalRecap.model_validate(recap_dict)
 
-    def _new_segment(
-        self, counter: int, start_idx: int, first_utt: Utterance
-    ) -> SegmentResult:
-        return SegmentResult(
-            title=f"Chapter {counter + 1}",  # placeholder; filled when the segment closes
-            chunks=[],
-            utterances_start=first_utt.index,
-            utterances_end=first_utt.index,
-        )
 
-    def _detect_boundary(self, scores: list[float]) -> int | None:
-        """Return the boundary index (1-based position to close) if any.
-
-        For a simple streaming implementation: if the latest score's depth
-        is high enough to indicate a topic shift, return the index of the
-        new segment's start. Uses TextTilingService's depth formula.
-        """
-        if len(scores) < 1:
-            return None
-        # Compute depth for the last score using paper-1 formula
-        from src.service.text_tiling import depth_computing
-        depths = depth_computing(scores)
-        last_depth = float(depths[-1])
-        # Use a simple threshold: depth > 0.3 indicates a shift
-        # (TextTilingService's full threshold isn't used here because
-        # we want a streaming decision per-pair, not a batch decision)
-        if last_depth > 0.3:
-            return len(scores)  # boundary at the next position
-        return None
-
-    def _flush_chunks_up_to(
-        self,
-        segment: SegmentResult,
-        pending_utts: list[Utterance],
-        boundary: int,
-    ) -> list[Chunk]:
-        """Flush complete chunks up to (but not including) boundary index."""
-        flushed: list[Chunk] = []
-        for i in range(0, boundary, self.chunker.CHUNK_SIZE):
-            chunk_utts = pending_utts[i : i + self.chunker.CHUNK_SIZE]
-            if not chunk_utts:
-                continue
-            chunk = Chunk(utterances=chunk_utts)
-            chunk.rolling_summary = self.summarizer.abstractive(chunk)
-            segment.chunks.append(chunk)
-            flushed.append(chunk)
-        return flushed

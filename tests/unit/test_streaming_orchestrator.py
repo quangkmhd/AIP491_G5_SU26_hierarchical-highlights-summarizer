@@ -12,6 +12,7 @@ import sys
 import unittest
 from pathlib import Path
 
+# Force MockLLMBackbone so the suite stays offline (no real GGUF download).
 os.environ.setdefault("MODEL_LOAD_LLM", "0")
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -133,3 +134,75 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
         for a, b in zip(recap_batch.segments, recap_stream["segments"]):
             self.assertEqual(a.utterances_start, b["utterances_start"])
             self.assertEqual(a.utterances_end, b["utterances_end"])
+
+    def test_segments_do_not_overlap(self) -> None:
+        """Segments must cover contiguous, non-overlapping utterance ranges.
+
+        Regression test for overlapping segment bug.
+        """
+        texts = [f"utt_{i}" for i in range(24)]
+        transcript = _t(texts)
+        recap = self.orchestrator.process_batch(transcript)
+        ranges = [(s.utterances_start, s.utterances_end) for s in recap.segments]
+        for i in range(1, len(ranges)):
+            prev_end = ranges[i - 1][1]
+            curr_start = ranges[i][0]
+            self.assertGreaterEqual(
+                curr_start, prev_end + 1,
+                f"segments overlap: {ranges[i - 1]} -> {ranges[i]}",
+            )
+        if ranges:
+            self.assertEqual(ranges[0][0], 0)
+            self.assertEqual(ranges[-1][1], len(texts) - 1)
+        covered = set()
+        for s, e in ranges:
+            for idx in range(s, e + 1):
+                self.assertNotIn(
+                    idx, covered,
+                    f"utterance {idx} appears in more than one segment",
+                )
+                covered.add(idx)
+        self.assertEqual(len(covered), len(texts))
+
+    def test_segments_non_overlapping_with_real_data(self) -> None:
+        """Real dial_id=0 transcript: segments must not overlap.
+
+        This is the core regression test for the overlapping-segment
+        bug that occurs when process_stream uses transcript.utterances[boundary]
+        after pending_utts has been sliced, instead of pending_utts[boundary].
+        """
+        import json
+        p = ROOT / "data" / "eval_vi" / "dialseg_711.json"
+        with open(p) as f:
+            data = json.load(f)
+        # Find dial_id=0
+        item = None
+        for d in data:
+            if d.get("dial_id") == 0:
+                item = d
+                break
+        self.assertIsNotNone(item, "dial_id=0 not found")
+        texts = item["utterances_vi"]
+        self.assertGreater(len(texts), 0)
+        transcript = _t(texts)
+        recap = self.orchestrator.process_batch(transcript)
+        ranges = [(s.utterances_start, s.utterances_end) for s in recap.segments]
+        for i in range(1, len(ranges)):
+            prev_end = ranges[i - 1][1]
+            curr_start = ranges[i][0]
+            self.assertGreaterEqual(
+                curr_start, prev_end + 1,
+                f"segments overlap: {ranges[i - 1]} -> {ranges[i]}",
+            )
+        if ranges:
+            self.assertEqual(ranges[0][0], 0)
+            self.assertEqual(ranges[-1][1], len(texts) - 1)
+        covered = set()
+        for s, e in ranges:
+            for idx in range(s, e + 1):
+                self.assertNotIn(
+                    idx, covered,
+                    f"utterance {idx} appears in more than one segment",
+                )
+                covered.add(idx)
+        self.assertEqual(len(covered), len(texts))
