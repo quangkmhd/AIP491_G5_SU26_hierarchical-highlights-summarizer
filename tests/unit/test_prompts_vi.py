@@ -59,9 +59,11 @@ class TestPromptsVi(unittest.TestCase):
             "{chapter_number}",
             "{required_chunk_ids}",
             "{prompt_chunks}",
-            "{example_chunk_id}",
         ]:
             self.assertIn(placeholder, HIERARCHIC_ABSTRACTIVE_PROMPT_VI)
+        # The example chunk_id in the JSON schema is literal text, not a
+        # .format() placeholder — see the double-brace escaping in the template.
+        self.assertIn('"example_chunk_id"', HIERARCHIC_ABSTRACTIVE_PROMPT_VI)
         self.assertIn('"notes"', HIERARCHIC_ABSTRACTIVE_PROMPT_VI)
         self.assertIn('"chunk_id"', HIERARCHIC_ABSTRACTIVE_PROMPT_VI)
         self.assertIn('"contains_key_point"', HIERARCHIC_ABSTRACTIVE_PROMPT_VI)
@@ -75,9 +77,11 @@ class TestPromptsVi(unittest.TestCase):
             "{belief_state}",
             "{required_chunk_ids}",
             "{prompt_chunks}",
-            "{example_chunk_id}",
         ]:
             self.assertIn(placeholder, SSDST_ABSTRACTIVE_PROMPT_VI)
+        # The example chunk_id in the JSON schema is literal text, not a
+        # .format() placeholder.
+        self.assertIn('"example_chunk_id"', SSDST_ABSTRACTIVE_PROMPT_VI)
         for placeholder in [
             "{chapter_number}",
             "{chunk_index}",

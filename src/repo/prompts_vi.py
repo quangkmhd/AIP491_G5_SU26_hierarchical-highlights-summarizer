@@ -68,16 +68,16 @@ Required chunk_ids in order:
 {prompt_chunks}
 
 Return strict JSON only:
-{
+{{
   "notes": [
-    {
-      "chunk_id": "{example_chunk_id}",
+    {{
+      "chunk_id": "example_chunk_id",
       "summary": "Ghi chú factual 1-3 câu bằng tiếng Việt cho đúng chunk này.",
       "contains_key_point": true,
       "contains_action_item": false
-    }
+    }}
   ]
-}
+}}
 """
 
 HIERARCHIC_TITLE_PROMPT_VI: str = """\
@@ -102,10 +102,10 @@ Segment utterances:
 {segment_utterances}
 
 Return strict JSON only:
-{
+{{
   "title": "tiêu đề chapter ngắn gọn bằng tiếng Việt",
   "one_line_summary": "một câu tóm tắt chapter bằng tiếng Việt"
-}
+}}
 """
 
 SSDST_ABSTRACTIVE_PROMPT_VI: str = """\
@@ -143,16 +143,16 @@ Required chunk_ids in order:
 {prompt_chunks}
 
 Return strict JSON only:
-{
+{{
   "notes": [
-    {
-      "chunk_id": "{example_chunk_id}",
+    {{
+      "chunk_id": "example_chunk_id",
       "summary": "Ghi chú factual 1-3 câu, dùng belief state để giải quyết đại từ/tham chiếu.",
       "contains_key_point": true,
       "contains_action_item": false
-    }
+    }}
   ]
-}
+}}
 """
 
 SSDST_STATE_UPDATE_PROMPT_VI: str = """\
@@ -186,13 +186,13 @@ Chunk summary vừa tạo:
 {chunk_summary}
 
 Return strict JSON only:
-{
+{{
   "current_topic": "chủ đề ngắn",
   "entities": ["thực thể 1", "thực thể 2"],
   "decisions": ["quyết định 1"],
   "open_actions": ["hành động 1"],
-  "resolved_references": [{"pronoun": "nó", "refers_to": "pipeline mới"}]
-}
+  "resolved_references": [{{"pronoun": "nó", "refers_to": "pipeline mới"}}]
+}}
 """
 
 
