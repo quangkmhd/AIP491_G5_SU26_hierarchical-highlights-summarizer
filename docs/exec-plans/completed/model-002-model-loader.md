@@ -64,15 +64,16 @@ hold: zero imports from `config`/`service`/`runtime` inside `src/repo/`.
 ## Progress Log
 
 ### 2026-07-04 -- implementation complete
+
 - All 5 modules + smoke loader implemented per `docs/superpowers/plans/2026-07-04-model-002.md`.
 - Verification (offline mode): `MODEL_LOAD_LLM=0 python3 -m unittest discover -s tests` -> green (74/74 tests, 35 new + 39 existing).
 - Verification (smoke): `MODEL_LOAD_LLM=0 python3 -m src.repo.smoke_loader` -> loads CoherenceNet, prints device=cuda + 115M params, exits 0.
 - Spec lives at `docs/superpowers/specs/2026-07-04-model-002-design.md`.
 - Status: ready to archive to `docs/exec-plans/completed/`.
-- Note: Vistral-7B-Chat chosen as the single Vietnamese LLM backbone (4-bit) to replace paper-2's 4 fine-tuned BART/deBERTa models per user direction.
+- Note: gemma-4-E2B-it-qat-GGUF chosen as the single Vietnamese LLM backbone (4-bit) to replace paper-2's 4 fine-tuned BART/deBERTa models per user direction.
 - Known limitations deferred:
   - Tokenizer mismatch (multilingual BERT base vocab 119547 vs ckpt vocab 38168): handled by `resize_token_embeddings` + shape-filtered `load_state_dict(strict=False)`. Real text inference is svc-001's job.
-  - Real 4-bit Vistral load is gated by `MODEL_LOAD_LLM=1` env var; CI uses mock LLM.
+  - Real 4-bit gemma-4-E2B-it-qat-GGUF load is gated by `MODEL_LOAD_LLM=1` env var; CI uses mock LLM.
 
 ## Open Decisions
 
@@ -108,8 +109,7 @@ hold: zero imports from `config`/`service`/`runtime` inside `src/repo/`.
 - Verdict (initial): **Not ready to merge** — 4 critical + 3 important bugs.
 - All 4 critical (C1, C2, C3, C4) and 3 important (I1, I2, I3) issues fixed in this session.
 - Test count: 76 -> 92 (+16 new tests directly targeting the review findings).
-- C4 (vocab mismatch between checkpoint 38168 and multilingual BERT base
-  119547) is **mitigated** with `_coerce_token_ids`; the **root cause**
+- C4 (vocab mismatch between checkpoint 38168 and multilingual BERT base 119547) is **mitigated** with `_coerce_token_ids`; the **root cause**
   (missing 38168-vocab Vietnamese-subset tokenizer) is tracked as
   Important tech debt in `docs/exec-plans/tech-debt-tracker.md` and
   blocks production-quality inference in `svc-001`.

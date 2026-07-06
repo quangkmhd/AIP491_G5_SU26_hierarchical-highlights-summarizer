@@ -92,7 +92,7 @@
       "priority": 2,
       "area": "repo",
       "title": "Build AI Model Loader & File Repository",
-      "user_visible_behavior": "System successfully loads the user's fine-tuned NSP-BERT coherence scorer (vibert_checkpoints_vi/cpt_4000.pth with bert-base-multilingual-cased, vocab 38168) and the MockLLMBackbone stand-in for deBERTa hierarchical_title and hierarchical_abstractive (the real Vistral-7B-Chat is deferred behind MODEL_LOAD_LLM=1). RecapRepo and TranscriptRepo persist HierarchicalRecap and DialogueTranscript via atomic JSON writes.",
+      "user_visible_behavior": "System successfully loads the user's fine-tuned NSP-BERT coherence scorer (vibert_checkpoints_vi/cpt_4000.pth with bert-base-multilingual-cased, vocab 38168) and the MockLLMBackbone stand-in for deBERTa hierarchical_title and hierarchical_abstractive (the real gemma-4-E2B-it-qat-GGUF is deferred behind MODEL_LOAD_LLM=1). RecapRepo and TranscriptRepo persist HierarchicalRecap and DialogueTranscript via atomic JSON writes.",
       "status": "passing",
       "verification": [
         "MODEL_LOAD_LLM=0 python3 -m unittest discover -s tests -v -- 144/144 (current state, post-patches expected to be 132/132) green.",
@@ -108,7 +108,7 @@
         "tests/unit/test_repo_layer_rules.py: AST scan forbids config/service/runtime/ui/types imports.",
         "tests/e2e/test_repo_e2e.py: end-to-end load + write flow."
       ],
-      "notes": "Status: passing as of 2026-07-04 (4-critical-bug code review + 3 important fixes applied 2026-07-05). Unchanged by the 2026-07-05 spec rewrite except that the MockLLMBackbone is now the *only* LLM path until MODEL_LOAD_LLM=1 is enabled (deBERTa-class tasks keep using MockLLMBackbone for the Hierarchical recap; Vistral is unrelated). C4 token-ID clamp remains Important tech debt for real Vietnamese text quality (see docs/exec-plans/tech-debt-tracker.md)."
+      "notes": "Status: passing as of 2026-07-04 (4-critical-bug code review + 3 important fixes applied 2026-07-05). Unchanged by the 2026-07-05 spec rewrite except that the MockLLMBackbone is now the *only* LLM path until MODEL_LOAD_LLM=1 is enabled (deBERTa-class tasks keep using MockLLMBackbone for the Hierarchical recap; gemma-4-E2B-it-qat-GGUF is unrelated). C4 token-ID clamp remains Important tech debt for real Vietnamese text quality (see docs/exec-plans/tech-debt-tracker.md)."
     },
     {
       "id": "config-001+",
@@ -223,7 +223,7 @@
         "title(segment) returns a non-empty string <= 64 chars.",
         "abstractive(chunk) returns a non-empty string in 3rd person (regex assert on 'nhóm', 'cuộc họp', or similar Vietnamese 3rd-person markers).",
         "MockLLMBackbone.generate is called with the correct task name ('title' vs 'abstractive').",
-        "When MODEL_LOAD_LLM=1, the real Vistral-7B-Chat is loaded (gated; not exercised in unit tests)."
+        "When MODEL_LOAD_LLM=1, the real gemma-4-E2B-it-qat-GGUF is loaded (gated; not exercised in unit tests)."
       ],
       "evidence": [
         "src/service/hierarchical_summarization.py: title() and abstractive() methods; uses ModelLoader.load_llm_backbone() (MockLLMBackbone at MVP via MODEL_LOAD_LLM=0)",

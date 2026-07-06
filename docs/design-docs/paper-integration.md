@@ -7,14 +7,14 @@ architecture. **Highlights pipeline (DR1) is out of scope per design
 decision 2026-07-05; this document covers only the Hierarchical (DR2)
 recap.**
 
-## 1. Topic Segmentation Method (paper-1 *Ours (full)*)
+## 1. Topic Segmentation Method (paper-1 _Ours (full)_)
 
-**Source Paper:** *Improving Unsupervised Dialogue Topic Segmentation with
-Utterance-Pair Coherence Scoring*
+**Source Paper:** _Improving Unsupervised Dialogue Topic Segmentation with
+Utterance-Pair Coherence Scoring_
 
 **Role in Project:** This paper serves as the core engine for segmenting
 meeting transcripts. We adopt the **best-performing method in the paper
-(*Ours (full)*, Table 4)**, which combines:
+(_Ours (full)_, Table 4)**, which combines:
 
 - A **fine-tuned Next Sentence Prediction (NSP) BERT model** as the
   utterance-pair coherence scorer. The model is `bert-base-multilingual-cased`
@@ -28,8 +28,8 @@ meeting transcripts. We adopt the **best-performing method in the paper
   - **Dialog flow negatives** (different dialogue act, same dialogue).
   - **Dialog topic negatives** (utterance from a different dialogue
     about a different topic).
-  Ablation Table 4 shows dialog-flow is the more important signal; the
-  full method (both negatives) wins on every metric.
+    Ablation Table 4 shows dialog-flow is the more important signal; the
+    full method (both negatives) wins on every metric.
 - **TextTiling** (Hearst 1997) consumes the coherence scores and computes
   depth scores `dp_i = 0.5 * (hl(i) + hr(i) - 2 * c_i)` to identify
   valleys. The threshold `τ = μ - σ/2` (paper-1 §3) marks segment
@@ -38,13 +38,13 @@ meeting transcripts. We adopt the **best-performing method in the paper
 **Why this method:** Paper-1 Table 4 shows `Ours (full)` is the clear
 winner on every metric on both English test sets:
 
-| Method           | DialSeg_711 P_k ↓ | Doc2Dial P_k ↓ | DialSeg_711 F1 ↑ | Doc2Dial F1 ↑ |
-|------------------|-------------------|----------------|------------------|---------------|
-| TextTiling       | 40.44             | 52.02          | 0.608            | 0.539         |
-| TeT + Embedding  | 39.37             | 53.72          | 0.637            | 0.602         |
-| TeT + NSP        | 46.84             | 50.79          | 0.512            | 0.550         |
-| TeT + CLS        | 40.49             | 54.34          | 0.610            | 0.518         |
-| **Ours (full)**  | **26.80**         | **45.23**      | **0.776**        | **0.660**     |
+| Method          | DialSeg_711 P_k ↓ | Doc2Dial P_k ↓ | DialSeg_711 F1 ↑ | Doc2Dial F1 ↑ |
+| --------------- | ----------------- | -------------- | ---------------- | ------------- |
+| TextTiling      | 40.44             | 52.02          | 0.608            | 0.539         |
+| TeT + Embedding | 39.37             | 53.72          | 0.637            | 0.602         |
+| TeT + NSP       | 46.84             | 50.79          | 0.512            | 0.550         |
+| TeT + CLS       | 40.49             | 54.34          | 0.610            | 0.518         |
+| **Ours (full)** | **26.80**         | **45.23**      | **0.776**        | **0.660**     |
 
 **Checkpoint:** The user has fine-tuned this architecture on a
 Vietnamese dialogue corpus and saved the result to
@@ -62,11 +62,11 @@ and `src/service/text_tiling.py` (planned in `svc-001+002`).
 
 ## 2. Hierarchical Recap Presentation (paper-2 DR2)
 
-**Source Paper:** *Summaries, Highlights, and Action Items: Design,
-Implementation and Evaluation of an LLM-powered Meeting Recap System*
+**Source Paper:** _Summaries, Highlights, and Action Items: Design,
+Implementation and Evaluation of an LLM-powered Meeting Recap System_
 
 **Role in Project:** Paper-2 provides the user experience and
-architectural blueprint for the *Hierarchical* recap:
+architectural blueprint for the _Hierarchical_ recap:
 
 - It advocates for a hierarchical recap that represents a meeting as
   chronological, topic-focused discussions (chapters) to help users
@@ -94,7 +94,7 @@ chapter title editing).
 `hierarchical_abstractive` and `hierarchical_title` are not yet
 publicly available for Vietnamese. At MVP, `ModelLoader` returns
 `MockLLMBackbone` (canned Vietnamese responses in
-`src/repo/prompts_vi.py`). The real Vistral-7B-Chat backbone is gated
+`src/repo/prompts_vi.py`). The real gemma-4-E2B-it-qat-GGUF backbone is gated
 by `MODEL_LOAD_LLM=1` for future work.
 
 **Highlights (DR1) is out of scope.** The paper-2 highlights pipeline
@@ -121,7 +121,7 @@ is:
 1. **Ingestion**: Read the raw meeting transcript. Today this is
    `TranscriptIngestionRequest.materialize()` returning a
    `DialogueTranscript`.
-2. **Segmentation (Paper 1, *Ours (full)*)**: Apply the
+2. **Segmentation (Paper 1, _Ours (full)_)**: Apply the
    user-fine-tuned CoherenceNet (NSP-BERT) + TextTiling algorithm to
    strictly identify topically coherent chunks of dialogue. The
    segmentation events stream out as `segment-closed` SSE events
@@ -143,7 +143,7 @@ is:
 
 This hybrid approach ensures that:
 
-- Chapter boundaries match paper-1 *Ours (full)* quality (F1 ≈ 0.78 on
+- Chapter boundaries match paper-1 _Ours (full)_ quality (F1 ≈ 0.78 on
   DialSeg_711 in the paper; the user's checkpoint is at 0.7752
   validation accuracy, partial fine-tuning).
 - The user sees chapter cards within 5 seconds of the boundary being
@@ -155,16 +155,16 @@ This hybrid approach ensures that:
 
 ## 4. Mapping Data Models ↔ Paper Concepts
 
-| Paper 1 (Topic Segmentation) | Paper 2 (Hierarchical Recap) | Code Model |
-|------------------------------|------------------------------|------------|
-| Dialogue                     | Meeting                      | `DialogueTranscript` |
-| Turn / Utterance            | Utterance                    | `Utterance` |
-| Topic boundary               | Chapter / Segment            | `SegmentResult` |
-| Window of 8 utterances       | Chunk (context window for 512-token limit) | `Chunk` |
-| NSP coherence score (not stored) | —                        | computed by `CoherenceScorer` (`svc-001+002`) |
-| —                            | Chapter title                | `SegmentResult.title` / `user_title_override` |
-| —                            | Chunk rolling summary        | `Chunk.rolling_summary` |
-| —                            | Full recap                   | `HierarchicalRecap` |
+| Paper 1 (Topic Segmentation)     | Paper 2 (Hierarchical Recap)               | Code Model                                    |
+| -------------------------------- | ------------------------------------------ | --------------------------------------------- |
+| Dialogue                         | Meeting                                    | `DialogueTranscript`                          |
+| Turn / Utterance                 | Utterance                                  | `Utterance`                                   |
+| Topic boundary                   | Chapter / Segment                          | `SegmentResult`                               |
+| Window of 8 utterances           | Chunk (context window for 512-token limit) | `Chunk`                                       |
+| NSP coherence score (not stored) | —                                          | computed by `CoherenceScorer` (`svc-001+002`) |
+| —                                | Chapter title                              | `SegmentResult.title` / `user_title_override` |
+| —                                | Chunk rolling summary                      | `Chunk.rolling_summary`                       |
+| —                                | Full recap                                 | `HierarchicalRecap`                           |
 
 ## 5. Out-of-scope (deferred to future specs)
 
@@ -172,7 +172,7 @@ This hybrid approach ensures that:
   a future milestone, it would be a new feature `svc-008-highlights-pipeline`
   with new data models, new AI checkpoints, and a new UI tab.
 - **Paper-2 §3.2.2 supervised BART segmenter** — replaced by paper-1
-  *Ours (full)* because the user has a Vietnamese fine-tuned NSP-BERT
+  _Ours (full)_ because the user has a Vietnamese fine-tuned NSP-BERT
   checkpoint and the unsupervised method matches paper-1 SOTA
   performance.
 - **Live ASR ingestion** — the orchestrator is streaming-capable but

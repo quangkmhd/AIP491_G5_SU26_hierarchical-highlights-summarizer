@@ -3,7 +3,7 @@
 Spec: docs/superpowers/specs/2026-07-04-model-002-design.md (D3).
 
 Holds at most one `ModelHandle` per `ModelKind` for the lifetime of
-the process. `MODEL_LOAD_LLM=0` env var swaps the real Vistral load
+the process. `MODEL_LOAD_LLM=0` env var swaps the real gemma-4-E2B-it-qat-GGUF load
 for a `MockLLMBackbone` so unit tests + offline CI never touch the
 network.
 

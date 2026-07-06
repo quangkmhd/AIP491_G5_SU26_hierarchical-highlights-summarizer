@@ -5,6 +5,7 @@
 **Area:** `types`, `config`, `service`, `runtime`, `ui`, `evaluation`
 **Layer position:** `Types -> Config -> Repo -> Service -> Runtime -> UI`
 **Related specs:**
+
 - `docs/superpowers/specs/2026-07-04-model-002-design.md` (Approved) — NSP-BERT CoherenceNet + ModelLoader
 - `docs/superpowers/specs/2026-07-05-config-001-centralized-config-design.md` (Approved) — `MeetingRecapConfig` + 5 sub-configs
 
@@ -16,12 +17,12 @@ This spec captures four decisions made on 2026-07-05 that re-shape the
 project's product surface and pipeline design:
 
 1. **DR1 (Highlights) is dropped from scope.** The product now ships the
-   *Hierarchical* recap only. Rationale: paper-2 §3.1 positions the two
+   _Hierarchical_ recap only. Rationale: paper-2 §3.1 positions the two
    recap types as complementary, but the user requested implementing
    only the Hierarchical method (`hierarchical_segment` + `hierarchical_abstractive`
-   + `hierarchical_title`) and explicitly excluded the highlights
-   extractive model.
-2. **Topic segmentation uses paper-1's *Ours (full)* method.** Paper-1
+   - `hierarchical_title`) and explicitly excluded the highlights
+     extractive model.
+2. **Topic segmentation uses paper-1's _Ours (full)_ method.** Paper-1
    Table 4 shows `Ours (full)` wins on every metric on both English
    test sets (DialSeg_711 P_k=26.80, F1=0.776; Doc2Dial P_k=45.23, F1=0.660).
    Paper-1 §3.2 specifies the architecture (BERT_base 12L/12H/768, MLP
@@ -41,10 +42,10 @@ project's product surface and pipeline design:
    skeleton states during inference latency are acceptable (paper-2
    §5.3.2: participants edited chapter titles confidently even when
    summaries were still generating).
-4. **No 4-bit Vistral LLM at MVP.** `MockLLMBackbone` (already in
+4. **No 4-bit gemma-4-E2B-it-qat-GGUF LLM at MVP.** `MockLLMBackbone` (already in
    `src/repo/model_loader.py`) provides canned Vietnamese responses for
    the deBERTa-based summarization tasks (`segment`, `abstractive`,
-   `title`). The real `Viet-Mistral/Vistral-7B-Chat` load is deferred
+   `title`). The real `Viet-Mistral/gemma-4-E2B-it-qat-GGUF` load is deferred
    behind `MODEL_LOAD_LLM=1` (already supported in `model-002`).
    Rationale: paper-2 uses deBERTa for `hierarchical_abstractive` and
    `hierarchical_title`, not a generative LLM; the only LLM-shaped
@@ -137,7 +138,7 @@ pipeline is out of scope per design decision."
 ### D3. `eval-002` — Re-scope harness to streaming UX only
 
 The original `eval-002` (in `feature_list.json`) was a user-study
-harness comparing *highlights vs hierarchical* recaps. With DR1
+harness comparing _highlights vs hierarchical_ recaps. With DR1
 dropped, the comparison axis is gone.
 
 New `eval-002` scope:
@@ -162,7 +163,7 @@ the right shape.
 
 ## 3. New / merged features
 
-### D4. `svc-001+002` — Topic Segmentation Pipeline (paper-1 *Ours (full)*)
+### D4. `svc-001+002` — Topic Segmentation Pipeline (paper-1 _Ours (full)_)
 
 **Components:**
 
@@ -231,14 +232,14 @@ class.
 
 **Event types emitted by `process_stream(transcript_iterator)`:**
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `utterance-accepted` | `{index, speaker, text}` | every new utterance after the first |
-| `depth-score-updated` | `{window_idx, depth_score, pair: [utt_i, utt_i+1]}` | new pair score from CoherenceScorer |
-| `segment-closed` | `{segment_id, utterances_start, utterances_end, depth_score_at_boundary}` | `depth_score > τ` (TextTiling cutoff crossed) |
-| `chunk-closed` | `{chunk_id, segment_id, rolling_summary}` | chunk fills to 8 utt OR segment closes |
-| `title-emitted` | `{segment_id, title}` | segment closes; `hierarchical_title` deBERTa returns |
-| `meeting-completed` | `{hierarchical_recap: HierarchicalRecap}` | transcript iterator exhausted |
+| Event                 | Payload                                                                   | Trigger                                              |
+| --------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `utterance-accepted`  | `{index, speaker, text}`                                                  | every new utterance after the first                  |
+| `depth-score-updated` | `{window_idx, depth_score, pair: [utt_i, utt_i+1]}`                       | new pair score from CoherenceScorer                  |
+| `segment-closed`      | `{segment_id, utterances_start, utterances_end, depth_score_at_boundary}` | `depth_score > τ` (TextTiling cutoff crossed)        |
+| `chunk-closed`        | `{chunk_id, segment_id, rolling_summary}`                                 | chunk fills to 8 utt OR segment closes               |
+| `title-emitted`       | `{segment_id, title}`                                                     | segment closes; `hierarchical_title` deBERTa returns |
+| `meeting-completed`   | `{hierarchical_recap: HierarchicalRecap}`                                 | transcript iterator exhausted                        |
 
 **Ordering guarantees (for client and tests):**
 
@@ -450,53 +451,53 @@ re-activation of `svc-005`.
 
 ### New (12)
 
-| Path | Purpose |
-|---|---|
-| `src/service/coherence_scorer.py` | `CoherenceScorer` wrapping `CoherenceNet` (D4) |
-| `src/service/text_tiling.py` | `TextTilingService` with sliding-window + depth-score cutoffs (D4) |
-| `src/service/chunking_service.py` | `ChunkingService` for 8-utterance chunks (D5) |
-| `src/service/hierarchical_summarization.py` | `HierarchicalSummarizationService` (deBERTa title + abstractive, mocked via `MockLLMBackbone` at MVP) (D5) |
-| `src/service/meeting_recap_orchestrator.py` | `StreamingOrchestrator` (D5) |
-| `src/runtime/api.py` | FastAPI + sse-starlette (D6) |
-| `src/runtime/cli.py` | argparse with subcommand `stream` (D6) |
-| `src/ui/index.html` | Single-page prototype shell (D7) |
-| `src/ui/app.js` | EventSource client, in-place DOM updates (D7) |
-| `src/ui/styles.css` | Card grid + skeleton pulse (D7) |
-| `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` | This spec |
-| `docs/exec-plans/active/<feat>-<slug>.md` | One per new feature (7 plans) |
+| Path                                                                       | Purpose                                                                                                    |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `src/service/coherence_scorer.py`                                          | `CoherenceScorer` wrapping `CoherenceNet` (D4)                                                             |
+| `src/service/text_tiling.py`                                               | `TextTilingService` with sliding-window + depth-score cutoffs (D4)                                         |
+| `src/service/chunking_service.py`                                          | `ChunkingService` for 8-utterance chunks (D5)                                                              |
+| `src/service/hierarchical_summarization.py`                                | `HierarchicalSummarizationService` (deBERTa title + abstractive, mocked via `MockLLMBackbone` at MVP) (D5) |
+| `src/service/meeting_recap_orchestrator.py`                                | `StreamingOrchestrator` (D5)                                                                               |
+| `src/runtime/api.py`                                                       | FastAPI + sse-starlette (D6)                                                                               |
+| `src/runtime/cli.py`                                                       | argparse with subcommand `stream` (D6)                                                                     |
+| `src/ui/index.html`                                                        | Single-page prototype shell (D7)                                                                           |
+| `src/ui/app.js`                                                            | EventSource client, in-place DOM updates (D7)                                                              |
+| `src/ui/styles.css`                                                        | Card grid + skeleton pulse (D7)                                                                            |
+| `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` | This spec                                                                                                  |
+| `docs/exec-plans/active/<feat>-<slug>.md`                                  | One per new feature (7 plans)                                                                              |
 
 ### Modified (17)
 
-| Path | Change |
-|---|---|
-| `src/types/hierarchical_recap.py` | Drop `highlights_notes`, `highlights_tasks` (D1) |
-| `src/types/__init__.py` | Drop Highlight re-exports (D1) |
-| `src/config/recap.py` | Drop `highlights` field (D2) |
-| `src/config/__init__.py` | Drop HighlightsConfig re-export (D2) |
-| `src/config/README.md` | Drop HIGHLIGHTS__* env-var row (D2) |
-| `tests/unit/test_types.py` | Drop highlight cases; assert no `highlights_*` fields (D1) |
-| `tests/unit/test_config_recap.py` | Drop HIGHLIGHTS__* env-var tests (D2) |
-| `tests/manual/test_meeting_committee_sample.py` | Recap round-trip without highlights (D1) |
-| `docs/design-docs/system-architecture.md` | Update container diagram (drop BART highlights; add SSE) (D5-D7) |
-| `docs/design-docs/paper-integration.md` | Rewrite: only paper-1 *Ours (full)* + paper-2 *Hierarchical*; drop DR1 references (D1, D4) |
-| `docs/design-docs/models-and-roadmap.md` | Drop AI Models §2.2 highlights entry; update pipeline description (D1) |
-| `docs/FRONTEND.md` | Drop "Highlights view" surface (D7) |
-| `docs/PRODUCT_SENSE.md` | Rewrite "Job to be done", "Quality bar", "UX Vocabulary" (no more `Highlight` enum) (D1) |
-| `docs/RELIABILITY.md` | Add "End-to-end streaming golden journey" + 3-min budget (D5, D6) |
-| `docs/QUALITY_SCORE.md` | Update snapshot: drop Highlights & Action Items row; add "Streaming UX" row (D3) |
-| `ARCHITECTURE.md` | Update Service Map: drop `HighlightsService`; rename orchestrator to `StreamingOrchestrator`; add SSE cross-cutting interface (D4-D7) |
-| `feature_list.json` | Replace 17 features with 11 per the new schema (D1-D8) |
-| `pyproject.toml` | Add `sse-starlette` and `playwright` (test-only) (D6, D7) |
+| Path                                            | Change                                                                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/hierarchical_recap.py`               | Drop `highlights_notes`, `highlights_tasks` (D1)                                                                                      |
+| `src/types/__init__.py`                         | Drop Highlight re-exports (D1)                                                                                                        |
+| `src/config/recap.py`                           | Drop `highlights` field (D2)                                                                                                          |
+| `src/config/__init__.py`                        | Drop HighlightsConfig re-export (D2)                                                                                                  |
+| `src/config/README.md`                          | Drop HIGHLIGHTS\_\_\* env-var row (D2)                                                                                                |
+| `tests/unit/test_types.py`                      | Drop highlight cases; assert no `highlights_*` fields (D1)                                                                            |
+| `tests/unit/test_config_recap.py`               | Drop HIGHLIGHTS\_\_\* env-var tests (D2)                                                                                              |
+| `tests/manual/test_meeting_committee_sample.py` | Recap round-trip without highlights (D1)                                                                                              |
+| `docs/design-docs/system-architecture.md`       | Update container diagram (drop BART highlights; add SSE) (D5-D7)                                                                      |
+| `docs/design-docs/paper-integration.md`         | Rewrite: only paper-1 _Ours (full)_ + paper-2 _Hierarchical_; drop DR1 references (D1, D4)                                            |
+| `docs/design-docs/models-and-roadmap.md`        | Drop AI Models §2.2 highlights entry; update pipeline description (D1)                                                                |
+| `docs/FRONTEND.md`                              | Drop "Highlights view" surface (D7)                                                                                                   |
+| `docs/PRODUCT_SENSE.md`                         | Rewrite "Job to be done", "Quality bar", "UX Vocabulary" (no more `Highlight` enum) (D1)                                              |
+| `docs/RELIABILITY.md`                           | Add "End-to-end streaming golden journey" + 3-min budget (D5, D6)                                                                     |
+| `docs/QUALITY_SCORE.md`                         | Update snapshot: drop Highlights & Action Items row; add "Streaming UX" row (D3)                                                      |
+| `ARCHITECTURE.md`                               | Update Service Map: drop `HighlightsService`; rename orchestrator to `StreamingOrchestrator`; add SSE cross-cutting interface (D4-D7) |
+| `feature_list.json`                             | Replace 17 features with 11 per the new schema (D1-D8)                                                                                |
+| `pyproject.toml`                                | Add `sse-starlette` and `playwright` (test-only) (D6, D7)                                                                             |
 
 ### Deleted (5)
 
-| Path | Reason |
-|---|---|
-| `src/types/highlight.py` | DR1 dropped (D1) |
-| `src/config/highlights.py` | DR1 dropped (D2) |
-| `tests/unit/test_config_highlights.py` | DR1 dropped (D2) |
+| Path                                                 | Reason                                                             |
+| ---------------------------------------------------- | ------------------------------------------------------------------ |
+| `src/types/highlight.py`                             | DR1 dropped (D1)                                                   |
+| `src/config/highlights.py`                           | DR1 dropped (D2)                                                   |
+| `tests/unit/test_config_highlights.py`               | DR1 dropped (D2)                                                   |
 | `src/repo/prompts_vi.py::HIGH_PROMPTS["highlights"]` | DR1 dropped; keep `segment` / `abstractive` / `title` prompts (D4) |
-| `docs/exec-plans/active/svc-005-*.md` (if any) | DR1 dropped (D8) |
+| `docs/exec-plans/active/svc-005-*.md` (if any)       | DR1 dropped (D8)                                                   |
 
 ### Untouched
 
@@ -608,24 +609,24 @@ uses `{"type": <type>, "payload": <payload>}` per line (no framing).
 
 ## 7. Test plan (consolidated)
 
-| Test file | Layer | Coverage | Min tests |
-|---|---|---|---|
-| `tests/unit/test_coherence_scorer.py` | service | score_pair shape, determinism, edge cases | 6 |
-| `tests/unit/test_text_tiling.py` | service | depth_score formula, cutoff_threshold, sliding window, boundary count, coverage | 8 |
-| `tests/unit/test_chunking_service.py` | service | 8-utt chunks, overlap semantics, oversize handling | 4 |
-| `tests/unit/test_hierarchical_summarization.py` | service | title and abstractive mocked via `MockLLMBackbone`; output shape | 4 |
-| `tests/unit/test_orchestrator_streaming.py` | service | event ordering, batch-streaming equality, no double-close, time budget | 6 |
-| `tests/unit/test_types.py` (UPDATED) | types | drop highlight cases; assert no `highlights_*` fields | ~31 (was 38) |
-| `tests/unit/test_config_recap.py` (UPDATED) | config | drop HIGHLIGHTS env-var tests; 4-sub-config composition | ~10 (was 12) |
-| `tests/integration/test_api_streaming.py` | runtime | SSE event order, end marker, CUDA leak check | 5 |
-| `tests/integration/test_cli_streaming.py` | runtime | NDJSON, exit 0, output file matches | 3 |
-| `tests/ui/test_prototype_streaming.py` | ui | Playwright: card within 5 s, no Highlights tab, copy, show-context, skeleton | 6 |
-| `tests/manual/test_streaming_committee_sample.py` | end-to-end | 370-utterance committee → 8 cards stream in, JSON-equal to batch path | 1 |
-| `tests/manual/test_meeting_committee_sample.py` (UPDATED) | end-to-end | Recap round-trip without highlights fields | 1 (existing) |
-| `tests/manual/test_streaming_ux_harness.py` | evaluation | Synthetic participant run; report shape | 1 |
-| `tests/unit/test_layer_rule_*.py` (existing) | cross-cutting | AST scans; no cross-layer imports introduced | 3 (existing) |
-| **Total new** | | | ~46 |
-| **Total after all migrations** | | | **~132** |
+| Test file                                                 | Layer         | Coverage                                                                        | Min tests    |
+| --------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------- | ------------ |
+| `tests/unit/test_coherence_scorer.py`                     | service       | score_pair shape, determinism, edge cases                                       | 6            |
+| `tests/unit/test_text_tiling.py`                          | service       | depth_score formula, cutoff_threshold, sliding window, boundary count, coverage | 8            |
+| `tests/unit/test_chunking_service.py`                     | service       | 8-utt chunks, overlap semantics, oversize handling                              | 4            |
+| `tests/unit/test_hierarchical_summarization.py`           | service       | title and abstractive mocked via `MockLLMBackbone`; output shape                | 4            |
+| `tests/unit/test_orchestrator_streaming.py`               | service       | event ordering, batch-streaming equality, no double-close, time budget          | 6            |
+| `tests/unit/test_types.py` (UPDATED)                      | types         | drop highlight cases; assert no `highlights_*` fields                           | ~31 (was 38) |
+| `tests/unit/test_config_recap.py` (UPDATED)               | config        | drop HIGHLIGHTS env-var tests; 4-sub-config composition                         | ~10 (was 12) |
+| `tests/integration/test_api_streaming.py`                 | runtime       | SSE event order, end marker, CUDA leak check                                    | 5            |
+| `tests/integration/test_cli_streaming.py`                 | runtime       | NDJSON, exit 0, output file matches                                             | 3            |
+| `tests/ui/test_prototype_streaming.py`                    | ui            | Playwright: card within 5 s, no Highlights tab, copy, show-context, skeleton    | 6            |
+| `tests/manual/test_streaming_committee_sample.py`         | end-to-end    | 370-utterance committee → 8 cards stream in, JSON-equal to batch path           | 1            |
+| `tests/manual/test_meeting_committee_sample.py` (UPDATED) | end-to-end    | Recap round-trip without highlights fields                                      | 1 (existing) |
+| `tests/manual/test_streaming_ux_harness.py`               | evaluation    | Synthetic participant run; report shape                                         | 1            |
+| `tests/unit/test_layer_rule_*.py` (existing)              | cross-cutting | AST scans; no cross-layer imports introduced                                    | 3 (existing) |
+| **Total new**                                             |               |                                                                                 | ~46          |
+| **Total after all migrations**                            |               |                                                                                 | **~132**     |
 
 ---
 
@@ -723,7 +724,7 @@ post-spec snapshot.
   limitation; deferred.
 - **Cross-meeting recap linking** — "the same topic appeared in
   yesterday's meeting" — not in either paper; deferred.
-- **Real Vistral-7B-Chat deBERTa-replacement inference** — gated by
+- **Real gemma-4-E2B-it-qat-GGUF deBERTa-replacement inference** — gated by
   `MODEL_LOAD_LLM=1` (already supported in `model-002`); can be
   enabled in `svc-004` future work without changing the event
   contract.

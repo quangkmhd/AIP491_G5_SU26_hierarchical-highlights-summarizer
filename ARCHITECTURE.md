@@ -12,9 +12,9 @@ to deeper documents when needed.
 
 ## Domain Map
 
-| Domain | Purpose | Primary Entry Points | Related Spec |
-|--------|---------|----------------------|--------------|
-| `Topic Segmentation` | `Identifying coherent topics using user-fine-tuned NSP-BERT + TextTiling (paper-1 *Ours (full)* method)` | `src/service/text_tiling.py`, `src/service/coherence_scorer.py` | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md` |
+| Domain               | Purpose                                                                                                   | Primary Entry Points                                                | Related Spec                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Topic Segmentation` | `Identifying coherent topics using user-fine-tuned NSP-BERT + TextTiling (paper-1 *Ours (full)* method)`  | `src/service/text_tiling.py`, `src/service/coherence_scorer.py`     | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md`                                                            |
 | `Hierarchical Recap` | `Meeting summarization, chapter titles, rolling summaries (deBERTa, mocked at MVP), streaming end-to-end` | `src/service/meeting_recap_orchestrator.py` (StreamingOrchestrator) | `docs/papers/llm-powered-meeting-recap-system.md` + `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` |
 
 ## Layer Model
@@ -36,12 +36,12 @@ boundaries instead of reaching across layers directly.
 
 ## Cross-Cutting Interfaces
 
-| Concern | Approved Boundary | Notes |
-|--------|-------------------|-------|
-| Logging and tracing | `Standard Python logging` | `structured only, console allowed for CLI` |
-| Auth | `N/A` | `token/session rules` |
-| External APIs | `HuggingFace Transformers` | `local model loading; cpt_4000.pth is the user-fine-tuned checkpoint` |
-| Feature flags | `MODEL_LOAD_LLM` env var | `0 = MockLLMBackbone (offline CI); 1 = real Vistral-7B-Chat` |
+| Concern             | Approved Boundary                           | Notes                                                                                                  |
+| ------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Logging and tracing | `Standard Python logging`                   | `structured only, console allowed for CLI`                                                             |
+| Auth                | `N/A`                                       | `token/session rules`                                                                                  |
+| External APIs       | `HuggingFace Transformers`                  | `local model loading; cpt_4000.pth is the user-fine-tuned checkpoint`                                  |
+| Feature flags       | `MODEL_LOAD_LLM` env var                    | `0 = MockLLMBackbone (offline CI); 1 = real gemma-4-E2B-it-qat-GGUF`                                   |
 | Streaming transport | `sse-starlette` for HTTP / `ndjson` for CLI | `event contract in docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md Section 6` |
 
 ## Current Hot Spots
@@ -53,13 +53,13 @@ boundaries instead of reaching across layers directly.
 
 ## Service Map
 
-| Service | File | Layer | Depends On | Streaming? |
-|---------|------|-------|------------|------------|
-| `CoherenceScorer` | `src/service/coherence_scorer.py` | Service | `CoherenceNet` (Repo), `ModelLoader` (Repo) | yes — pair scoring per utterance |
-| `TextTilingService` | `src/service/text_tiling.py` | Service | `CoherenceScorer` (Service), `TextTilingConfig` (Config) | yes — sliding depth-score array |
-| `ChunkingService` | `src/service/chunking_service.py` | Service | (none) | yes — 8-utt chunk accumulator |
-| `HierarchicalSummarizationService` | `src/service/hierarchical_summarization.py` | Service | `ModelLoader` (Repo), `MockLLMBackbone` (Repo) | yes — title deferred, chunk summary synchronous at MVP |
-| `StreamingOrchestrator` | `src/service/meeting_recap_orchestrator.py` | Service | All above + `ModelLoader` (Repo) | yes — main entry point (6 event types) |
+| Service                            | File                                        | Layer   | Depends On                                               | Streaming?                                             |
+| ---------------------------------- | ------------------------------------------- | ------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| `CoherenceScorer`                  | `src/service/coherence_scorer.py`           | Service | `CoherenceNet` (Repo), `ModelLoader` (Repo)              | yes — pair scoring per utterance                       |
+| `TextTilingService`                | `src/service/text_tiling.py`                | Service | `CoherenceScorer` (Service), `TextTilingConfig` (Config) | yes — sliding depth-score array                        |
+| `ChunkingService`                  | `src/service/chunking_service.py`           | Service | (none)                                                   | yes — 8-utt chunk accumulator                          |
+| `HierarchicalSummarizationService` | `src/service/hierarchical_summarization.py` | Service | `ModelLoader` (Repo), `MockLLMBackbone` (Repo)           | yes — title deferred, chunk summary synchronous at MVP |
+| `StreamingOrchestrator`            | `src/service/meeting_recap_orchestrator.py` | Service | All above + `ModelLoader` (Repo)                         | yes — main entry point (6 event types)                 |
 
 ## Change Checklist
 

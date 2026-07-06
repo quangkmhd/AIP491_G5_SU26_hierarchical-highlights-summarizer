@@ -6,7 +6,7 @@ Loads the second Vietnamese committee dialogue (dial_id=1) from
 `data/eval_vi/meeting_committee.json`, treats the ground-truth
 `segments` list `[16, 65, 12, 27, 10]` as the topic boundaries
 (SKIP TextTiling / skip the segment-topic step), then runs the
-REAL LLM backbone (Vistral/Gemma GGUF, set by MODEL_LOAD_LLM=1)
+REAL LLM backbone (gemma-4-E2B-it-qat-GGUF/Gemma GGUF, set by MODEL_LOAD_LLM=1)
 through:
 
   1. For each segment: build 8-utterance chunks.

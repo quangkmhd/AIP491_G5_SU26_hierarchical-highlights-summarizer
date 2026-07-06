@@ -26,7 +26,7 @@ overridable via env vars.
 
 ## Out of Scope
 
-- `LLMConfig` / `PromptConfig` for Vistral-7B-Chat (own feature once `svc-005` / `svc-006` start).
+- `LLMConfig` / `PromptConfig` for gemma-4-E2B-it-qat-GGUF (own feature once `svc-005` / `svc-006` start).
 - `ModelCheckpointConfig` env-overridable (the existing `model-002` `MockLLMBackbone` / `ModelKind` enum already cover this; can be migrated to `ConfigBase` later).
 - Hot-reload of config at runtime (Pydantic-Settings has the `register_settings` hook, not needed at MVP).
 - YAML/TOML config (only `.env` at MVP per project conventions).
@@ -79,7 +79,6 @@ None at this time. All 6 decisions (D1-D6) from the spec are locked.
 - Commits: 11 commits (337af7c .. 65eebce)
 - Files: 9 src + 7 test + 3 docs (spec amendment, plan note, this archive move) = 19 files.
 - Plan corrections applied during execution: 3 (documented in plan's "Implementation findings" section + spec D3/D5).
-
 
 ## Code review
 

@@ -61,7 +61,7 @@ src/config/
   `.env` and apply `env_prefix`.
 - `_base.py` defines `ConfigBase(BaseSettings)` with
   `model_config = SettingsConfigDict(extra="forbid",
-  case_sensitive=False, validate_default=True)`. All sub-configs and
+case_sensitive=False, validate_default=True)`. All sub-configs and
   `MeetingRecapConfig` inherit it.
 
 ### D3. Error semantics: `ConfigError` is a module-level alias of `pydantic.ValidationError`
@@ -83,19 +83,19 @@ Every field below has a `default` in code (one place) and an env-var
 override of the form `MEETING_RECAP_<SUB>__<FIELD>` (handled by
 `env_nested_delimiter="__"`).
 
-| Sub-config | Field | Type | Default (paper) | Validator |
-|---|---|---|---|---|
-| `TextTilingConfig` | `window_size` | int (ge=1) | 30 (paper-1 §3.3) | `@field_validator` |
-| | `stride` | int (ge=1) | 10 (paper-1 §3.3) | |
-| | `smoothing` | Literal["mean","median","ema"] | "mean" | |
-| | `cutoff_policy` | Literal["mean","mean+2std","depth_knee"] | "mean+2std" | |
-| | | | | `@model_validator(mode="after")`: `stride <= window_size` |
-| `ChunkingConfig` | `chunk_size` | int (ge=1) | 8 (paper-2 §3.3) | |
-| | `overlap` | int (ge=0) | 0 | `@model_validator(mode="after")`: `overlap < chunk_size` |
-| `HighlightsConfig` | `extractive_window` | int (ge=1) | 10 (~106 tokens, paper-2 §3.3) | |
-| `AbstractiveConfig` | `context_window` | int (ge=1) | 512 (paper-2 §3.3) | |
-| `LanguageConfig` | `tag` | Literal["vi","en","zh"] | "vi" (project extends paper-1) | |
-| | `model_variant` | Literal["bert-base-multilingual-cased","bert-base-chinese"] | "bert-base-multilingual-cased" | `@model_validator`: `tag=="zh"` requires `model_variant=="bert-base-chinese"`; `tag in ("en","vi")` requires `model_variant=="bert-base-multilingual-cased"` |
+| Sub-config          | Field               | Type                                                        | Default (paper)                | Validator                                                                                                                                                    |
+| ------------------- | ------------------- | ----------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TextTilingConfig`  | `window_size`       | int (ge=1)                                                  | 30 (paper-1 §3.3)              | `@field_validator`                                                                                                                                           |
+|                     | `stride`            | int (ge=1)                                                  | 10 (paper-1 §3.3)              |                                                                                                                                                              |
+|                     | `smoothing`         | Literal["mean","median","ema"]                              | "mean"                         |                                                                                                                                                              |
+|                     | `cutoff_policy`     | Literal["mean","mean+2std","depth_knee"]                    | "mean+2std"                    |                                                                                                                                                              |
+|                     |                     |                                                             |                                | `@model_validator(mode="after")`: `stride <= window_size`                                                                                                    |
+| `ChunkingConfig`    | `chunk_size`        | int (ge=1)                                                  | 8 (paper-2 §3.3)               |                                                                                                                                                              |
+|                     | `overlap`           | int (ge=0)                                                  | 0                              | `@model_validator(mode="after")`: `overlap < chunk_size`                                                                                                     |
+| `HighlightsConfig`  | `extractive_window` | int (ge=1)                                                  | 10 (~106 tokens, paper-2 §3.3) |                                                                                                                                                              |
+| `AbstractiveConfig` | `context_window`    | int (ge=1)                                                  | 512 (paper-2 §3.3)             |                                                                                                                                                              |
+| `LanguageConfig`    | `tag`               | Literal["vi","en","zh"]                                     | "vi" (project extends paper-1) |                                                                                                                                                              |
+|                     | `model_variant`     | Literal["bert-base-multilingual-cased","bert-base-chinese"] | "bert-base-multilingual-cased" | `@model_validator`: `tag=="zh"` requires `model_variant=="bert-base-chinese"`; `tag in ("en","vi")` requires `model_variant=="bert-base-multilingual-cased"` |
 
 - All sub-configs are `frozen=True` (immutable; safe to share across
   threads and across the orchestrator pipeline).
@@ -150,17 +150,17 @@ class MeetingRecapConfig(ConfigBase):
 
 ## Test Plan
 
-| Test file | Coverage | Min tests |
-|---|---|---|
-| `tests/unit/test_config_text_tiling.py` | defaults = (30,10,"mean","mean+2std"); reject stride>window; env override; `ConfigError` shape | 8 |
-| `tests/unit/test_config_chunking.py` | defaults (8,0); reject overlap≥chunk_size; env override | 5 |
-| `tests/unit/test_config_highlights.py` | default extractive_window=10; reject ≤0; env override | 4 |
-| `tests/unit/test_config_abstractive.py` | default context_window=512; reject ≤0 | 3 |
-| `tests/unit/test_config_language.py` | default ("vi", "bert-base-multilingual-cased"); reject tag/variant mismatch; env override | 5 |
-| `tests/unit/test_config_recap.py` | compose đúng defaults; env_prefix mapping (`MEETING_RECAP_CHUNKING__CHUNK_SIZE=12` ⇒ `chunking.chunk_size=12`); `_env_file=None` skip; `extra="forbid"` reject unknown env; `ConfigError` is `ValidationError` | 12 |
-| `tests/unit/test_layer_rule_config.py` | AST scan: no imports from higher layers | 3 |
-| `tests/manual/test_config_end_to_end.py` | (kept out of CI) end-to-end: env-loaded config → `model-001` `DialogueTranscript` round-trip + custom `.env.test` + env-beats-file + `_env_file=None` skip + `extra` rejection | 7 |
-| **Total** | | **~47** |
+| Test file                                | Coverage                                                                                                                                                                                                       | Min tests |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `tests/unit/test_config_text_tiling.py`  | defaults = (30,10,"mean","mean+2std"); reject stride>window; env override; `ConfigError` shape                                                                                                                 | 8         |
+| `tests/unit/test_config_chunking.py`     | defaults (8,0); reject overlap≥chunk_size; env override                                                                                                                                                        | 5         |
+| `tests/unit/test_config_highlights.py`   | default extractive_window=10; reject ≤0; env override                                                                                                                                                          | 4         |
+| `tests/unit/test_config_abstractive.py`  | default context_window=512; reject ≤0                                                                                                                                                                          | 3         |
+| `tests/unit/test_config_language.py`     | default ("vi", "bert-base-multilingual-cased"); reject tag/variant mismatch; env override                                                                                                                      | 5         |
+| `tests/unit/test_config_recap.py`        | compose đúng defaults; env_prefix mapping (`MEETING_RECAP_CHUNKING__CHUNK_SIZE=12` ⇒ `chunking.chunk_size=12`); `_env_file=None` skip; `extra="forbid"` reject unknown env; `ConfigError` is `ValidationError` | 12        |
+| `tests/unit/test_layer_rule_config.py`   | AST scan: no imports from higher layers                                                                                                                                                                        | 3         |
+| `tests/manual/test_config_end_to_end.py` | (kept out of CI) end-to-end: env-loaded config → `model-001` `DialogueTranscript` round-trip + custom `.env.test` + env-beats-file + `_env_file=None` skip + `extra` rejection                                 | 7         |
+| **Total**                                |                                                                                                                                                                                                                | **~47**   |
 
 ## Verification Commands
 
@@ -198,7 +198,7 @@ python3 tests/manual/test_config_end_to_end.py
 
 ## Out of Scope (deferred)
 
-- `LLMConfig` / `PromptConfig` for Vistral-7B-Chat (own feature once
+- `LLMConfig` / `PromptConfig` for gemma-4-E2B-it-qat-GGUF (own feature once
   `svc-005` / `svc-006` start).
 - `ModelCheckpointConfig` env-overridable (the existing `model-002`
   `MockLLMBackbone` / `ModelKind` enum already cover this; can be
