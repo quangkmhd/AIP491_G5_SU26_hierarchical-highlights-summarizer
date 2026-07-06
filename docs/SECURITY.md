@@ -63,7 +63,7 @@ This file defines the security and safety rules that agents must not guess at.
 
 ### Dependency additions planned for upcoming work
 
-- `pydantic >= 2` (already in the active venv) -- data validation.
+- `pydantic >= 2` (already managed by uv) -- data validation.
 - `transformers` (planned for `model-002`) -- HuggingFace model loading.
 - `python-dotenv` (planned for `config`) -- `.env` loading.
 - `fastapi` + `uvicorn` (planned for `api-001`) -- HTTP runtime.
