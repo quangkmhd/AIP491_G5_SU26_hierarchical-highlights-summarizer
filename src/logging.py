@@ -31,6 +31,7 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
 from uuid import uuid4 as _uuid4
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -147,11 +148,16 @@ _root_configured = False
 
 
 def _configure_root() -> None:
-    """Configure the root logger with one JSON handler + one human handler.
+    """Configure the root logger with console + file handlers.
 
     Level can be overridden via env var `MEETING_RECAP_LOG_LEVEL`
     (e.g. DEBUG, INFO, WARNING). Format defaults to human; set
     `MEETING_RECAP_LOG_FORMAT=json` for machine-readable output.
+
+    Logs are written to both stderr and ``logs/run.log`` (relative to
+    the current working directory). The file handler always uses DEBUG
+    level so full detail is captured on disk even when the console
+    shows only INFO.
     """
     global _root_configured
     if _root_configured:
@@ -167,14 +173,23 @@ def _configure_root() -> None:
     else:
         formatter = HumanFormatter()
 
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
-    handler.setLevel(level)
+    # Console handler (stderr)
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(level)
+
+    # File handler (logs/run.log) — always DEBUG for full detail
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    file_handler = logging.FileHandler(log_dir / "run.log", mode="a", encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
 
     root = logging.getLogger()
     root.handlers.clear()  # avoid duplicate handlers on re-import
-    root.addHandler(handler)
-    root.setLevel(level)
+    root.addHandler(console_handler)
+    root.addHandler(file_handler)
+    root.setLevel(logging.DEBUG)  # root DEBUG; handlers filter independently
 
     # Quiet down noisy third-party loggers. We set them to ERROR so
     # only actionable errors appear; the user can override per-logger
@@ -182,6 +197,7 @@ def _configure_root() -> None:
     for noisy in (
         "transformers", "urllib3", "asyncio", "httpx", "httpcore",
         "huggingface_hub", "filelock", "numexpr", "torchao",
+        "faker", "matplotlib", "PIL",
     ):
         noisy_logger = logging.getLogger(noisy)
         # Honor explicit per-logger override
