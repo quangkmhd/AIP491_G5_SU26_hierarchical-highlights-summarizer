@@ -3,7 +3,7 @@
 Architecture (verified against `vibert_checkpoints_vi/cpt_4000.pth`,
 see docs/superpowers/specs/2026-07-04-model-002-design.md D1):
 
-    bert: BertModel (bert-base-multilingual-cased, vocab 38168 subset)
+    bert: BertModel (FPTAI/vibert-base-cased, vocab 38168)
     coherence_decoder: Sequential(
         Linear(768, 768),
         ReLU(),

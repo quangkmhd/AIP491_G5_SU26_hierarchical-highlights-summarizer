@@ -37,8 +37,8 @@ class TestModelLoaderSingleton(unittest.TestCase):
         # Spec D1: cpt_4000.pth is the project's pre-trained artifact.
         self.assertTrue(NSP_CKPT_PATH.endswith("cpt_4000.pth"))
 
-    def test_llm_backbone_id_is_vistral(self) -> None:
-        self.assertEqual(LLM_BACKBONE_ID, "Viet-Mistral/Vistral-7B-Chat")
+    def test_llm_backbone_id(self) -> None:
+        self.assertEqual(LLM_BACKBONE_ID, "unsloth/gemma-4-E2B-it-qat-GGUF")
 
     def test_model_kind_enum_has_nsp_and_llm(self) -> None:
         self.assertEqual({k.name for k in ModelKind}, {"NSP", "LLM_BACKBONE"})

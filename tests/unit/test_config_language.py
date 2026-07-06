@@ -17,7 +17,7 @@ class DefaultsTests(unittest.TestCase):
     def test_vietnamese_default(self) -> None:
         cfg = LanguageConfig()
         self.assertEqual(cfg.tag, "vi")
-        self.assertEqual(cfg.model_variant, "bert-base-multilingual-cased")
+        self.assertEqual(cfg.model_variant, "FPTAI/vibert-base-cased")
 
     def test_frozen(self) -> None:
         cfg = LanguageConfig()
@@ -26,26 +26,25 @@ class DefaultsTests(unittest.TestCase):
 
     def test_extra_field_rejected(self) -> None:
         with self.assertRaises(ConfigError):
-            LanguageConfig(tag="vi", model_variant="bert-base-multilingual-cased",
+            LanguageConfig(tag="vi", model_variant="FPTAI/vibert-base-cased",
                            surprise=1)  # type: ignore[call-arg]
 
 
 class ValidationTests(unittest.TestCase):
     def test_zh_requires_chinese_variant(self) -> None:
         with self.assertRaises(ConfigError):
-            LanguageConfig(tag="zh", model_variant="bert-base-multilingual-cased")
+            LanguageConfig(tag="zh", model_variant="FPTAI/vibert-base-cased")
 
-    def test_en_requires_multilingual_variant(self) -> None:
+    def test_en_requires_non_chinese_variant(self) -> None:
         with self.assertRaises(ConfigError):
             LanguageConfig(tag="en", model_variant="bert-base-chinese")
 
-    def test_vi_requires_multilingual_variant(self) -> None:
+    def test_vi_requires_non_chinese_variant(self) -> None:
         with self.assertRaises(ConfigError):
             LanguageConfig(tag="vi", model_variant="bert-base-chinese")
 
     def test_valid_combinations_accepted(self) -> None:
-        # All four valid (tag, variant) pairs must construct.
-        LanguageConfig(tag="vi", model_variant="bert-base-multilingual-cased")
+        LanguageConfig(tag="vi", model_variant="FPTAI/vibert-base-cased")
         LanguageConfig(tag="en", model_variant="bert-base-multilingual-cased")
         LanguageConfig(tag="zh", model_variant="bert-base-chinese")
 

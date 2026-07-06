@@ -10,7 +10,7 @@ exercises:
     1. ModelLoader loads CoherenceNet from the project's checkpoint.
     2. TranscriptRepo parses a real Vietnamese committee meeting.
     3. CoherenceNet scores every consecutive utterance pair in that
-       meeting (catching the C4 OOV-token path in real use).
+       meeting.
     4. RecapRepo writes a structured HierarchicalRecap to disk and
        reads it back without losing data.
 
@@ -33,7 +33,6 @@ from src.repo import (
     NSP_CKPT_PATH,
     RecapRepo,
     TranscriptRepo,
-    _coerce_token_ids,
 )
 from src.repo.coherence_net import CoherenceNet
 from src.types import (
@@ -103,16 +102,13 @@ class TestRepoLayerEndToEnd(unittest.TestCase):
         handle = self.loader.load_coherence_net()
         tok = handle.tokenizer
         net: CoherenceNet = handle.model
-        vocab_size = net._checkpoint_vocab_size  # type: ignore[attr-defined]
 
         transcripts = self.transcript_repo.load_all(COMMITTEE_FILE)
         first = transcripts[0]
-        # Take the first 8 utterances -- enough to test the OOV clamp
-        # path on real Vietnamese text (the multilingual BERT tokenizer
-        # produces IDs well beyond 38168 for these).
+        # Take the first 8 utterances.
         sample = first.utterances[:8]
 
-        # Tokenize the actual Vietnamese text and clamp to vocab.
+        # Tokenize the actual Vietnamese text.
         enc = tok(
             [u.text for u in sample],
             padding=True,
@@ -120,7 +116,6 @@ class TestRepoLayerEndToEnd(unittest.TestCase):
             max_length=128,
             return_tensors="pt",
         )
-        # Move to model device.
         device = next(net.parameters()).device
         input_ids = enc["input_ids"].to(device)
         attention_mask = enc["attention_mask"].to(device)
@@ -130,16 +125,6 @@ class TestRepoLayerEndToEnd(unittest.TestCase):
         else:
             token_type_ids = token_type_ids.to(device)
 
-        # C4 mitigation: clamp IDs that exceed the resized embedding.
-        clamped_ids = _coerce_token_ids(input_ids, vocab_size)
-        # At least one real token should have been clamped (proves the
-        # 119547->38168 mismatch is real on this Vietnamese text).
-        self.assertTrue(
-            (clamped_ids != input_ids).any().item()
-            or input_ids.max().item() < vocab_size,
-            "expected at least one OOV clamp or a sub-vocab-only batch",
-        )
-
         # Build the [B, 3, ...] batch of triples the CoherenceNet expects.
         # Use each pair (i, i+1) as the "positive" sample with the
         # same pair as both negatives (smoke check; the production
@@ -147,12 +132,12 @@ class TestRepoLayerEndToEnd(unittest.TestCase):
         batch = []
         for i in range(len(sample) - 1):
             pos = {
-                "input_ids": clamped_ids[i : i + 1],
+                "input_ids": input_ids[i : i + 1],
                 "attention_mask": attention_mask[i : i + 1],
                 "token_type_ids": token_type_ids[i : i + 1],
             }
             nxt = {
-                "input_ids": clamped_ids[i + 1 : i + 2],
+                "input_ids": input_ids[i + 1 : i + 2],
                 "attention_mask": attention_mask[i + 1 : i + 2],
                 "token_type_ids": token_type_ids[i + 1 : i + 2],
             }
@@ -213,9 +198,7 @@ class TestRepoLayerEndToEnd(unittest.TestCase):
             return_tensors="pt",
         )
         device = next(net.parameters()).device
-        input_ids = _coerce_token_ids(
-            enc["input_ids"].to(device), net._checkpoint_vocab_size  # type: ignore[attr-defined]
-        )
+        input_ids = enc["input_ids"].to(device)
         with torch.no_grad():
             out = net(
                 [

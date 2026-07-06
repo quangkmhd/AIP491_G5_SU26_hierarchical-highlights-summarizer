@@ -6,7 +6,6 @@ Public API:
     ModelKind           -- enum of cacheable model identifiers
     MockLLMBackbone     -- offline stand-in for the Vietnamese LLM
     CoherenceNet        -- paper-1 NSP-BERT coherence scorer
-    _coerce_token_ids   -- clamp token IDs to the model's embedding vocab
     TranscriptRepo      -- reads data/eval_vi JSON into DialogueTranscript
     TranscriptRepoError -- typed error for transcript IO failures
     RecapRepo           -- round-trips HierarchicalRecap as JSON
@@ -26,8 +25,9 @@ from .model_loader import (
     ModelHandle,
     ModelKind,
     ModelLoader,
+    NSP_BASE_MODEL_ID,
     NSP_ENCODER_ID,
-    _coerce_token_ids,
+    NSP_TOKENIZER_ID,
 )
 from .prompts_vi import (
     HIERARCHIC_ABSTRACTIVE_PROMPT_VI,
@@ -50,7 +50,8 @@ __all__ = [
     "MockLLMBackbone",
     "LLM_BACKBONE_ID",
     "NSP_ENCODER_ID",
-    "_coerce_token_ids",
+    "NSP_BASE_MODEL_ID",
+    "NSP_TOKENIZER_ID",
     "TranscriptRepo",
     "TranscriptRepoError",
     "RecapRepo",

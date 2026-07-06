@@ -41,7 +41,7 @@ class ComposeTests(unittest.TestCase):
         # HighlightsConfig removed in config-001+ (D2).
         self.assertEqual(cfg.abstractive.context_window, 512)
         self.assertEqual(cfg.language.tag, "vi")
-        self.assertEqual(cfg.language.model_variant, "bert-base-multilingual-cased")
+        self.assertEqual(cfg.language.model_variant, "FPTAI/vibert-base-cased")
         self.assertEqual(cfg.device, "auto")
         self.assertEqual(cfg.data_dir, Path("data/eval_vi"))
         self.assertEqual(cfg.artifacts_dir, Path("docs/generated"))

@@ -39,8 +39,12 @@ class ModelKind(str, Enum):
 
 
 # Backbone choices (spec D2).
-LLM_BACKBONE_ID: str = "Viet-Mistral/Vistral-7B-Chat"
-NSP_ENCODER_ID: str = "bert-base-multilingual-cased"
+LLM_BACKBONE_ID: str = "unsloth/gemma-4-E2B-it-qat-GGUF"
+GGUF_MODEL_ID: str = LLM_BACKBONE_ID
+GGUF_MODEL_FILENAME: str = "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf"
+NSP_ENCODER_ID: str = "vibert_checkpoints_vi/cpt_4000.pth"
+NSP_BASE_MODEL_ID: str = "FPTAI/vibert-base-cased"
+NSP_TOKENIZER_ID: str = NSP_BASE_MODEL_ID
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,39 @@ class MockLLMBackbone:
         return self.CANNED_RESPONSES.get(task, "")
 
 
+class GGUFLLMBackbone:
+    """Adapter wrapping a llama_cpp.Llama GGUF model into the backbone
+    interface expected by HierarchicalSummarizationService.
+
+    The generate() method formats a chat completion with JSON-constrained
+    decoding and returns the assistant response text.
+    """
+
+    SYSTEM_PROMPT: str = (
+        "Bạn là engine tạo meeting recap chuyên nghiệp. "
+        "Luôn trả lời bằng tiếng Việt. Chỉ trả về JSON hợp lệ, không thêm giải thích."
+    )
+
+    def __init__(self, llm: "Llama") -> None:
+        self._llm = llm
+        self.call_count: int = 0
+        self.last_prompt: str = ""
+
+    def generate(self, prompt: str, task: str) -> str:
+        self.call_count += 1
+        self.last_prompt = prompt
+        response = self._llm.create_chat_completion(
+            messages=[
+                {"role": "system", "content": self.SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=512,
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+        return response["choices"][0]["message"]["content"].strip()
+
+
 def _resolve_device() -> str:
     """Return 'cuda' if available else 'cpu'.
 
@@ -91,17 +128,14 @@ def _resolve_device() -> str:
 def _load_nsp_weights(ckpt_path: str | Path, device: str) -> CoherenceNet:
     """Load the project's pre-trained CoherenceNet checkpoint.
 
-    Implements spec D1: the in-repo `cpt_4000.pth` is the single
-    source of truth for the NSP weights. We resize the multilingual
-    BERT embeddings to match the checkpoint's vocab (38168), then
-    load only the keys whose shapes match.
+    Mirrors the reference inference code at
+    ``references_code/dialogue-topic-segmenter/segment.py:89-93``: build
+    CoherenceNet from ``AutoModel.from_pretrained(NSP_BASE_MODEL_ID)``,
+    then overwrite with the fine-tuned ``cpt_4000.pth`` state dict.
 
-    C4 mitigation: the returned `CoherenceNet` exposes a
-    `coerce_token_ids(input_ids)` helper that clamps any out-of-range
-    ID to the UNK row (0), so callers can pass real Vietnamese text
-    through `bert-base-multilingual-cased`'s 119547-vocab tokenizer
-    without crashing the embedding lookup. The inference quality
-    degrades for the clamped tokens, but the call no longer raises.
+    The base model (``FPTAI/vibert-base-cased``, vocab 38168) and the
+    checkpoint share the same vocabulary, so no token-ID clamping is
+    needed.
     """
     from transformers import AutoModel  # local import to keep module import cheap
 
@@ -110,62 +144,31 @@ def _load_nsp_weights(ckpt_path: str | Path, device: str) -> CoherenceNet:
     if not p.is_file():
         raise FileNotFoundError(
             f"NSP checkpoint not found at {p}. "
-            f"Expected the pre-trained cpt_4000.pth at the project root."
+            "Run `uv run python scripts/download_models.sh` first."
         )
-    bert = AutoModel.from_pretrained(NSP_ENCODER_ID)
-    state = torch.load(p, map_location="cpu", weights_only=True)
 
-    # Resize the inner BertModel's embedding to match the checkpoint's vocab.
-    ck_vocab = state["bert.embeddings.word_embeddings.weight"].shape[0]
-    bert.resize_token_embeddings(ck_vocab)
-
-    # Strip the "bert." prefix so the keys line up with the inner model.
-    bert_state = {k[len("bert."):]: v for k, v in state.items() if k.startswith("bert.")}
-    own = bert.state_dict()
-    matched = {k: v for k, v in bert_state.items() if k in own and v.shape == own[k].shape}
-    bert.load_state_dict(matched, strict=False)
-
-    # Build the CoherenceNet, then load the decoder.
+    bert = AutoModel.from_pretrained(NSP_BASE_MODEL_ID)
     net = CoherenceNet(bert=bert, device=device)
-    decoder_state = {
-        k[len("coherence_decoder."):]: v
-        for k, v in state.items()
-        if k.startswith("coherence_decoder.")
-    }
-    net.coherence_decoder.load_state_dict(decoder_state, strict=False)
+
+    state = torch.load(p, map_location="cpu", weights_only=True)
+    net.load_state_dict(state, strict=False)
     net.to(device)
     net.eval()
 
-    # C4: attach vocab info for the token-ID clamp helper.
-    net._checkpoint_vocab_size = ck_vocab  # type: ignore[attr-defined]
+    ck_vocab = net.bert.embeddings.word_embeddings.num_embeddings
     logger.info(
-        "NSP checkpoint loaded vocab_size=%d matched_bert_keys=%d decoder_keys=%d",
+        "NSP checkpoint loaded base=%s vocab_size=%d device=%s",
+        NSP_BASE_MODEL_ID,
         ck_vocab,
-        len(matched),
-        len(decoder_state),
+        device,
     )
     return net
 
 
-def _coerce_token_ids(input_ids: "torch.Tensor", vocab_size: int) -> "torch.Tensor":
-    """Clamp any token ID >= vocab_size to 0 (the UNK / [PAD] row).
-
-    This is a pragmatic workaround for the C4 mismatch: the
-    pre-trained checkpoint was trained with a 38168-vocab Vietnamese-
-    subset tokenizer, but we load `bert-base-multilingual-cased` (vocab
-    119547) for the embedding initialisation. Real Vietnamese text
-    passed through the multilingual tokenizer will produce IDs in the
-    full 119547 range; the embedding lookup in
-    `nn.Embedding(38168, 768)` would raise `IndexError` for any ID
-    >= 38168 without this clamp.
-    """
-    return torch.clamp(input_ids, max=vocab_size - 1)
-
-
 def _load_llm_backbone(device: str) -> ModelHandle:
-    """Load Viet-Mistral/Vistral-7B-Chat in 4-bit (bitsandbytes).
+    """Load Gemma 4 E2B GGUF via llama.cpp.
 
-    Spec D2: 4-bit quantization via `bitsandbytes` to fit RTX 4060 8GB.
+    Uses the quantized GGUF (Q4_K_XL) for efficient inference on 8GB VRAM.
     Falls back to `MockLLMBackbone` when `MODEL_LOAD_LLM=0` so
     offline unit tests can still construct a usable handle.
     """
@@ -178,26 +181,29 @@ def _load_llm_backbone(device: str) -> ModelHandle:
             checkpoint_path=None,
         )
 
-    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+    from huggingface_hub import hf_hub_download
+    from llama_cpp import Llama
 
-    logger.info("loading LLM backbone id=%s mode=4bit device=%s", LLM_BACKBONE_ID, device)
-    bnb = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.float16,
-        bnb_4bit_quant_type="nf4",
+    logger.info("loading GGUF model id=%s filename=%s device=%s", GGUF_MODEL_ID, GGUF_MODEL_FILENAME, device)
+    gguf_path = hf_hub_download(
+        repo_id=GGUF_MODEL_ID,
+        filename=GGUF_MODEL_FILENAME,
     )
-    tokenizer = AutoTokenizer.from_pretrained(LLM_BACKBONE_ID)
-    model = AutoModelForCausalLM.from_pretrained(
-        LLM_BACKBONE_ID,
-        quantization_config=bnb,
-        device_map="auto",
+    n_gpu_layers = -1 if device == "cuda" else 0
+    llm = Llama(
+        model_path=gguf_path,
+        n_gpu_layers=n_gpu_layers,
+        n_ctx=8192,
+        verbose=False,
+        flash_attn=True,
     )
+    backbone = GGUFLLMBackbone(llm)
     return ModelHandle(
         kind=ModelKind.LLM_BACKBONE,
-        model=model,
+        model=backbone,
         device=device,
-        checkpoint_path=LLM_BACKBONE_ID,
-        tokenizer=tokenizer,
+        checkpoint_path=gguf_path,
+        tokenizer=None,
     )
 
 
@@ -239,7 +245,7 @@ class ModelLoader:
             net = _load_nsp_weights(NSP_CKPT_PATH, device)
             from transformers import AutoTokenizer  # local import for cost
 
-            tokenizer = AutoTokenizer.from_pretrained(NSP_ENCODER_ID)
+            tokenizer = AutoTokenizer.from_pretrained(NSP_TOKENIZER_ID)
             handle = ModelHandle(
                 kind=ModelKind.NSP,
                 model=net,

@@ -6,6 +6,7 @@ from pathlib import Path
 import torch
 
 from src.repo.coherence_net import CoherenceNet, NSP_CKPT_PATH
+from src.repo.model_loader import NSP_BASE_MODEL_ID
 
 CKPT = Path(NSP_CKPT_PATH)
 CKPT_EXISTS = CKPT.exists()
@@ -18,7 +19,7 @@ class TestCoherenceNetLoad(unittest.TestCase):
 
         from src.repo.model_loader import _resolve_device  # type: ignore[attr-defined]
 
-        bert = AutoModel.from_pretrained("bert-base-multilingual-cased")
+        bert = AutoModel.from_pretrained(NSP_BASE_MODEL_ID)
         net = CoherenceNet(bert=bert, device=_resolve_device())
         # Decoder must be Linear(768,768) -> ReLU -> Dropout(0.1) -> Linear(768,2).
         self.assertEqual(net.coherence_decoder[0].in_features, 768)
@@ -32,28 +33,11 @@ class TestCoherenceNetLoad(unittest.TestCase):
     def test_load_project_checkpoint_keeps_decoder_weights(self) -> None:
         from transformers import AutoModel
 
-        bert = AutoModel.from_pretrained("bert-base-multilingual-cased")
+        bert = AutoModel.from_pretrained(NSP_BASE_MODEL_ID)
         net = CoherenceNet(bert=bert, device="cpu")
 
-        # Mirror the loader's filter strategy: match keys with the same shape.
         state = torch.load(NSP_CKPT_PATH, map_location="cpu", weights_only=True)
-        # Resize embeddings to match the checkpoint's vocab (38168).
-        net.bert.resize_token_embeddings(
-            state["bert.embeddings.word_embeddings.weight"].shape[0]
-        )
-        # Strip the "bert." prefix so the inner BertModel accepts the keys.
-        bert_state = {
-            k[len("bert."):]: v for k, v in state.items() if k.startswith("bert.")
-        }
-        own = net.bert.state_dict()
-        matched = {
-            k: v for k, v in bert_state.items() if k in own and v.shape == own[k].shape
-        }
-        net.bert.load_state_dict(matched, strict=False)
-        net.coherence_decoder.load_state_dict(
-            {k[len("coherence_decoder."):]: v for k, v in state.items() if k.startswith("coherence_decoder.")},
-            strict=False,
-        )
+        net.load_state_dict(state, strict=False)
         net.eval()
 
         # Spot-check: the decoder's first linear weights are NOT all zeros
@@ -65,12 +49,10 @@ class TestCoherenceNetLoad(unittest.TestCase):
         """Forward pass returns [B, 3, 2] using hand-built token IDs in vocab range."""
         from transformers import AutoModel
 
-        bert = AutoModel.from_pretrained("bert-base-multilingual-cased")
-        # Resize to the checkpoint's vocab so IDs in [0, 38167] are valid.
-        ck_vocab = 38168
-        bert.resize_token_embeddings(ck_vocab)
+        bert = AutoModel.from_pretrained(NSP_BASE_MODEL_ID)
         net = CoherenceNet(bert=bert, device="cpu").eval()
 
+        vocab_size = bert.embeddings.word_embeddings.num_embeddings
         # Build minimal input_ids / attention_mask tensors in vocab range.
         seq_len = 8
         batch = [[
@@ -102,39 +84,3 @@ class TestCoherenceNetLoad(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-class TestCoherenceNetC4RealText(unittest.TestCase):
-    """C4: real Vietnamese text tokenized by `bert-base-multilingual-cased`
-    produces IDs in the full 119547 range. The model's embedding matrix was
-    resized to the checkpoint's vocab (38168), so any ID >= 38168 must be
-    clamped to 0 (UNK) before the embedding lookup or the call raises.
-    """
-
-    def test_real_vietnamese_text_clamped_to_vocab_range(self) -> None:
-        from src.repo.model_loader import _coerce_token_ids
-
-        # Real Vietnamese text: 119547-vocab tokenizer produces IDs beyond 38168.
-        vocab_size = 38168
-        # Simulate a batch of token IDs that includes both in-range and OOV IDs.
-        input_ids = torch.tensor(
-            [[100, 5000, 38167, 38168, 50000, 105907]]
-        )
-        clamped = _coerce_token_ids(input_ids, vocab_size)
-        # Every ID must be < vocab_size.
-        self.assertTrue((clamped < vocab_size).all())
-        # In-range IDs are preserved.
-        self.assertEqual(clamped[0, 0].item(), 100)
-        self.assertEqual(clamped[0, 1].item(), 5000)
-        self.assertEqual(clamped[0, 2].item(), 38167)
-        # OOV IDs are clamped to vocab_size - 1 (= 38167).
-        self.assertEqual(clamped[0, 3].item(), vocab_size - 1)
-        self.assertEqual(clamped[0, 4].item(), vocab_size - 1)
-        self.assertEqual(clamped[0, 5].item(), vocab_size - 1)
-
-    def test_clamp_helper_does_not_modify_fully_in_range(self) -> None:
-        from src.repo.model_loader import _coerce_token_ids
-
-        input_ids = torch.tensor([[1, 2, 3, 38167]])
-        clamped = _coerce_token_ids(input_ids, 38168)
-        self.assertTrue(torch.equal(input_ids, clamped))
