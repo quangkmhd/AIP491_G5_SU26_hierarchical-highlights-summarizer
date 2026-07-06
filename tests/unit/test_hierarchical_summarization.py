@@ -72,14 +72,27 @@ class HierarchicalSummarizationTests(unittest.TestCase):
         title = self.service.title(seg)
         self.assertIsInstance(title, str)
         self.assertGreater(len(title), 0)
-        self.assertLessEqual(len(title), self.service.TITLE_MAX_CHARS)
 
-    def test_title_truncates_long_response(self) -> None:
-        self.service._backbone.CANNED_RESPONSES["hierarchical_title"] = "y" * 200
+    def test_title_long_response_not_truncated(self) -> None:
+        """After removing the arbitrary TITLE_MAX_CHARS cap, titles
+        produced by the LLM must flow through unaltered — no mid-word
+        chopping and no silent truncation."""
+        long_title = (
+            "Phân tích nguyên nhân sụt giảm sinh "
+            "viên EU và thách thức thị trường tuyển sinh"
+        )
+        self.service._backbone.CANNED_RESPONSES["hierarchical_title"] = (
+            '{"title": "' + long_title + '", "one_line_summary": "ok"}'
+        )
         chunk = Chunk(utterances=[_u(0)])
-        seg = SegmentResult(title="x", chunks=[chunk], utterances_start=0, utterances_end=0)
+        seg = SegmentResult(
+            title="placeholder", chunks=[chunk],
+            utterances_start=0, utterances_end=0,
+        )
         title = self.service.title(seg)
-        self.assertLessEqual(len(title), self.service.TITLE_MAX_CHARS)
+        # full title passes through — no truncation, no mid-word chop
+        self.assertEqual(title, long_title)
+        self.assertGreater(len(title), 64)
 
     def test_title_empty_segment(self) -> None:
         seg = SegmentResult(title="placeholder", chunks=[], utterances_start=0, utterances_end=0)

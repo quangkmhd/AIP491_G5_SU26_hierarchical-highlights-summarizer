@@ -64,7 +64,9 @@ class HierarchicalSummarizationService:
         summary = service.abstractive(chunk)
     """
 
-    TITLE_MAX_CHARS: int = 64
+    # Title length is governed by HIERARCHIC_TITLE_PROMPT_VI (4-10 words);
+    # no fixed cap is enforced in code -- a hard char cap chopped titles
+    # mid-word and broke readability.
     ABSTRACTIVE_MAX_CHARS: int = 256
 
     def __init__(self, loader: ModelLoader | None = None) -> None:
@@ -82,7 +84,13 @@ class HierarchicalSummarizationService:
         return "\n".join(f"- {u.speaker}: {u.text}" for u in utterances)
 
     def title(self, segment: SegmentResult, chapter_number: int = 1) -> str:
-        """Generate a short chapter title (Vietnamese, <= 64 chars)."""
+        """Generate a short chapter title (Vietnamese).
+
+        The prompt (HIERARCHIC_TITLE_PROMPT_VI) already constrains length to
+        4-10 Vietnamese words, so no fixed char cap is enforced here. A hard
+        cap would chop mid-word -- e.g. \"...thách thức thị tr\" -- and break
+        readability.
+        """
         all_utts: list[Utterance] = []
         for chunk in segment.chunks:
             all_utts.extend(chunk.utterances)
@@ -103,8 +111,6 @@ class HierarchicalSummarizationService:
             logger.warning("title JSON parse failed, falling back: %s", e)
             title = generated.strip()
 
-        if len(title) > self.TITLE_MAX_CHARS:
-            title = title[: self.TITLE_MAX_CHARS]
         return title if title else "none"
 
     def abstractive(self, chunk: Chunk, chapter_number: int = 1, chunk_index: int = 0) -> str:
