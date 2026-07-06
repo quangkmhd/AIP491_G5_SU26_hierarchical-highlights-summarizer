@@ -49,31 +49,42 @@ class DepthComputingTests(unittest.TestCase):
 
 
 class CutoffThresholdTests(unittest.TestCase):
-    def test_mean_minus_half_std(self) -> None:
+    def test_alpha_zero_returns_mean(self) -> None:
+        # Paper: threshold = mean + alpha * std. alpha=0 -> threshold = mean.
+        depths = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+        mu = float(np.mean(depths))
+        self.assertAlmostEqual(cutoff_threshold(depths, alpha=0.0), mu, places=5)
+
+    def test_alpha_positive_raises_threshold(self) -> None:
         depths = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
         mu = float(np.mean(depths))
         sigma = float(np.std(depths))
-        expected = mu - sigma / 2
-        self.assertAlmostEqual(cutoff_threshold(depths), expected, places=5)
+        expected = mu + 0.5 * sigma
+        self.assertAlmostEqual(cutoff_threshold(depths, alpha=0.5), expected, places=5)
 
-    def test_unknown_policy_raises(self) -> None:
-        with self.assertRaises(ValueError):
-            cutoff_threshold(np.array([0.0, 0.1]), policy="bogus")
+    def test_alpha_negative_lowers_threshold(self) -> None:
+        depths = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+        mu = float(np.mean(depths))
+        sigma = float(np.std(depths))
+        expected = mu + (-1.0) * sigma
+        self.assertAlmostEqual(cutoff_threshold(depths, alpha=-1.0), expected, places=5)
 
 
 class BoundariesToSegmentsTests(unittest.TestCase):
-    def test_empty_boundaries_returns_full(self) -> None:
-        self.assertEqual(boundaries_to_segments([], 10), [10])
+    def test_empty_boundaries_returns_empty(self) -> None:
+        # Paper: no boundaries -> no segments (caller must append len-1).
+        self.assertEqual(boundaries_to_segments([], 10), [])
 
     def test_two_boundaries_three_segments(self) -> None:
-        # boundaries at 3 and 7 on a 10-utterance dialogue -> sizes 4, 4, 2
+        # boundaries at 3 and 7 on a 10-utterance dialogue -> sizes 4, 4
+        # (paper: caller appends len-1=9 as last boundary for 3 segments)
         result = boundaries_to_segments([3, 7], 10)
-        self.assertEqual(result, [4, 4, 2])
+        self.assertEqual(result, [4, 4])
 
-    def test_force_close_last_segment(self) -> None:
-        # If the last boundary is not the end, append a tail segment
-        result = boundaries_to_segments([3], 10)
-        self.assertEqual(result, [4, 6])
+    def test_with_last_boundary(self) -> None:
+        # boundaries at 3, 7, 9 (9 = len-1) -> sizes 4, 4, 2
+        result = boundaries_to_segments([3, 7, 9], 10)
+        self.assertEqual(result, [4, 4, 2])
 
 
 class TextTilingServiceTests(unittest.TestCase):
@@ -84,10 +95,7 @@ class TextTilingServiceTests(unittest.TestCase):
     def test_default_config_window_30_stride_10(self) -> None:
         self.assertEqual(self.config.window_size, 30)
         self.assertEqual(self.config.stride, 10)
-        # config-001+ defaults cutoff_policy="mean+2std" (paper-1 §3.3 tune default);
-        # the TextTilingService.algorithm itself uses tau = mu - sigma/2 (paper-1
-        # spec, used in segment.py) regardless of this field.
-        self.assertEqual(self.config.cutoff_policy, "mean+2std")
+        self.assertEqual(self.config.alpha, 1.0)
 
     def test_short_input_returns_no_events(self) -> None:
         events = self.service.process([0.5], n_utterances=2)
@@ -104,8 +112,8 @@ class TextTilingServiceTests(unittest.TestCase):
             self.service.process([0.1, 0.2, 0.3], n_utterances=10)
 
     def test_no_topical_shifts_yields_single_segment(self) -> None:
-        # All scores equal -> depths all 0 -> tau = 0 -> no boundary crossed
-        # except force-close
+        # All scores equal -> depths all 0 -> tau = mean = 0 -> no boundary
+        # crossed except force-close
         scores = [0.5] * 9
         events = self.service.process(scores, n_utterances=10)
         # Only the force-close event
@@ -149,3 +157,15 @@ class TextTilingServiceTests(unittest.TestCase):
         self.assertEqual(events[0].utterances_start, 0)
         # Last event ends at n_utterances - 1
         self.assertEqual(events[-1].utterances_end, 8)
+
+    def test_process_reset_state_on_reuse(self) -> None:
+        """Bug #1: calling process() twice on the same instance must reset state."""
+        scores1 = [0.9, 0.9, 0.1, 0.9, 0.9]
+        events1 = self.service.process(scores1, n_utterances=6)
+        # Second call should start fresh from utterance 0
+        scores2 = [0.9, 0.9, 0.1, 0.9, 0.9]
+        events2 = self.service.process(scores2, n_utterances=6)
+        # First event of second call must start at 0, not carry over state
+        self.assertEqual(events2[0].utterances_start, 0)
+        # Segment IDs should restart from seg-0
+        self.assertEqual(events2[0].segment_id, "seg-0")

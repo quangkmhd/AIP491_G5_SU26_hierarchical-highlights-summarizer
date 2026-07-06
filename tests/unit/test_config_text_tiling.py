@@ -19,7 +19,7 @@ class DefaultsTests(unittest.TestCase):
         self.assertEqual(cfg.window_size, 30)
         self.assertEqual(cfg.stride, 10)
         self.assertEqual(cfg.smoothing, "mean")
-        self.assertEqual(cfg.cutoff_policy, "mean+2std")
+        self.assertEqual(cfg.alpha, 1.0)
 
     def test_frozen(self) -> None:
         cfg = TextTilingConfig()
@@ -29,7 +29,7 @@ class DefaultsTests(unittest.TestCase):
     def test_extra_field_rejected(self) -> None:
         with self.assertRaises(ConfigError):
             TextTilingConfig(window_size=30, stride=10, smoothing="mean",
-                             cutoff_policy="mean+2std", surprise=1)  # type: ignore[call-arg]
+                             alpha=0.0, surprise=1)  # type: ignore[call-arg]
 
 
 class ValidationTests(unittest.TestCase):
@@ -48,10 +48,6 @@ class ValidationTests(unittest.TestCase):
     def test_invalid_smoothing_rejected(self) -> None:
         with self.assertRaises(ConfigError):
             TextTilingConfig(window_size=10, stride=5, smoothing="bogus")
-
-    def test_invalid_cutoff_policy_rejected(self) -> None:
-        with self.assertRaises(ConfigError):
-            TextTilingConfig(window_size=10, stride=5, cutoff_policy="bogus")
 
 
 class EnvOverrideTests(unittest.TestCase):

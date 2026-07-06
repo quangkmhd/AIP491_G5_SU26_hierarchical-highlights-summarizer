@@ -1,17 +1,27 @@
-"""TextTilingService -- paper-1 sliding-window TextTiling with depth-score cutoffs.
+"""TextTilingService -- paper-1 TextTiling with depth-score cutoffs.
 
 Ported from references_code/dialogue-topic-segmenter/neural_texttiling.py:
-    - depth_computing(scores) -> list[float]
+    - depth_computing(scores) -> np.ndarray
     - boundaries_to_segments(indices, total) -> list[int]
-    - depth_score cutoff: tau = mu - sigma/2
+    - threshold = mean + alpha * std  (paper §3, alpha tuned on dev set)
 
-The TextTilingService consumes a score stream from CoherenceScorer and emits
-SegmentEvent as depth-score cutoffs are crossed. Sliding-window params
-(window=30, stride=10) come from TextTilingConfig (config-001+).
+The TextTilingService consumes a score list from CoherenceScorer and emits
+SegmentEvent for each detected boundary.
 
-This is the *Ours (full)* method from paper-1 Table 4 (the best-performing
-method in the paper). See docs/superpowers/specs/2026-07-05-streaming-
-hierarchical-recap-design.md D4 for details.
+Paper reference (neural_texttiling.py:157-178):
+    similarity_scores = similarity_computing(dialogue, tokenizer, text_encoder, mode, device)
+    depth_scores = depth_computing(similarity_scores)
+    threshold = depth_scores.mean() + alpha * depth_scores.std()
+    boundaries = [i for i in range(len(depth_scores)) if depth_scores[i] > threshold] + [len(dialogue)-1]
+    segments = boundaries_to_segments(boundaries, len(dialogue))
+
+Customization for streaming (not in paper):
+    - process() is a pure-ish function: state is reset at the start of
+      each call so the same TextTilingService instance can be reused
+      across multiple dialogues.
+    - The last boundary (len(dialogue)-1) is always appended as a
+      force-close event so the tail segment is emitted. The paper does
+      this in the boundary list directly.
 """
 
 from __future__ import annotations
@@ -66,20 +76,18 @@ def depth_computing(scores: list[float]) -> np.ndarray:
     return out
 
 
-def cutoff_threshold(depths: np.ndarray, policy: str = "mean-std/2") -> float:
+def cutoff_threshold(depths: np.ndarray, alpha: float = 0.0) -> float:
     """Compute the boundary cutoff threshold tau.
 
-    paper-1 §3 specifies tau = mu - sigma/2 ("mean-std/2" policy).
+    Paper formula (neural_texttiling.py:166):
+        threshold = depth_scores.mean() + alpha * depth_scores.std()
+
+    Alpha is tuned on a dev set in the paper (range [-2, 2], step 0.1).
+    Default alpha=0 means threshold = mean.
     """
     mu = float(np.mean(depths))
-    if policy == "mean-std/2":
-        sigma = float(np.std(depths))
-        return mu - sigma / 2.0
-    if policy == "mean":
-        return mu
-    if policy == "mean+std":
-        return mu + float(np.std(depths))
-    raise ValueError(f"Unknown cutoff policy: {policy!r}")
+    sigma = float(np.std(depths))
+    return mu + alpha * sigma
 
 
 def boundaries_to_segments(
@@ -87,34 +95,29 @@ def boundaries_to_segments(
 ) -> list[int]:
     """Convert boundary indices to segment sizes (paper convention).
 
+    Ported from neural_texttiling.py::boundaries_to_segment_sizes.
     boundary_indices are the indices AT WHICH a segment ends (inclusive).
-    The last entry of the dialogue is always a boundary.
+    The caller must include total_entries-1 as the last boundary.
     """
-    if not boundary_indices:
-        return [total_entries]
-    sizes: list[int] = []
-    prev = -1
-    for b in boundary_indices:
-        sizes.append(b - prev)
-        prev = b
-    # The last boundary should be total_entries - 1
-    if boundary_indices[-1] != total_entries - 1:
-        sizes.append(total_entries - 1 - prev)
-    return sizes
+    segment_sizes: list[int] = []
+    previous_boundary = -1
+    for boundary in boundary_indices:
+        segment_sizes.append(boundary - previous_boundary)
+        previous_boundary = boundary
+    return segment_sizes
 
 
 class TextTilingService:
-    """Sliding-window TextTiling on a coherence-score stream.
+    """TextTiling on a coherence-score list.
 
-    Consumes a list of (n-1) coherence scores from CoherenceScorer.score_stream
-    and emits SegmentEvent when the depth score crosses the cutoff threshold.
+    Consumes a list of (n-1) coherence scores from CoherenceScorer and
+    emits SegmentEvent for each detected boundary.
     """
 
     def __init__(self, config: TextTilingConfig | None = None) -> None:
         self.logger = get_logger("src.service.text_tiling")
         self.config = config or TextTilingConfig()
         self._segment_counter = 0
-        self._current_start = 0
 
     def _new_segment_id(self) -> str:
         sid = f"seg-{self._segment_counter}"
@@ -129,7 +132,14 @@ class TextTilingService:
         Returns a list of SegmentEvent, one per detected boundary. The list
         always ends with a "force-close" event at the end of the dialogue
         so the last segment is emitted.
+
+        State is reset at the start of each call so the same instance can
+        be reused across multiple dialogues.
         """
+        # Reset state — makes process() safe to call multiple times.
+        self._segment_counter = 0
+        current_start = 0
+
         if n_utterances < 2:
             return []
         if len(scores) != n_utterances - 1:
@@ -139,41 +149,54 @@ class TextTilingService:
             )
 
         depths = depth_computing(scores)
-        tau = cutoff_threshold(depths, policy="mean-std/2")
+        tau = cutoff_threshold(depths, alpha=self.config.alpha)
         n_boundaries = int((depths > tau).sum())
-        self.logger.debug(
-            "text_tiling depths min=%.3f max=%.3f tau=%.3f boundaries=%d",
-            float(depths.min()), float(depths.max()), tau, n_boundaries,
+        self.logger.info(
+            "text_tiling scores=%d n_utterances=%d depths_min=%.4f depths_max=%.4f "
+            "tau=%.4f alpha=%.2f boundaries=%d",
+            len(scores), n_utterances,
+            float(depths.min()), float(depths.max()),
+            tau, self.config.alpha, n_boundaries,
         )
 
         events: list[SegmentEvent] = []
-        # boundary i means the i-th pair's first utterance starts a new
-        # segment; equivalently, the segment [0..i] is closed.
-        # Paper convention: pair i is between utt i and utt i+1. A high
-        # depth at i means topic shift between utt i and utt i+1.
+        # Paper: boundaries = [i for i in range(len(depth_scores)) if depth_scores[i] > threshold]
+        # boundary i means topic shift between utt i and utt i+1.
         # The closed segment ends at utt i (inclusive).
         for i, d in enumerate(depths):
             if d > tau:
                 events.append(
                     SegmentEvent(
                         segment_id=self._new_segment_id(),
-                        utterances_start=self._current_start,
+                        utterances_start=current_start,
                         utterances_end=i,
                         depth_score=float(d),
                         boundary_index=i,
                     )
                 )
-                self._current_start = i + 1
-        # Force-close any remaining tail
-        if self._current_start < n_utterances - 1:
+                current_start = i + 1
+
+        # Paper: + [len(dialogue)-1]  — always close the tail segment.
+        if current_start < n_utterances:
             events.append(
                 SegmentEvent(
                     segment_id=self._new_segment_id(),
-                    utterances_start=self._current_start,
+                    utterances_start=current_start,
                     utterances_end=n_utterances - 1,
                     depth_score=0.0,
                     boundary_index=n_utterances - 1,
                 )
             )
-            self._current_start = n_utterances
+        elif not events:
+            # Edge case: n_utterances >= 2 but no boundaries and no tail
+            # (shouldn't happen since current_start=0 < n-1 when n>=2).
+            events.append(
+                SegmentEvent(
+                    segment_id=self._new_segment_id(),
+                    utterances_start=0,
+                    utterances_end=n_utterances - 1,
+                    depth_score=0.0,
+                    boundary_index=n_utterances - 1,
+                )
+            )
         return events
