@@ -1,0 +1,1077 @@
+{
+  "meeting_id": "423215ff-d3e2-422f-b899-ba91ea2d869c",
+  "meeting_title": "Committee Meeting dial_id=1",
+  "segments": [
+    {
+      "segment_id": "32257b6d-3836-4735-a257-1feedc452f09",
+      "title": "Tác động của Brexit đến giáo dục đại học xứ Wales",
+      "chunks": [
+        {
+          "chunk_id": "e4672270-d605-46c7-8a37-f181f9f1ac9f",
+          "utterances": [
+            {
+              "speaker": "S0",
+              "text": "Chào buổi sáng, xin chào mọi người đến tham dự cuộc họp của Ủy ban Trẻ em, Người trẻ và Giáo dục hôm nay. Thật không may, Chủ tịch không thể tham dự cuộc họp hôm nay, vì vậy theo Quy định 17.22, tôi kêu gọi các thành viên đề cử một người làm Chủ tịch tạm thời trong suốt thời gian diễn ra cuộc họp.",
+              "index": 0,
+              "utterance_id": "82c9a73f-f237-4c4a-b773-6279aecb8eb1",
+              "timestamp": null
+            },
+            {
+              "speaker": "S1",
+              "text": "Tôi đề cử John Griffiths.",
+              "index": 1,
+              "utterance_id": "653b0072-c141-47ac-9d47-585e373389ef",
+              "timestamp": null
+            },
+            {
+              "speaker": "S2",
+              "text": "Cảm ơn bạn.",
+              "index": 2,
+              "utterance_id": "010a0c64-94cd-4bff-94a3-6d509b7c23cc",
+              "timestamp": null
+            },
+            {
+              "speaker": "S3",
+              "text": "Tôi đồng ý với đề cử đó.",
+              "index": 3,
+              "utterance_id": "0e842a42-7c27-4095-979a-fb83bc4844ef",
+              "timestamp": null
+            },
+            {
+              "speaker": "S4",
+              "text": "Vì chỉ có một đề cử, tôi xin tuyên bố rằng John Griffiths được bổ nhiệm làm Chủ tịch tạm thời. Cảm ơn bạn, John.",
+              "index": 4,
+              "utterance_id": "1e9cc6b3-5215-42ba-b3fb-d6348350cab6",
+              "timestamp": null
+            },
+            {
+              "speaker": "S5",
+              "text": "Được rồi. Cảm ơn mọi người rất nhiều. Nội dung đầu tiên trong chương trình hôm nay là việc giới thiệu, xin lỗi, thay thế và tuyên bố quan tâm. Chúng tôi đã nhận được lời xin lỗi từ Hefin David và Lynne Neagle. Không có sự thay thế nào cả. Có ai muốn tuyên bố quan tâm không? Không. Sau đó chúng ta sẽ chuyển sang nội dung thứ hai, đó là việc xem xét tác động của Brexit đối với giáo dục đại học và các chương trình đào tạo cao hơn. Tôi rất vui mừng được chào mừng Hội cấp tiền cho giáo dục đại học ở Wales hôm nay, cùng với Tiến sĩ David Blaney làm giám đốc điều hành và Bethan Owen, giám đốc phụ trách mối quan hệ với các tổ chức. Chúc mọi người một ngày tốt lành. Cảm ơn các bạn đã tham gia để đưa ra bằng chứng hôm nay. Nếu mọi người đồng ý, chúng ta sẽ chuyển ngay",
+              "index": 5,
+              "utterance_id": "4c1bded9-8766-4a63-9581-38ea60368c22",
+              "timestamp": null
+            },
+            {
+              "speaker": "S6",
+              "text": "Chào buổi sáng. Tôi tự hỏi liệu chúng ta có thể bắt đầu bằng việc bạn chia sẻ những bằng chứng nào mà bạn thấy cho thấy quá trình Brexit đã ảnh hưởng đến giáo dục đại học ở xứ Wales cho đến nay hay không.",
+              "index": 6,
+              "utterance_id": "cc5d9f6b-dedb-4660-a2d6-4efe0e6613bb",
+              "timestamp": null
+            },
+            {
+              "speaker": "S7",
+              "text": "Tôi có thể nhắc nhở bạn rằng, theo hợp đồng và vai trò của chúng tôi, chúng tôi không tham gia vào các vấn đề chính trị; và nhiều phán đoán về tác động của Brexit chủ yếu phản ánh quan điểm chính trị của mỗi người – liệu họ coi đó là điều tốt hay xấu. Tất nhiên, hôm nay chúng tôi sẽ không đi vào chi tiết đó, mà chỉ tập trung vào những sự thật mà chúng tôi có thể thấy được. Hy vọng chúng tôi có thể giúp bạn, nhưng cũng có những lĩnh vực mà chúng tôi không thể giúp đỡ. Đó cũng là một phần lý do.",
+              "index": 7,
+              "utterance_id": "09b44253-6988-4fc1-8426-65d80b37cdae",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc họp của Ủy ban Trẻ em, Người trẻ và Giáo dục bắt đầu với việc Chủ tịch không thể tham dự và đề cử John Griffiths làm Chủ tịch tạm thời theo Quy định 17.22. Sau đó, chương trình chuyển sang phần giới thiệu, nhận lời xin lỗi từ Hefin David và Lynne Neag"
+        },
+        {
+          "chunk_id": "40b756b7-c625-48ee-8175-c0065acd4722",
+          "utterances": [
+            {
+              "speaker": "S8",
+              "text": "Chúng tôi chắc chắn không mong bạn tham gia vào cuộc tranh luận chính trị theo bất kỳ cách nào.",
+              "index": 8,
+              "utterance_id": "8ac09748-0bef-4d85-8c08-783169132de0",
+              "timestamp": null
+            },
+            {
+              "speaker": "S9",
+              "text": "—and we’re not sure how long it will last.\n**Cảm ơn bạn. Nhưng ngay cả trong việc đánh giá xem đây có phải là điều tốt hay xấu, có tác động tích cực hay tiêu cực, thì một phần của nó vẫn là vấn đề liên quan đến chính sách của bạn. Vì vậy, chúng tôi sẽ cố gắng hết sức để kiểm soát điều đó. Về tác động của Brexit đối với giáo dục đại học, rõ ràng, ý nghĩa của nó nằm ở sự đóng góp mà giáo dục đại học có thể mang lại cho xứ Wales. Vì vậy, chúng tôi tài trợ cho các cơ sở giáo dục; chúng tôi không tài trợ cho các nhà cung cấp dịch vụ giáo dục, về mặt kỹ thuật. Mặc dù rõ ràng không có nhiều cơ sở giáo dục nếu không có các nhà cung cấp dịch vụ. Vì vậy, chúng tôi quan tâm đến tính bền vững của các nhà cung cấp dịch vụ giáo dục, nhưng về cơ bản",
+              "index": 9,
+              "utterance_id": "10cb036b-56f8-41fa-91a7-febacbd70be0",
+              "timestamp": null
+            },
+            {
+              "speaker": "S10",
+              "text": "Điều này dựa trên các đơn đăng ký của UCAS và báo cáo được công bố vào cuối tháng Sáu, ngày 30 tháng 6. Số lượng người nộp đơn có cư trú tại Liên minh châu Âu ở xứ Wales đã giảm 8%, trong khi số lượng sinh viên từ các trường tiếng Anh lại tăng 2%. Đối với những sinh viên không thuộc EU – tức là sinh viên quốc tế – số lượng họ nộp đơn vào các trường ở xứ Wales cũng giảm 9%, trái ngược với mức tăng 7% ở Anh. Vậy đó chính là những dấu hiệu của những thay đổi.",
+              "index": 10,
+              "utterance_id": "9e86f63c-e678-4003-a8df-3f0cb1f2c91f",
+              "timestamp": null
+            },
+            {
+              "speaker": "S11",
+              "text": "Được rồi. Vậy tôi có thể hỏi bạn xem những áp lực chính mà bạn cho là tác động đến lĩnh vực giáo dục đại học ở xứ Wales hiện nay là gì không?",
+              "index": 11,
+              "utterance_id": "42f76754-9446-4de1-9222-b9d6b91d4cc1",
+              "timestamp": null
+            },
+            {
+              "speaker": "S12",
+              "text": "Vị trí tài chính sẽ là yếu tố gây áp lực chính. Những khuyến nghị của Sir Ian Diamond trong bản phân tích về tài chính cho giáo dục đại học và tài chính sinh viên đang được thực hiện, và những thay đổi trong quy định tài chính sinh viên sẽ có hiệu lực từ tháng Chín này. Tuy nhiên, việc tái thiết lập tài chính tại các cơ sở giáo dục tiếng Wales dự kiến sẽ mất nhiều thời gian hơn. Khi nguồn tài chính quay trở lại các cơ sở giáo dục, nó sẽ được dùng để tái thiết lập tài chính cho các chương trình học có chi phí cao, cả toàn thời gian lẫn bán thời gian; tái cấp tài chính cho các hoạt động đổi mới; và ít nhất, vẫn duy trì nguồn tài chính cho nghiên cứu. Trong khi đó, các trường đại học đang cố gắng giảm thiểu việc giảm chi phí để duy trì cơ sở hạ tầng, nhằm khi nguồn tài chính đến, họ có thể sử dụng nó một cách hiệu quả nhất",
+              "index": 12,
+              "utterance_id": "7169f278-d5d2-42df-be61-bce980a0ccbb",
+              "timestamp": null
+            },
+            {
+              "speaker": "S13",
+              "text": "Về số lượng sinh viên và tỷ lệ đăng ký của sinh viên thuộc Liên minh châu Âu, liệu xứ Wales có khả năng đạt kết quả kém hơn so với Anh không? Nếu vậy, tại sao lại như vậy?",
+              "index": 13,
+              "utterance_id": "a182afc4-0f74-453c-b98a-e571ffdbe162",
+              "timestamp": null
+            },
+            {
+              "speaker": "S14",
+              "text": "Họ không đưa ra dự báo gì cả. Việc tuyển sinh vẫn rất khó khăn cho đến khi các trường bắt đầu tuyển sinh, và cũng rất khó để nhìn thấy dữ liệu cụ thể – dữ liệu mà chúng ta có chỉ là dữ liệu từ UCAS. Các trường cũng tuyển sinh trực tiếp, vì vậy cho đến khi chúng ta thấy kết quả tuyển sinh thực tế… Tôi nghĩ những thay đổi trong quy định từ năm 2018-19 cũng ảnh hưởng đến sinh viên EU. Vì vậy, giờ đây họ phải trả toàn bộ chi phí học tập, trong khi trước đây họ chỉ nhận được học bổng như sinh viên tiếng Wales. Vì vậy, tôi đoán rằng điều này cũng có thể ảnh hưởng đến ý chí của sinh viên EU muốn đến đây.",
+              "index": 14,
+              "utterance_id": "4cf1ded2-3828-4a47-abb3-7a831d55db61",
+              "timestamp": null
+            },
+            {
+              "speaker": "S15",
+              "text": "Được rồi. Đầu tiên là Llyr, sau đó là Mark.",
+              "index": 15,
+              "utterance_id": "6b9d964a-bc7e-4087-85b9-d854c9824989",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc thảo luận tập trung vào tác động của Brexit đối với giáo dục đại học ở xứ Wales, nhấn mạnh sự tài trợ cho các cơ sở giáo dục thay vì nhà cung cấp dịch vụ. Các dữ liệu từ UCAS cho thấy sự thay đổi trong số lượng sinh viên nộp đơn, với sự sụt giảm ở sin"
+        }
+      ],
+      "utterances_start": 0,
+      "utterances_end": 15,
+      "user_title_override": null
+    },
+    {
+      "segment_id": "fbfc5f45-137f-4806-a413-d083ce59658c",
+      "title": "Phân tích nguyên nhân sụt giảm sinh viên EU và thách thức thị tr",
+      "chunks": [
+        {
+          "chunk_id": "3ccbdd19-b603-4a74-abd7-d50fd645e8b3",
+          "utterances": [
+            {
+              "speaker": "S16",
+              "text": "Ừm, đó chính là điều tôi muốn hỏi: bạn nghĩ những yếu tố nào đã dẫn đến sự sụt giảm 8% hoặc 9% trong số sinh viên EU nộp đơn học tại Wales, trong khi ở Anh lại có sự tăng 2%. Chỉ có vậy thôi à, hay còn có những yếu tố khác mà bạn đã xem xét? Bạn đánh giá như thế nào về lý do đằng sau điều này?",
+              "index": 16,
+              "utterance_id": "89b0ad33-5c6b-4263-869e-212f8e7d5384",
+              "timestamp": null
+            },
+            {
+              "speaker": "S17",
+              "text": "Rất khó để xác định chính xác lý do, nhưng tôi nghĩ có lẽ có hai nguyên nhân. Nguyên nhân đầu tiên là sự thay đổi trong các biện pháp hỗ trợ sinh viên cho sinh viên EU; điều này có thể gây ra những tác động không ổn định. Có lẽ đó chỉ là tình trạng tạm thời – hy vọng vậy – vì mọi thứ sẽ ổn định trở lại, bởi thực tế, điều kiện dành cho sinh viên EU đến xứ Wales không tệ hơn so với ở Anh. Điều kiện của chúng ta tốt hơn vì mức phí thấp hơn một chút, nhưng chúng ta vẫn gặp khó khăn ở xứ Wales do tính chất tập trung vào tiếng Anh trong truyền thông và các yếu tố khác. Vì vậy, việc truyền đạt thông điệp là một thách thức. Nguyên nhân thứ hai là khi bạn ở trong thị trường tuyển dụng cạnh tranh cao, bạn phải làm mọi cách để trở nên hấp dẫn. Một phần của điều đó là việc đầu tư vào cơ sở vật chất",
+              "index": 17,
+              "utterance_id": "43978bfb-a805-4520-a78b-92f9b2aa14b8",
+              "timestamp": null
+            },
+            {
+              "speaker": "S18",
+              "text": "Yếu tố sau đó sẽ ảnh hưởng đến toàn bộ nhóm người, không chỉ đến việc tuyển dụng quốc tế, dĩ nhiên.",
+              "index": 18,
+              "utterance_id": "9970b166-2a6c-497e-88b9-72d81beda3de",
+              "timestamp": null
+            },
+            {
+              "speaker": "S19",
+              "text": "Đúng vậy. Vâng, đúng như vậy. Việc thực hiện các khuyến nghị của Diamond rất quan trọng, bởi đó chính là bước điều chỉnh lại, nơi chính sách đầu tư được áp dụng.",
+              "index": 19,
+              "utterance_id": "026a6292-8b8d-4b0f-8335-46d78c173c34",
+              "timestamp": null
+            },
+            {
+              "speaker": "S20",
+              "text": "Được rồi. Và Mark.",
+              "index": 20,
+              "utterance_id": "9fcb506b-f405-43c7-b573-437fee4a1270",
+              "timestamp": null
+            },
+            {
+              "speaker": "S21",
+              "text": "Nếu tôi nghe đúng trước đây, bạn nói rằng số lượng đơn xin học từ sinh viên không thuộc EU cũng giảm 8% hoặc 9%. Vậy thì xin hãy tha lỗi cho tôi về sự hoài nghi này: tại sao việc giảm số lượng đơn xin học từ sinh viên EU lại được giải thích là vì họ nhận được khoản trợ cấp học phí, nhưng giờ họ không nhận nữa? Nếu đó là lý do, tại sao chúng ta lại thấy mức giảm tương tự ở số lượng đơn xin học từ sinh viên không thuộc EU?",
+              "index": 21,
+              "utterance_id": "68de85c3-fc1e-44ea-b849-ce6f85dd5e8b",
+              "timestamp": null
+            },
+            {
+              "speaker": "S22",
+              "text": "Tôi nghĩ rằng những người sống ở xứ Wales cũng hiện đang phải đối mặt với khả năng không thể vay được tiền để trả toàn bộ chi phí. Vì vậy, điều đó có thể là nguyên nhân dẫn đến tình trạng này. Ngoài ra, còn có yếu tố dân số nữa: tỷ lệ những người tốt nghiệp trung học ở độ tuổi 18 đang giảm, và điều này thực sự xảy ra ở xứ Wales vào thời điểm muộn hơn so với ở Anh.",
+              "index": 22,
+              "utterance_id": "eccf0be3-45d2-4df2-8b84-7f8d5ab7abd2",
+              "timestamp": null
+            },
+            {
+              "speaker": "S23",
+              "text": "Nhưng đây là những sinh viên không thuộc EU, và tôi nghĩ bạn đã nói rằng, Bethan, tỷ lệ giảm cũng ở mức 8% hoặc 9% trong số họ.",
+              "index": 23,
+              "utterance_id": "95fd7123-db60-4d0e-a56f-f4f44d1b9726",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Người tham gia thảo luận về nguyên nhân sụt giảm số lượng đơn xin học của sinh viên EU tại Wales so với Anh, đồng thời xem xét các yếu tố khác như sự thay đổi trong các biện pháp hỗ trợ sinh viên EU và sự cạnh tranh trong thị trường tuyển dụng. Các yếu tố "
+        },
+        {
+          "chunk_id": "3f66cfe6-42a4-41d6-8bd3-8e9ab5cf5063",
+          "utterances": [
+            {
+              "speaker": "S24",
+              "text": "Quốc tế, không thuộc EU. Xin lỗi. Tôi hiểu sai rồi.",
+              "index": 24,
+              "utterance_id": "0edde9d2-82ad-498e-a728-f33262ce363a",
+              "timestamp": null
+            },
+            {
+              "speaker": "S25",
+              "text": "Còn có hiệu ứng pha trộn nữa. Tôi đã đưa ra một con số cho tất cả các tổ chức tiếng Anh, và những tổ chức này sẽ chịu tác động khác nhau.",
+              "index": 25,
+              "utterance_id": "3aa266b8-6b07-41ab-b63d-2076c8e4314e",
+              "timestamp": null
+            },
+            {
+              "speaker": "S26",
+              "text": "Cả tiếng Anh hay cả tiếng Wales?",
+              "index": 26,
+              "utterance_id": "f912f954-85a8-4e54-af9f-0c509f638d89",
+              "timestamp": null
+            },
+            {
+              "speaker": "S27",
+              "text": "Ừm, tôi đã so sánh quan điểm của người Wales với quan điểm của người Anh, nơi mà họ đang thấy sự phát triển. Nếu bạn xem xét kỹ hơn – chúng ta không có thông tin chi tiết, nhưng những gì UCAS công bố là phân tích dựa trên mức học phí. Họ phân tích theo loại trường – nói cách khác, các điểm số cần có để vào các trường – và có xu hướng rằng sự phát triển xảy ra ở những trường có mức học phí cao hơn. Vì vậy, cũng có yếu tố kết hợp trong đó, và tôi nghĩ chắc chắn có yếu tố liên quan đến việc người ta cảm nhận được mức độ được chào đón của sinh viên nước ngoài và quốc tế, và đó là điều mà ngành này đang cùng chính phủ nỗ lực thực hiện.",
+              "index": 27,
+              "utterance_id": "4a80d2de-8856-421d-b131-928c943f54b3",
+              "timestamp": null
+            },
+            {
+              "speaker": "S28",
+              "text": "Tại sao điều đó lại ảnh hưởng đến xứ Wales nhiều hơn đến Anh? Bạn nghĩ có lẽ có quá nhiều sự tiêu cực về Brexit trong lĩnh vực này không?",
+              "index": 28,
+              "utterance_id": "86b2b6a3-c26d-4d20-8b12-802340062e55",
+              "timestamp": null
+            },
+            {
+              "speaker": "S29",
+              "text": "Tôi nghĩ đó là do sự kết hợp của các tổ chức khác nhau mà chúng ta có. Vì vậy, hiện tại chúng ta chỉ có thông tin về các lĩnh vực hoạt động được công bố. Khi xem xét sự kết hợp của các tổ chức này, chúng ta có thể thấy rằng Cardiff University sẽ có tác động khác biệt so với các tổ chức khác.",
+              "index": 29,
+              "utterance_id": "66d8b8b0-c2dd-4839-8d91-d2170ca0e79f",
+              "timestamp": null
+            },
+            {
+              "speaker": "S30",
+              "text": "Được rồi, Mark? Xin lỗi, David, bạn có muốn thêm gì không?",
+              "index": 30,
+              "utterance_id": "3d01eb51-5cbe-43d3-8af4-9975bd7308ee",
+              "timestamp": null
+            },
+            {
+              "speaker": "S31",
+              "text": "Tôi chỉ định nói rằng chúng ta có thể mong đợi thấy sự khác biệt rõ rệt trong hiệu suất của các tổ chức hoạt động trong lĩnh vực tiếng Anh; do đó, tổng số lượng các tổ chức này được tăng lên đáng kể nhờ vào hiệu suất tốt hơn của một số ít tổ chức trong lĩnh vực đó. Vấn đề là phải xem có bao nhiêu tổ chức loại này tồn tại ở xứ Wales.",
+              "index": 31,
+              "utterance_id": "5eedcbdc-acb5-4d3d-a6f7-9e0f031cb83b",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc thảo luận tập trung vào sự khác biệt về hiệu ứng pha trộn giữa các tổ chức tiếng Anh và các tổ chức khác, đặc biệt là giữa tiếng Anh và tiếng Wales. Người tham gia đã so sánh quan điểm của người Wales và người Anh, nhận định rằng sự phát triển có xu h"
+        },
+        {
+          "chunk_id": "7d6c3895-57c0-4dd6-a0cf-877601ba1add",
+          "utterances": [
+            {
+              "speaker": "S32",
+              "text": "Vì vậy, chất lượng hoạt động của các trường đại học tiếng Anh đang tăng lên, nhưng có lẽ không phải ở các trường tiếng Wales.",
+              "index": 32,
+              "utterance_id": "7b07e383-3326-4aab-aff6-e4a812635a7b",
+              "timestamp": null
+            },
+            {
+              "speaker": "S33",
+              "text": "Tôi nghĩ hiệu suất đang tăng lên, nhưng sự tăng trưởng này chủ yếu xảy ra ở một số khu vực tiếng Anh, chứ không phải toàn bộ các khu vực. Vì vậy, có một mức trung bình cho từng khu vực với hiệu suất tăng lên, nhưng thực tế là những nhà cung cấp mạnh trong khu vực đó, với vị thế quốc tế vững chắc, mới là những người thúc đẩy điều đó. Ở Wales, số lượng những nhà cung cấp như vậy ít hơn.",
+              "index": 33,
+              "utterance_id": "7945b395-c58e-4422-aee0-cb9d04b7e8ce",
+              "timestamp": null
+            },
+            {
+              "speaker": "S34",
+              "text": "Được rồi. Darren.",
+              "index": 34,
+              "utterance_id": "ab12deaa-dfac-4320-b78f-cd71be8016ce",
+              "timestamp": null
+            },
+            {
+              "speaker": "S35",
+              "text": "Vậy có công bằng không nếu nói rằng các trường đại học ở nước ngoài tại Anh giỏi hơn trong việc quảng bá bản thân trên thị trường quốc tế so với các cơ sở giáo dục ở xứ Wales của chúng ta? Hay chỉ đơn giản là chúng ta có ít trường đại học có mức thuế cao hơn so với thị trường Anh?",
+              "index": 35,
+              "utterance_id": "62a07006-a84b-4654-9a8b-1aa374b9b648",
+              "timestamp": null
+            },
+            {
+              "speaker": "S36",
+              "text": "Tôi nghi ngờ, và đây chỉ là suy đoán thôi – tôi nghĩ có phần nào đó liên quan đến sự kết hợp của nhiều loại tổ chức khác nhau. Tôi nghĩ một phần nữa liên quan đến bản chất tập trung vào Anh của truyền thông Vương quốc Anh. Nếu bạn muốn tiếp cận các khu vực khác, tôi nghĩ xứ Wales cần phải cố gắng nhiều hơn để thâm nhập vào ý thức của người dân.",
+              "index": 36,
+              "utterance_id": "667032c3-cef3-49b5-9c05-fbafbd870f70",
+              "timestamp": null
+            },
+            {
+              "speaker": "S37",
+              "text": "Nhưng xin hãy tha lỗi cho tôi, các sinh viên quốc tế không nên chỉ nhìn nhận Vương quốc Anh như một khối thống nhất sao? Chúng ta nên so sánh với Scotland hay Bắc Ireland về mặt các trường đại học như thế nào? Bạn có số liệu so sánh về các trường đại học ở Scotland không?",
+              "index": 37,
+              "utterance_id": "896de56a-a8a7-4046-b733-75e56aa46afd",
+              "timestamp": null
+            },
+            {
+              "speaker": "S38",
+              "text": "Hiện tại tôi không có chiếc đó bên mình, nhưng sẽ có một chiếc trong dữ liệu.",
+              "index": 38,
+              "utterance_id": "b2ba59e8-7549-4a75-b291-40478b40c8ca",
+              "timestamp": null
+            },
+            {
+              "speaker": "S39",
+              "text": "Vâng, chúng tôi có thể làm được điều đó.",
+              "index": 39,
+              "utterance_id": "ea55fb45-9661-47a8-954b-eb437406ea10",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Chất lượng hoạt động của các trường đại học tiếng Anh đang tăng lên, nhưng sự tăng trưởng này chủ yếu tập trung ở các khu vực tiếng Anh chứ không phải toàn bộ Vương quốc Anh. Các nhà cung cấp mạnh trong khu vực đó mới là động lực chính, trong khi số lượng "
+        },
+        {
+          "chunk_id": "f71d0c82-0ff0-40fd-bd7c-6f7b3c66b533",
+          "utterances": [
+            {
+              "speaker": "S40",
+              "text": "Một lần nữa, đó là sự kết hợp giữa việc thuộc về Vương quốc Anh nhưng có điểm khác biệt, và khả năng phân biệt được ưu điểm của xứ Wales, nhờ đó thu hút những sinh viên đến Wales cụ thể, bên cạnh sức hấp dẫn của Vương quốc Anh.",
+              "index": 40,
+              "utterance_id": "5b183261-08a5-48f5-a133-f7a16dd8448d",
+              "timestamp": null
+            },
+            {
+              "speaker": "S41",
+              "text": "Vì vậy, về những nỗ lực đã được thực hiện, hiện có một chương trình do ngành này ở xứ Wales điều hành – đó là “Study in Wales”. Đây là một sáng kiến tương đối mới; có thể nói rằng chúng ta có thể đạt được điều này sớm hơn. Nhưng đó là nỗ lực tập thể quyết tâm để giới thiệu xứ Wales như một nơi tốt để học tập, với những thông điệp cụ thể về điểm khác biệt giữa việc học ở Wales và việc học ở Anh nói chung. Nói cách khác, đó là cách đáp ứng nhu cầu tăng cường vị thế của xứ Wales trên thị trường quốc tế. Vì vậy, tôi nghĩ đây là một sáng kiến rất tốt, rất được hoan nghênh. Việc tạo ra tác động thực sự sẽ mất thời gian, nhưng tôi tin rằng đó chính là loại công việc mà ngành này cần phải tiếp tục thực hiện nhiều hơn.",
+              "index": 41,
+              "utterance_id": "c2302fa1-ee2e-4955-b6ae-8d65106f90d2",
+              "timestamp": null
+            },
+            {
+              "speaker": "S42",
+              "text": "Những thông báo đó nói về lý do tại sao các sinh viên tiềm năng nên học tập tại xứ Wales.",
+              "index": 42,
+              "utterance_id": "1fd1bb36-3a11-48ea-93d5-4ee79fd67c92",
+              "timestamp": null
+            },
+            {
+              "speaker": "S43",
+              "text": "Một trong những yếu tố quan trọng là sự an toàn. Chúng ta biết rằng một trong những vấn đề mà các bậc cha mẹ của sinh viên nước ngoài cần lưu ý là liệu con cái họ có được sống trong môi trường an toàn hay không. Chúng ta cũng biết rằng sinh viên quốc tế học tập tại xứ Wales cho rằng đây là nơi thoải mái và an toàn để sống. Điều này một phần phụ thuộc vào kích thước của các thành phố lớn ở đây – chúng nhỏ hơn nhiều so với nhiều thành phố ở Anh. Vì vậy, đó là một thông điệp quan trọng. Việc thuộc về hệ thống của Vương quốc Anh cũng là một thông điệp quan trọng. Chúng ta có hệ thống chất lượng của Vương quốc Anh, bằng cấp của Vương quốc Anh, và sức mạnh của thương hiệu này cũng có mặt ở xứ Wales, nhưng nó được cung cấp theo cách an toàn và hỗ trợ tốt hơn. Tôi nghĩ đó chính là thông điệp mà chúng ta muốn truyền đạt.",
+              "index": 43,
+              "utterance_id": "91de8343-176c-4896-88c3-ff674eae5cd4",
+              "timestamp": null
+            },
+            {
+              "speaker": "S44",
+              "text": "Được rồi. Tôi nghĩ chúng ta nên tiếp tục thôi, phải không? Vậy thì Darren.",
+              "index": 44,
+              "utterance_id": "6ba964cf-0984-4f00-b7c9-599f4231ae5a",
+              "timestamp": null
+            },
+            {
+              "speaker": "S45",
+              "text": "Tôi chỉ tự hỏi rằng bạn đã có thể dự đoán được đến mức nào về những tác động tiềm ẩn của Brexit trong các dự báo tài chính cho vài năm tới. Bạn đã chuẩn bị được gì, nếu có thì là gì?",
+              "index": 45,
+              "utterance_id": "28e064ec-a989-41d5-830a-44b0bc4efe1f",
+              "timestamp": null
+            },
+            {
+              "speaker": "S46",
+              "text": "Về nguồn tài chính, chúng tôi nhận được tài trợ hàng năm, nhưng ngành nghề này cung cấp cho chúng tôi các dự báo tài chính, và chúng tôi sử dụng những dự báo đó để giám sát mức độ bền vững của hoạt động kinh doanh. Vì vậy, dự báo đầy đủ cuối cùng mà chúng tôi có là vào tháng 7 năm 2017. Chúng tôi sẽ nhận được dự báo đầy đủ vào cuối tháng này, và tất nhiên chúng tôi đã cập nhật thông tin từ các tổ chức liên quan.",
+              "index": 46,
+              "utterance_id": "72b8be26-b663-48a1-9d7f-c26d7afcf40b",
+              "timestamp": null
+            },
+            {
+              "speaker": "S47",
+              "text": "Và đó là các dự báo trong ba năm, phải không?",
+              "index": 47,
+              "utterance_id": "3106cf68-3e45-4273-9db8-4e0e43487e01",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc thảo luận tập trung vào việc phát triển chương trình 'Study in Wales' nhằm giới thiệu xứ Wales như một địa điểm học tập hấp dẫn, nhấn mạnh sự khác biệt và các yếu tố an toàn. Các thông điệp truyền tải bao gồm sự an toàn, hệ thống chất lượng của Vương "
+        },
+        {
+          "chunk_id": "95e10ffc-03df-4db2-8417-b848e8fc8479",
+          "utterances": [
+            {
+              "speaker": "S48",
+              "text": "Chúng là bốn con số cộng với năm hiện tại. Vì vậy, hiện tại chúng ta có các con số đến năm 2019-20, và dự kiến sẽ tiếp tục đến năm 2020-21.",
+              "index": 48,
+              "utterance_id": "92309650-fe60-476e-863b-89f8a4bf70ea",
+              "timestamp": null
+            },
+            {
+              "speaker": "S49",
+              "text": "Vậy các trường đại học mong đợi điều gì? Họ dự đoán điều gì?",
+              "index": 49,
+              "utterance_id": "2b7225da-4f15-4a5c-b32d-b9e4c8f7dc70",
+              "timestamp": null
+            },
+            {
+              "speaker": "S50",
+              "text": "Ừm, đối với năm 2017-18 – năm mà chúng ta sắp kết thúc – họ dự đoán sẽ có doanh thu 38 triệu bảng Anh từ sinh viên ở châu Âu, và khoảng 91 triệu bảng Anh từ các nguồn tài trợ cho các chương trình ở châu Âu khác nhau. Đó chiếm khoảng 8% tổng doanh thu của ngành này, tức là 1,5 tỷ bảng Anh. Các dự báo này giả định rằng tình hình sẽ tiếp tục như vậy, mặc dù các tổ chức có nhiều kịch bản khác nhau mà họ có thể xử lý trong các tình huống khác nhau. Như tôi đã nói trước đây, việc duy trì cơ sở hạ tầng, nguồn lực và nhân sự trong ngắn hạn là điều mà chúng ta đang đối mặt hiện nay. Cũng có dấu hiệu cho thấy các ngân hàng và tổ chức cho vay ngày càng ít chấp nhận rủi ro khi cấp vốn cho các tổ chức, và sự phân biệt giữa các tổ chức ri",
+              "index": 50,
+              "utterance_id": "2a745a00-60a1-4d07-9384-46288a8d0e36",
+              "timestamp": null
+            },
+            {
+              "speaker": "S51",
+              "text": "Vậy, liệu có công bằng không khi nói rằng, về mặt các biện pháp tài trợ và số lượng sinh viên, một lý do khiến chúng ta gặp vấn đề tuyển sinh là sự thiếu đầu tư vào cơ sở hạ tầng tài chính trong những năm gần đây, do các quy định tài trợ từ Chính phủ xứ Wales, hệ thống học phí trước đây, và hệ thống tài chính cho sinh viên trước đây; có lẽ không có nhiều tiền được đưa vào các trường đại học ở xứ Wales, và trong vài năm tới, sẽ cần có nhiều đầu tư lớn hơn nữa vào cơ sở hạ tầng tài chính để chúng ta có thể cải thiện tình hình và trở nên cạnh tranh hơn, đúng không?",
+              "index": 51,
+              "utterance_id": "a51971ef-b8d1-4a4f-acce-86a749834070",
+              "timestamp": null
+            },
+            {
+              "speaker": "S52",
+              "text": "Vâng, đó là cách nói hợp lý.",
+              "index": 52,
+              "utterance_id": "50bbee21-6166-44e5-a010-96a67fddc8b1",
+              "timestamp": null
+            },
+            {
+              "speaker": "S53",
+              "text": "Vậy, ở mức độ nào họ đang lên kế hoạch đầu tư thêm vốn vào những chiến lược tài chính mà họ đã chuẩn bị và trình bày cho bạn?",
+              "index": 53,
+              "utterance_id": "56c7f420-55b4-40a8-b5e6-1cc999e8dae9",
+              "timestamp": null
+            },
+            {
+              "speaker": "S54",
+              "text": "Họ đều đang lên kế hoạch đầu tư vốn. Họ ở những vị trí khác nhau về khả năng vay vốn và các giả định liên quan. Năm 2018-19 là lần đầu tiên chúng tôi nhận được nguồn vốn từ các nhà tài trợ – tức là chúng tôi có 10 triệu bảng Anh vốn đầu tư, điều này rất đáng mừng, và còn có khả năng nhận thêm 20 triệu bảng Anh nữa. Chúng tôi sẽ phân bổ số tiền này trong thời gian sớm. Điều này sẽ tạo ra sự khác biệt, đặc biệt đối với những tổ chức không dễ dàng vay vốn từ các ngân hàng. Một số tổ chức lớn của chúng tôi đã vay vốn – Đại học Cardiff đã phát hành trái phiếu. Tuy nhiên, có những quy trình quản lý nội bộ khiến việc đầu tư vốn trở nên khó khăn và có nhiều yêu cầu nhất định. Nhưng tất cả họ đều có kế hoạch cụ thể để thực hiện điều đó, và họ cần sự tin tưởng rằng các dự báo và",
+              "index": 54,
+              "utterance_id": "3cd7b6b0-bdf6-438f-8ed8-28f3bcc30d9c",
+              "timestamp": null
+            },
+            {
+              "speaker": "S55",
+              "text": "Vậy, về cổ tức của Diamond mà bạn đã đề cập vài lần… Hiện tại, Chính phủ xứ Wales có thông tin rõ ràng nào về mức cổ tức dự kiến của Diamond, và tỷ lệ nào sẽ được phân phát cho các tổ chức giáo dục đại học trong tương lai?",
+              "index": 55,
+              "utterance_id": "5999ca25-a2a0-41b8-9270-c48f34b5bd3a",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Các dự báo doanh thu cho năm 2017-18 cho thấy doanh thu từ sinh viên ở châu Âu là 38 triệu bảng Anh và 91 triệu bảng Anh từ các nguồn tài trợ khác, chiếm khoảng 8% tổng doanh thu ngành. Các tổ chức đang đối mặt với thách thức về cơ sở hạ tầng tài chính và "
+        },
+        {
+          "chunk_id": "5941eef5-7786-4ca6-8bed-420f63b3911d",
+          "utterances": [
+            {
+              "speaker": "S56",
+              "text": "Tôi đã cố gắng không mô tả điều này như một khoản trợ cấp – việc tái lập nguồn tài chính mà chúng ta có trước đây để hỗ trợ chi phí cao hơn và đổi mới, cũng như duy trì ngân sách nghiên cứu. Thời gian thực hiện khá khó khăn, vì chúng ta chỉ có thư báo cáo hàng năm, và chúng ta có thể hợp tác với các quan chức chính phủ xứ Wales; họ chỉ có thể cho chúng ta biết khi nào họ tin rằng nguồn tài chính sẽ được cấp. Nhưng năm 2018-19 là khởi đầu của hệ thống mới. Do yêu cầu bảo vệ những sinh viên đã tham gia vào chương trình khác so với năm 2018-19, trong những năm đầu tiên có sự tăng chi phí; đó là chi phí để thoát khỏi hệ thống cũ và chi phí để triển khai hệ thống mới. Vì vậy, hiện tại chúng ta chưa thể nói chính xác rằng nguồn tài chính nào sẽ được cấp sau số tiền đã phân bổ cho năm 2018-19, và",
+              "index": 56,
+              "utterance_id": "9a9963b2-915b-4fa5-8eff-20c44f09abaa",
+              "timestamp": null
+            },
+            {
+              "speaker": "S57",
+              "text": "Nhưng bạn hoàn toàn không được hướng dẫn gì cả về việc bạn mong đợi nguồn lực bổ sung mà bạn có thể cung cấp cho các trường đại học ở Wales sẽ là kết quả của Diamond. Bạn chắc hẳn đã có một ý tưởng nào đó rồi.",
+              "index": 57,
+              "utterance_id": "ef20373b-0c4f-4e67-b23f-835405f30505",
+              "timestamp": null
+            },
+            {
+              "speaker": "S58",
+              "text": "Tôi nghĩ rằng các quan chức đã cố gắng hết sức để giúp chúng tôi, trong việc xác định các giả định lập kế hoạch và đánh giá xem chúng ta có quá tham vọng hay không. Vì vậy, tôi nghĩ họ rất hữu ích; như Bethan đã nói, họ bị hạn chế bởi quy trình hiện tại – họ không thể can thiệp vào quá trình lập ngân sách. Tất nhiên, các bạn cũng hiểu rõ điều đó. Câu hỏi khác mà tôi nghĩ các bạn đã đặt ra là: bao nhiêu tiền được cấp từ các thỏa thuận mới sẽ được dùng cho giáo dục đại học? Hiện tại, chúng tôi dự đoán tất cả số tiền đó sẽ được dùng cho giáo dục đại học, như kết quả của thỏa thuận giữa Bộ trưởng Nội vụ và Thủ tướng hiện tại. Mức độ ảnh hưởng của những thay đổi đó đến việc sử dụng ngân sách là điều tôi hiện chưa thể đánh giá được. Nhưng trong bức thư từ Bộ trưởng Nội vụ, chúng tôi đã biết",
+              "index": 58,
+              "utterance_id": "f98e25f9-c88e-40bf-bd8e-3f04bd8afd41",
+              "timestamp": null
+            },
+            {
+              "speaker": "S59",
+              "text": "Được rồi. Ở giai đoạn này, tôi sẽ đưa Llyr vào.",
+              "index": 59,
+              "utterance_id": "3f948807-d599-4347-9cc0-372be3074d13",
+              "timestamp": null
+            },
+            {
+              "speaker": "S60",
+              "text": "Bethan nói trong câu trả lời trước đó rằng, theo tôi nghĩ, các trường đại học thường dự báo được những con số khá nhất quán về doanh thu mà họ mong đợi nhận được. Nhưng chúng ta đã thảo luận về khả năng giảm gần 10% trong số lượng ứng viên quốc tế. Vậy liệu điều đó có thực sự xảy ra không, hay họ sẽ tuyển thêm sinh viên từ thị trường Anh? Kế hoạch của họ là gì?",
+              "index": 60,
+              "utterance_id": "61eba13d-034e-43b4-a53a-169641debe44",
+              "timestamp": null
+            },
+            {
+              "speaker": "S61",
+              "text": "Tôi đang suy nghĩ về điểm cuối cùng khi chúng ta có thông tin nhất quán trong toàn bộ lĩnh vực.",
+              "index": 61,
+              "utterance_id": "67387234-ebfb-4746-a112-b5ee6b290b22",
+              "timestamp": null
+            },
+            {
+              "speaker": "S62",
+              "text": "Được rồi. Vậy họ có thể cần xem xét lại vấn đề đó dựa trên điều này.",
+              "index": 62,
+              "utterance_id": "92ea8c5a-7620-4a69-b693-7b283aa84e52",
+              "timestamp": null
+            },
+            {
+              "speaker": "S63",
+              "text": "Tôi hy vọng dự báo mà chúng ta nhận được vào cuối tháng này sẽ phản ánh việc giảm số lượng yêu cầu hỗ trợ, và điều đó cũng sẽ ảnh hưởng đến mức độ cải thiện của các dịch vụ.",
+              "index": 63,
+              "utterance_id": "4f92e2ba-9775-4688-a929-1b99263ded14",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc thảo luận tập trung vào việc tái lập nguồn tài chính cho chi phí cao hơn và đổi mới, đồng thời xem xét sự khác biệt về chi phí giữa năm 2018-19 và hiện tại. Các quan chức chính phủ xứ Wales được đánh giá là hữu ích trong việc xác định các giả định lập"
+        },
+        {
+          "chunk_id": "da4e1245-47f7-49e8-b7bf-066700b0e22e",
+          "utterances": [
+            {
+              "speaker": "S64",
+              "text": "Được rồi. Vậy thì chúng ta thực sự không biết liệu họ có kỳ vọng vào một nguồn thu nhập ổn định hay không. Thực sự thì khó có khả năng họ sẽ làm như vậy.",
+              "index": 64,
+              "utterance_id": "cd534e8d-167e-46bb-a8c1-256770c835cc",
+              "timestamp": null
+            },
+            {
+              "speaker": "S65",
+              "text": "Tôi nghĩ là có lý khi cho rằng chúng ta sẽ mong họ phản ứng lại những gì họ thấy trong quá trình UCAS. Ngay cả khi họ không phản ứng, dù sao thì họ vẫn có sự nhạy cảm về việc họ sẽ làm gì nếu mọi thứ không diễn ra theo ý muốn của họ. Và nếu họ không có điều đó, tất nhiên chúng ta sẽ đưa ra yêu cầu từ phía họ, vì chúng ta muốn họ được xem xét một cách đúng đắn.",
+              "index": 65,
+              "utterance_id": "15af09fb-da1b-4296-92dc-ac9a1ab44d7a",
+              "timestamp": null
+            },
+            {
+              "speaker": "S66",
+              "text": "Được rồi. Cảm ơn.",
+              "index": 66,
+              "utterance_id": "48da0995-b3c3-4eda-b3b6-922930ddf1f6",
+              "timestamp": null
+            },
+            {
+              "speaker": "S67",
+              "text": "Và chúng ta phải tuân theo tác động của Brexit. Darren.",
+              "index": 67,
+              "utterance_id": "f95ddfd5-2238-4ba2-b511-8dc9f5b3b9fc",
+              "timestamp": null
+            },
+            {
+              "speaker": "S68",
+              "text": "Tôi có thể hỏi rằng, về tác động của Brexit, bạn đã đánh giá xem điều gì có thể xảy ra, hay các tổ chức nào đã cung cấp cho bạn những đánh giá về những gì họ cho là có khả năng xảy ra đối với các tổ chức của họ trong tương lai? David, bạn đã đề cập đến một số kịch bản trước đây, vậy bạn đã đưa ra những kịch bản nào?",
+              "index": 68,
+              "utterance_id": "6b01f4e4-f96b-461a-8988-ee590029ec8f",
+              "timestamp": null
+            },
+            {
+              "speaker": "S69",
+              "text": "Có một nhóm làm việc của Chính phủ xứ Wales về vấn đề Brexit, do một trong các giám đốc của Chính phủ chủ trì, và chúng tôi cũng tham gia vào nhóm này. Chúng tôi đã cung cấp cho nhóm những tóm tắt sơ bộ về các rủi ro và tác động tiềm ẩn, liên quan đến mức độ tiếp nhận nguồn tài chính từ Liên minh châu Âu của ngành này. Trong khuôn khổ nhóm làm việc này, chúng tôi đã xem xét những vấn đề mà Chính phủ xứ Wales nên cố gắng giải quyết hoặc thuyết phục Chính phủ Anh thực hiện. Tôi nghĩ rằng, trong bản báo cáo của chúng tôi, chúng tôi đã xác định được một số lĩnh vực cần được hành động, và những vấn đề này đã được thảo luận trong nhóm làm việc này. Chúng tôi biết rằng điều này đã ảnh hưởng đến lập trường của Chính phủ xứ Wales, cả về những gì họ làm và về các cuộc trò chuyện của họ với Chính",
+              "index": 69,
+              "utterance_id": "7f8c16cf-0c74-4748-a0fc-0ea9823d907e",
+              "timestamp": null
+            },
+            {
+              "speaker": "S70",
+              "text": "Vậy, bạn có tin tưởng rằng các tổ chức giáo dục đại học đó đang áp dụng phương pháp lập kế hoạch linh hoạt để đối phó với các tình huống khác nhau trong tương lai, đúng không?",
+              "index": 70,
+              "utterance_id": "c55c83da-ad82-4ce6-a457-a79be69abbb7",
+              "timestamp": null
+            },
+            {
+              "speaker": "S71",
+              "text": "Vâng, và khi thỏa thuận trở nên rõ ràng hơn về mặt chính trị, thì họ sẽ hiểu rõ hơn về việc cần làm gì với từng kịch bản trong số đó. Nhưng họ đang tập trung vào vấn đề này.",
+              "index": 71,
+              "utterance_id": "3a51ac5b-409a-4bb7-976d-bf14466ae73c",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Các bên thảo luận về kỳ vọng của các tổ chức đối với nguồn thu nhập ổn định và sự nhạy cảm của họ đối với các kết quả UCAS. Cuộc thảo luận chuyển sang tác động của Brexit, bao gồm các đánh giá rủi ro và các lĩnh vực cần hành động được xác định bởi nhóm làm"
+        },
+        {
+          "chunk_id": "0b4068d4-1d9b-48f2-a674-ee35ed3dc5eb",
+          "utterances": [
+            {
+              "speaker": "S72",
+              "text": "Được rồi. Tôi có thể hỏi về các mức phí và chương trình truy cập, cũng như cách Brexit có thể ảnh hưởng đến chúng không? Theo bạn, mức độ mà chúng có thể bị ảnh hưởng là bao nhiêu?",
+              "index": 72,
+              "utterance_id": "02158495-b9f3-492a-bc71-c4c36353a445",
+              "timestamp": null
+            },
+            {
+              "speaker": "S73",
+              "text": "Tôi nghĩ có hai khía cạnh cần được xem xét. Các kế hoạch phí và quyền truy cập được chúng tôi phê duyệt hàng năm. Chúng được phê duyệt trước chu kỳ tuyển sinh của năm đó. Vì vậy, hiện chúng tôi đang trong quá trình hoàn tất việc xem xét các kế hoạch phí và quyền truy cập cho năm học 2019-20. Điều này đòi hỏi một khoảng thời gian khá dài. Trong quá trình này, chúng tôi xem xét tính bền vững tài chính của các trường, dựa trên các dự báo của họ – cũng giống như những gì chúng tôi vừa thảo luận. Ngoài ra, các kế hoạch phí cũng đưa ra giả định về số lượng sinh viên từ các lĩnh vực khác nhau sẽ được tuyển dụng. Rõ ràng, nếu áp lực tuyển sinh sinh viên EU tiếp tục giảm, thì số tiền thu từ phí sẽ giảm, trừ khi các trường có thể tìm được thêm sinh viên, và điều đó sẽ làm giảm số v",
+              "index": 73,
+              "utterance_id": "5613a29b-dcbf-4767-998e-feee9fe86c13",
+              "timestamp": null
+            },
+            {
+              "speaker": "S74",
+              "text": "Nhưng chúng ta đã nói rồi, phải không, rằng có thể điều này không liên quan gì đến Brexit, cũng như sự sụt giảm trong việc tuyển dụng nhân viên tại EU, bởi vì còn có những yếu tố khác như tính hấp dẫn của các khu đất và môi trường mà người trẻ có thể được giáo dục trong đó. Nhưng họ lại cho rằng điều này liên quan đến Brexit, phải không?",
+              "index": 74,
+              "utterance_id": "e50c4089-d254-48d8-b101-bf92263dea39",
+              "timestamp": null
+            },
+            {
+              "speaker": "S75",
+              "text": "Không hẳn vậy. Tôi nghĩ họ đang đưa ra giả định rằng điều đó có thể xảy ra. Có nhiều việc họ muốn làm để tăng cường và bảo vệ sự linh hoạt của sinh viên, và một phần trong số đó sẽ được tài trợ thông qua các kế hoạch thu phí. Vì vậy, cuộc tranh luận về Brexit giữa EU và Chính phủ Anh có thể hoặc không thể duy trì sự tham gia của chương trình Erasmus; nếu không, họ cần tìm cách khác để hỗ trợ những hoạt động như vậy. Đó chính là điều chúng ta đang bắt đầu thấy trong các kế hoạch thu phí. Họ đang suy nghĩ về cách khác để thực hiện những việc này.",
+              "index": 75,
+              "utterance_id": "46fc68b7-a275-4f9c-b7f3-7c1c1a34490f",
+              "timestamp": null
+            },
+            {
+              "speaker": "S76",
+              "text": "Được rồi, Darren? Mark.",
+              "index": 76,
+              "utterance_id": "80f6ee6a-cad8-40df-8f06-a5838039eb3a",
+              "timestamp": null
+            },
+            {
+              "speaker": "S77",
+              "text": "Bạn đã đề cập đến khoản phí và báo cáo truy cập. Bạn còn làm gì nữa để đảm bảo rằng các cơ sở giáo dục đại học ở xứ Wales đang thực sự lên kế hoạch cho Brexit?",
+              "index": 77,
+              "utterance_id": "9a8f0fec-921d-4d6e-9d38-9c69ac0ce521",
+              "timestamp": null
+            },
+            {
+              "speaker": "S78",
+              "text": "Chúng ta đã đề cập đến các kế hoạch dự phòng, nhưng trong môi trường không chắc chắn như hiện nay, tôi nghĩ rất khó để ai cũng biết được tình huống tồi tệ nhất sẽ xảy ra như thế nào. Tôi nghĩ thay vì tập trung vào những tình huống tồi tệ nhất, lĩnh vực này còn tập trung vào việc thúc đẩy và tìm kiếm các nguồn tài chính bổ sung. Vì vậy, chúng ta cũng đã đề cập đến việc tăng cường sự tham gia của Global Wales nhằm quảng bá Wales ra nước ngoài, cũng như trong nước Anh. Một lĩnh vực khác mà lĩnh vực này đang nỗ lực rất nhiều ở cấp độ Anh là làm cho Chính phủ Anh có lý do để duy trì quyền tiếp cận với nguồn tài chính thay thế cho Horizon 2020 – một phần quan trọng của cơ sở hạ tầng tài chính toàn diện. Không chỉ là sinh viên, mà là toàn bộ cơ sở hạ tầng tài chính để duy trì năng lực nghi",
+              "index": 78,
+              "utterance_id": "88c0d8c5-dd8f-439d-af38-f114e0dc5112",
+              "timestamp": null
+            },
+            {
+              "speaker": "S79",
+              "text": "Các trường đại học có tìm kiếm lời khuyên của bạn về những rủi ro và cơ hội liên quan đến Brexit, cũng như những gì họ nên làm để chuẩn bị cho chúng, hay vai trò của bạn chủ yếu là giám sát những gì họ làm thay vì đưa ra lời khuyên về những điều họ nên làm?",
+              "index": 79,
+              "utterance_id": "20cf8173-3262-4c88-b5bb-5c3300c6f97d",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc thảo luận tập trung vào các mức phí và chương trình truy cập, cũng như tác động tiềm tàng của Brexit. Các kế hoạch phí và quyền truy cập được phê duyệt hàng năm, đòi hỏi thời gian xem xét dài và dựa trên dự báo tài chính của các trường. Có sự tranh lu"
+        },
+        {
+          "chunk_id": "574e26ee-15ad-4aab-8e7c-d9e8a4e722d0",
+          "utterances": [
+            {
+              "speaker": "S80",
+              "text": "Chúng là các tổ chức tự chủ, và cuối cùng các cơ quan quản lý của chúng chịu trách nhiệm đảm bảo sự bền vững của chúng. Đây không phải là mối quan hệ trong đó chúng ta đưa ra lời khuyên hay chỉ đạo, mà là mối quan hệ trong đó chúng ta đặt câu hỏi về các kịch bản nếu xét từ kinh nghiệm của mình, vì chúng ta mong rằng sẽ có những kịch bản khác được thử nghiệm. Đó chính là bản chất của cuộc trò chuyện, chứ không phải việc chỉ đạo.",
+              "index": 80,
+              "utterance_id": "54a4597c-35ae-4d11-8da1-4b9956c712bf",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Các tổ chức được mô tả là các tổ chức tự chủ, trong đó cơ quan quản lý cuối cùng chịu trách nhiệm về sự bền vững của chúng. Mối quan hệ được thiết lập là đặt câu hỏi về các kịch bản dựa trên kinh nghiệm, chứ không phải là mối quan hệ chỉ đạo hay đưa ra lời"
+        }
+      ],
+      "utterances_start": 16,
+      "utterances_end": 80,
+      "user_title_override": null
+    },
+    {
+      "segment_id": "efb41a39-782d-45b2-957e-ba5d7d27a3bb",
+      "title": "Tư vấn và đánh giá rủi ro trong bối cảnh Brexit",
+      "chunks": [
+        {
+          "chunk_id": "6cf55cec-fefe-4a07-b8f9-75e745b39bb9",
+          "utterances": [
+            {
+              "speaker": "S81",
+              "text": "Tôi hiểu rằng bạn không trực tiếp điều hành, nhưng câu hỏi của tôi là về việc tư vấn. Bạn giám sát hoặc theo dõi – hay bất cứ cách nào bạn muốn gọi vai trò này – khá nhiều tổ chức, và có lẽ bạn có kiến thức chuyên môn đặc biệt trong tổ chức của mình. Tôi chỉ tò mò liệu các cơ sở giáo dục đại học có làm đủ để tận dụng được điều đó hay không.",
+              "index": 81,
+              "utterance_id": "b517c2c4-29fe-44e4-858d-7e06abafc4e3",
+              "timestamp": null
+            },
+            {
+              "speaker": "S82",
+              "text": "Tôi nghĩ chúng ta có thể đưa ra lời khuyên – chúng ta có thể dựa vào dữ liệu và thông tin mà chúng ta có được để đưa ra lời khuyên. Chúng ta cũng có thể dựa vào phán đoán của mình để đưa ra lời khuyên. Điều quan trọng nhất trong toàn bộ tình huống Brexit này là sự bất định, và mức độ mà những suy đoán của chúng ta có cơ sở hơn so với các cơ quan quản lý hoặc toàn thể ngành công nghiệp có lẽ chính là vấn đề.",
+              "index": 82,
+              "utterance_id": "5e24dfd6-c5d8-411a-bb1c-32542b9012cc",
+              "timestamp": null
+            },
+            {
+              "speaker": "S83",
+              "text": "Tôi nghĩ đó là đúng. Vì vậy, có mối quan hệ giữa ngành và các tổ chức riêng lẻ, và chúng khác nhau. Chúng tôi cùng nhau hợp tác với ngành này. Bethan gặp gỡ các giám đốc tài chính, còn tôi thì gặp gỡ các phó chủ tịch. Thực tế, chúng tôi có sự kết hợp giữa ngành và hội đồng tài trợ trong nhóm của Chính phủ Wales. Một số cuộc trò chuyện diễn ra theo nhiều cách khác nhau, và chúng tôi đều thu thập được thông tin về những giả định lập kế hoạch hợp lý. Nếu chúng tôi thấy một tổ chức rõ ràng không nhận thức được một số rủi ro, dù qua dự báo hay các hoạt động đảm bảo khác, chúng tôi sẽ đặt câu hỏi. Chúng tôi có một chu kỳ hàng năm, với hai thời điểm trong năm để đánh giá lại các rủi ro tổng thể của từng tổ chức, và điều này dựa trên cả dữ liệu cứng lẫn dữ liệu mềm. Mối",
+              "index": 83,
+              "utterance_id": "a359748c-de02-43ae-9de1-3430e0fa91c5",
+              "timestamp": null
+            },
+            {
+              "speaker": "S84",
+              "text": "Được rồi. Llyr.",
+              "index": 84,
+              "utterance_id": "b362c8f8-25c2-4238-9915-2aa04f1956ba",
+              "timestamp": null
+            },
+            {
+              "speaker": "S85",
+              "text": "Vâng, cảm ơn bạn. Tuần trước chúng tôi có được bằng chứng từ một số trường đại học cao đẳng, bao gồm Đại học Cardiff. Điều này rất thú vị, liên quan đến chương trình Erasmus+ và các khoản tài trợ cho sinh viên. Tôi nghĩ chỉ có 40% số tài trợ cho hoạt động di chuyển của sinh viên tại Cardiff được cấp bởi Erasmus+. Tôi cũng lưu ý rằng bạn đã tham vấn về các biện pháp quốc gia nhằm đánh giá hiệu suất của các trường đại học, và một khả năng là sử dụng hoạt động di chuyển quốc tế như một chỉ số đánh giá hiệu suất. Tôi chỉ muốn biết liệu bạn có thể yêu cầu các trường đại học thực sự cam kết tài trợ cho hoạt động di chuyển quốc tế từ nguồn thu từ phí học tập của mình hay không.",
+              "index": 85,
+              "utterance_id": "b802037f-fa55-4498-8af9-d975c214b522",
+              "timestamp": null
+            },
+            {
+              "speaker": "S86",
+              "text": "Một lần nữa, khi xem xét các kế hoạch phí và quyền truy cập gần đây, bảy trường đại học đều đề cập đến khía cạnh di chuyển – hoặc là có mục tiêu cụ thể trong đó, hoặc là giải thích rõ về kế hoạch của họ – vì vậy họ đã tính vào ngân sách của mình một phần từ thu nhập từ phí và quyền truy cập. Tuy nhiên, Erasmus là một kế hoạch đã được thiết lập từ lâu và mang tính dài hạn; nếu không có cơ sở hạ tầng như vậy, việc triển khai bất kỳ kế hoạch tương tự nào cũng sẽ kém hiệu quả và tốn kém hơn nhiều. Để có được cơ sở hạ tầng như vậy, lý tưởng nhất là mọi tổ chức ở Wales đều có thể tham gia, và điều này đòi hỏi một khoản đầu tư và sự phối hợp nhất định. Ngoài ra, cũng cần có các thỏa thuận với các tổ chức ở nước ngoài và châu Âu. Tôi nghĩ rằng",
+              "index": 86,
+              "utterance_id": "d9d7e34a-b4d8-4397-beae-b06fba1f1b85",
+              "timestamp": null
+            },
+            {
+              "speaker": "S87",
+              "text": "Và như đã được nói rõ vào tuần trước, thương hiệu này được công nhận trên toàn thế giới. Khi tham gia chương trình Erasmus+, bạn biết rõ mình sẽ nhận được gì, và tất cả những điều đó. Nhưng cũng có những lời chỉ trích về mức độ linh hoạt của chương trình, và những vấn đề khác nữa. Vì vậy, tôi tự hỏi liệu – và chắc chắn sẽ có những thay đổi trong phương diện này, mặc dù tôi hy vọng chúng ta có thể chấp nhận điều đó, giống như những người không thuộc EU đã làm – việc nhấn mạnh vào việc khuyến khích các tổ chức chủ động tìm kiếm nguồn tài chính cho các hoạt động di chuyển của mình sẽ là điều tích cực.",
+              "index": 87,
+              "utterance_id": "f6d7b4a7-b268-4381-8845-9d3e7826de27",
+              "timestamp": null
+            },
+            {
+              "speaker": "S88",
+              "text": "Tôi nghĩ rằng…",
+              "index": 88,
+              "utterance_id": "0cb2865a-5f4b-4d3d-bc89-eb271c90ba10",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Người tham gia thảo luận về vai trò tư vấn của tổ chức trong việc giám sát các cơ sở giáo dục đại học, đặc biệt trong bối cảnh Brexit. Họ nhấn mạnh tầm quan trọng của việc dựa vào dữ liệu và phán đoán để đưa ra lời khuyên, đồng thời đề cập đến chu kỳ đánh "
+        },
+        {
+          "chunk_id": "9077e6fa-2f53-4abf-bfcb-7498f0163024",
+          "utterances": [
+            {
+              "speaker": "S89",
+              "text": "Xin lỗi—đặc biệt nếu điều đó có nghĩa là họ sẽ làm nhiều hơn nữa.",
+              "index": 89,
+              "utterance_id": "58af9f54-f635-43c4-a025-0a155d38423d",
+              "timestamp": null
+            },
+            {
+              "speaker": "S90",
+              "text": "Đúng vậy. Tôi nghĩ khu vực xứ Wales chắc chắn sẽ nỗ lực tìm ra các cách để thúc đẩy và cung cấp nguồn lực cho loại hình di chuyển này. Có những dấu hiệu cho thấy một số yếu tố hạn chế trong chương trình Erasmus sẽ thay đổi, vì chương trình này đang được phát triển và đó là điều tích cực. Trong các cuộc đàm phán Brexit, có những tiếng nói tích cực về việc muốn tiếp tục có thể tham gia chương trình Erasmus. Chưa có gì được thống nhất cho đến khi mọi thứ được quyết định, vì vậy chúng ta sẽ phải chờ xem. Theo tôi, đó sẽ tốt hơn nhiều, như Bethan đã chỉ ra, so với việc thay thế nó bằng một chương trình chỉ dành cho xứ Wales, nhưng có thể kết hợp chương trình đó với các yếu tố khác. Tất cả những thách thức này cũng tạo ra cơ hội, vì chúng khuyến khích suy nghĩ. Việc bảy trong số tám trường đại học hiện đã sử dụng các kế ho",
+              "index": 90,
+              "utterance_id": "68b0f0b8-0551-4e6e-ac38-f13de4ea633c",
+              "timestamp": null
+            },
+            {
+              "speaker": "S91",
+              "text": "Bởi vì tỷ lệ 40/60 đó khiến tôi cảm thấy trái ngược với những gì tôi nhận thức được về tình hình. Một phần quan trọng trong vai trò của bạn là hợp tác với học sinh, vì vậy tôi muốn hỏi rằng bạn đã làm gì với học sinh, cụ thể là bảo vệ lợi ích của họ khi tình huống Brexit diễn ra như thế nào?",
+              "index": 91,
+              "utterance_id": "e9f36d04-154f-4458-a49a-446777c8ecb1",
+              "timestamp": null
+            },
+            {
+              "speaker": "S92",
+              "text": "Ừm, như bạn nói, chúng tôi làm việc với sinh viên. Chúng tôi là một trong những tổ chức tài trợ đầu tiên ở Vương quốc Anh có thỏa thuận hiệp định với Liên đoàn Sinh viên Quốc gia xứ Wales. Chúng tôi hợp tác rất chặt chẽ với họ, và chủ tịch của NUS cũng là đại diện tại hội đồng của chúng tôi. Vì vậy, chúng tôi có mối liên hệ chặt chẽ với NUS Wales và chúng tôi rất tự hào về điều đó; điều này cũng mang lại nhiều kết quả tích cực. Họ không có quyền biểu quyết, nhưng họ có tiếng nói, và điều đó thực sự rất quan trọng. Một lần nữa, chúng tôi đi trước các nước khác ở Vương quốc Anh khi yêu cầu tất cả các cơ sở giáo dục đại học phải có chương trình hành động dành cho sinh viên, và trong chương trình hành động đó có những yếu tố bảo vệ quyền lợi của sinh viên. Bộ quy định chất lượng toàn Vương quốc Anh cũng bao gồm những quy định về việc xác",
+              "index": 92,
+              "utterance_id": "f2d483e2-aa60-4df8-8364-5156307831ab",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Các cuộc thảo luận xoay quanh việc khu vực xứ Wales có thể nỗ lực thúc đẩy nguồn lực cho loại hình di chuyển, và có những dấu hiệu cho thấy chương trình Erasmus có thể thay đổi do các yếu tố hạn chế trong chương trình. Mặc dù chưa có quyết định cuối cùng v"
+        }
+      ],
+      "utterances_start": 81,
+      "utterances_end": 92,
+      "user_title_override": null
+    },
+    {
+      "segment_id": "b03e3848-545a-41cb-9d51-7c8a56ccb327",
+      "title": "Tác động của Brexit và tài chính đối với giáo dục đại học",
+      "chunks": [
+        {
+          "chunk_id": "99edb5a4-af37-4811-86cf-49977a60baa2",
+          "utterances": [
+            {
+              "speaker": "S93",
+              "text": "Nhưng tất cả những điều này có phải là vấn đề chung không? Nó không chỉ liên quan đến Brexit, mặc dù chắc chắn nó có thể liên quan đến nó.",
+              "index": 93,
+              "utterance_id": "1356a3b0-177d-4876-99b7-902fa286d769",
+              "timestamp": null
+            },
+            {
+              "speaker": "S94",
+              "text": "Tôi nghĩ đó là một cách nói hợp lý, đúng vậy. Khía cạnh khác liên quan đến Brexit chính là tình trạng nhập cư của sinh viên từ EU, và đó là vấn đề thuộc thẩm quyền của Chính phủ Vương quốc Anh – nó nằm ngoài phạm vi trách nhiệm của chúng ta.",
+              "index": 94,
+              "utterance_id": "fab93510-383d-47e1-b7a7-115978e027dc",
+              "timestamp": null
+            },
+            {
+              "speaker": "S95",
+              "text": "Đó là điều mà bạn có quan điểm về không?",
+              "index": 95,
+              "utterance_id": "4cb3a10e-69fd-46db-a6ca-13a8df917405",
+              "timestamp": null
+            },
+            {
+              "speaker": "S96",
+              "text": "Rõ ràng, việc có học sinh từ các quốc gia khác trong Liên minh châu Âu tham gia vào chương trình học sẽ góp phần làm phong phú hơn nội dung giảng dạy và trải nghiệm của học sinh tại các cơ sở giáo dục tiếng Wales. Vì vậy, thật tốt nếu tìm ra những cách để tiếp tục hỗ trợ điều này.",
+              "index": 96,
+              "utterance_id": "2f6ad47c-4bca-4099-a4ac-c78764620a9c",
+              "timestamp": null
+            },
+            {
+              "speaker": "S97",
+              "text": "Được rồi. Tất nhiên, bạn cũng có nghĩa vụ theo quy định để đánh giá chất lượng học thuật của các công trình nghiên cứu trong các cơ sở giáo dục đại học của chúng ta. Tôi chỉ muốn biết rằng Brexit có thể ảnh hưởng như thế nào đến khía cạnh này.",
+              "index": 97,
+              "utterance_id": "fc920172-82df-433f-83ee-246d065142fc",
+              "timestamp": null
+            },
+            {
+              "speaker": "S98",
+              "text": "see how it goes.\nCâu chuyện của tôi về việc làm việc với các tổ chức phi chính phủ và các tổ chức phi chính phủ liên kết với nhau để tạo ra một môi trường của sự hợp tác và hợp pháp hóa của các hoạt động của họ. Tôi đã nói với bạn trước đây rằng tôi đã làm việc với một số tổ chức phi chính phủ, và tôi đã thấy rằng họ có những ưu điểm và những hạn chế. Tôi đã làm việc với một tổ chức phi chính phủ ở Việt Nam, và tôi đã thấy rằng họ có những ưu điểm và những hạn chế. Tôi đã làm việc với một tổ chức phi chính phủ ở Việt Nam, và tôi đã thấy rằng họ có những ưu điểm và những hạn chế. Tôi đã làm việc với một tổ chức phi chính phủ ở Việt Nam, và tôi đã thấy rằng họ có những ưu điểm và những hạn chế. Tôi đã làm việc với một tổ chức phi chính phủ ở Việt Nam, và tôi đã thấy rằng họ có những ưu điểm và những hạn chế. Tôi đã làm việc với một tổ chức phi chính phủ ở Việt Nam, và",
+              "index": 98,
+              "utterance_id": "390b3660-8fe7-4443-9794-a62c80f3e397",
+              "timestamp": null
+            },
+            {
+              "speaker": "S99",
+              "text": "Được rồi. Những điều bạn đã chia sẻ trong khoảng ba phần tư giờ vừa qua đều có chi phí liên quan, tùy theo mức độ ảnh hưởng của chúng. Chắc chắn, ngành này vẫn gặp nhiều khó khăn, và rủi ro là tình hình sẽ càng tồi tệ hơn nữa trong những năm tới. Tôi chỉ muốn biết bạn có lời khuyên gì cho Chính phủ xứ Wales về mức tài chính cần thiết để chuyển đổi, hay tài chính dành cho quá trình Brexit, và nếu có, Chính phủ xứ Wales đã nói gì với bạn.",
+              "index": 99,
+              "utterance_id": "e5e6c334-5efa-4232-a9fc-4390f4e0788b",
+              "timestamp": null
+            },
+            {
+              "speaker": "S100",
+              "text": "Tôi đã đề cập trước đó rằng, rõ ràng chúng tôi đã cung cấp thông tin về những giả định mà các ngành này đưa ra liên quan đến thu nhập. Vì vậy, trong năm 2017-18, con số đó là 129 triệu bảng Anh. Tôi nghĩ mức độ cần được thay thế hoặc hỗ trợ bằng nguồn tài chính chuyển giao phụ thuộc hoàn toàn vào quyết định cuối cùng về Brexit. Nhưng đây là thời điểm thích hợp để đề cập đến báo cáo do Giáo sư Graeme Reid thực hiện, được Chính phủ xứ Wales yêu cầu. Báo cáo này đã cung cấp lời khuyên và đề xuất nhằm hỗ trợ nghiên cứu và đổi mới trong giai đoạn chuyển giao. Nhưng một lần nữa, các đề xuất của Reid trong báo cáo này dựa trên các đề xuất của Diamond. Và khi Diamond được triển khai – và Reid cũng đưa ra các đề xuất bổ sung – thì việc cấp tài chính sẽ được thực hiện dựa trên nguyên tắc rằng",
+              "index": 100,
+              "utterance_id": "a9137791-1607-4784-a7d1-81a86c567d4a",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Cuộc thảo luận tập trung vào các vấn đề liên quan đến Brexit, bao gồm tình trạng nhập cư của sinh viên từ EU và tác động của nó đến việc đánh giá chất lượng học thuật. Người tham gia bày tỏ quan ngại về chi phí liên quan và rủi ro tài chính trong ngành. Có"
+        },
+        {
+          "chunk_id": "247f8035-6cff-4dac-8956-07fcac842bc0",
+          "utterances": [
+            {
+              "speaker": "S101",
+              "text": "Nhưng bạn không lo lắng sao rằng thời gian đang trôi qua và chúng ta thực sự không biết tình hình hiện tại như thế nào?",
+              "index": 101,
+              "utterance_id": "3a5d5023-609f-4b15-9036-0125e730fd5b",
+              "timestamp": null
+            },
+            {
+              "speaker": "S102",
+              "text": "Bạn muốn nói về tình hình Brexit à?",
+              "index": 102,
+              "utterance_id": "bec20f0a-66d4-41d8-ab77-a27fb587fcf2",
+              "timestamp": null
+            },
+            {
+              "speaker": "S103",
+              "text": "Đồng hồ Brexit, đúng vậy.",
+              "index": 103,
+              "utterance_id": "25d84c9c-963d-4e26-942d-0e8aa83a84ed",
+              "timestamp": null
+            },
+            {
+              "speaker": "S104",
+              "text": "Sự không chắc chắn là điều không hữu ích, bởi như tôi đã nói nhiều lần, lĩnh vực này hiện đang được quản lý một cách có hệ thống. Tôi không nghĩ rằng có những yếu tố bất ngờ xảy ra; thực ra, bạn chỉ có thể quản lý những thứ mà mình có thể nhìn thấy và dự đoán được. Vì vậy, càng kéo dài sự không chắc chắn, việc quản lý của các tổ chức càng khó khăn, và cả hệ thống khác cũng càng gặp khó khăn trong việc hỗ trợ họ. Vì vậy, tôi nghĩ rằng càng sớm có sự rõ ràng, thì mọi người sẽ càng tốt hơn.",
+              "index": 104,
+              "utterance_id": "2f039993-dec1-4b65-a372-a0fac2dc2550",
+              "timestamp": null
+            },
+            {
+              "speaker": "S105",
+              "text": "Thưa quý vị, tôi xin được hỏi một câu hỏi nhé?",
+              "index": 105,
+              "utterance_id": "63e20507-318c-4c97-bd5b-43fc6d4723f0",
+              "timestamp": null
+            },
+            {
+              "speaker": "S106",
+              "text": "Vâng, Darren.",
+              "index": 106,
+              "utterance_id": "d445936d-e618-4c97-87b4-799b6b8edb71",
+              "timestamp": null
+            },
+            {
+              "speaker": "S107",
+              "text": "Tuy nhiên, về mặt sự không chắc chắn, chúng ta vẫn còn lo lắng về việc số tiền bổ sung mà chính phủ sẽ phải chi ra do việc triển khai dự án Diamond có thể được chuyển sang lĩnh vực giáo dục đại học hay không. Họ đã đưa ra cam kết chính trị, nhưng hoàn toàn không có bất kỳ bằng chứng nào về số tiền thực sự sẽ được thu về. Chúng ta còn có việc cải cách hệ thống giáo dục đại học ở Wales đang diễn ra, vì vậy đây quả là một tình huống khó xử, phải không? Với ba yếu tố này xảy ra cùng lúc…",
+              "index": 107,
+              "utterance_id": "10e34c73-39a5-435e-8d4f-0d67d191cca9",
+              "timestamp": null
+            },
+            {
+              "speaker": "S108",
+              "text": "Chúng tôi chắc chắn rất bận rộn.",
+              "index": 108,
+              "utterance_id": "d960d45d-2dab-4163-b34b-2808f68a69a7",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Người nói bày tỏ sự lo ngại về sự không chắc chắn liên quan đến tình hình hiện tại, đặc biệt là khả năng số tiền bổ sung của chính phủ cho dự án Diamond có thể được chuyển sang lĩnh vực giáo dục đại học. Sự không chắc chắn này được xem là khó khăn khi kết "
+        },
+        {
+          "chunk_id": "9fe3d682-bf41-43b8-abe8-aa472e48f75b",
+          "utterances": [
+            {
+              "speaker": "S109",
+              "text": "Nhưng hai trong số những thứ đó là những gì Chính phủ xứ Wales sẽ cung cấp cho bạn để giải quyết, phải không?",
+              "index": 109,
+              "utterance_id": "05243a09-3f82-4d33-8171-41ca1a2c976e",
+              "timestamp": null
+            },
+            {
+              "speaker": "S110",
+              "text": "Ừm, chính sách về cải cách lĩnh vực bắt buộc sau khi tốt nghiệp hoàn toàn là chính sách của Chính phủ xứ Wales. Mức độ mà họ có thể can thiệp vào quy trình ngân sách và cho chúng ta biết rõ số tiền cần chi tiêu trong các năm tới là… À, lại một lần nữa, tôi không có quyền bình luận. Theo hiểu biết của tôi, việc đó khá khó đối với họ. Tôi muốn lặp lại những gì tôi đã nói trước đây: các quan chức đã hỗ trợ rất nhiều, theo tôi nghĩ. Ý tôi là, bạn đúng, chúng ta chỉ có cam kết chính trị giữa hai người hiện đang giữ chức vụ đó thôi. Sẽ thật tuyệt nếu có một cam kết chắc chắn hơn. Tôi không biết làm thế nào để thực hiện được điều đó.",
+              "index": 110,
+              "utterance_id": "6c7a07de-5744-461d-9f02-541bde7ad675",
+              "timestamp": null
+            },
+            {
+              "speaker": "S111",
+              "text": "Ý tôi là, lời khẳng định về việc tiền tiết kiệm thu được từ việc tái đầu tư hoàn toàn vào lĩnh vực HE đã không được lặp lại nữa, thành thật mà nói, phải không? Kể từ khi thỏa thuận liên minh được ký kết.",
+              "index": 111,
+              "utterance_id": "f1cdcc35-8221-4083-8b2a-db63218d8e2d",
+              "timestamp": null
+            },
+            {
+              "speaker": "S112",
+              "text": "Không, nhưng cũng chưa bị hủy bỏ, nên…",
+              "index": 112,
+              "utterance_id": "535268e6-87cb-4571-8c78-79e4ea0e786d",
+              "timestamp": null
+            },
+            {
+              "speaker": "S113",
+              "text": "Không, nhưng đã có những cơ hội – nhiều lần – tại Hạ viện, nơi Bộ trưởng Nội các được yêu cầu lặp lại cam kết đó, và Bộ trưởng Phụ trách các vấn đề chính trị cũng được yêu cầu lặp lại cam kết đó nhưng lại không thực hiện. Điều đó chắc chắn khiến bạn lo lắng, và càng khiến lĩnh vực đại học của bạn lo lắng hơn nữa, có lẽ còn hơn cả một số yếu tố liên quan đến Brexit mà chúng ta đang thảo luận.",
+              "index": 113,
+              "utterance_id": "698a139b-6fe2-4171-9d11-62b86a1bf052",
+              "timestamp": null
+            },
+            {
+              "speaker": "S114",
+              "text": "Trong buổi thảo luận trước đó, Bethan đã chỉ ra rằng các tổ chức hiện đang vận hành ngân sách thâm hụt để không mất đi cơ sở hạ tầng, với hy vọng rằng tiền từ Diamond sẽ đến. Nếu có bất kỳ yếu tố nào gây ra sự xáo trộn đáng kể, dù là về thời gian hay việc tiền không đến được, thì sẽ cần nhiều nguồn tài chính hơn nữa, như Medwin Hughes từng nói, và điều đó sẽ rất quan trọng. Vì vậy, hiện tại… tôi không thích cụm từ “thung lũng của cái chết”, nhưng có một thung lũng cần phải vượt qua, và tôi nghĩ lĩnh vực này khá tự tin về độ rộng và độ sâu của thung lũng đó. Còn có cả thung lũng dân số nữa. Vì vậy, có nhiều thung lũng mà họ phải vượt qua – phép ẩn dụ này không hoàn hảo lắm, nhưng tôi nghĩ bạn hiểu ý rồi. Vì vậy,",
+              "index": 114,
+              "utterance_id": "422a9229-814c-4278-b1fb-0fb92bcbc0f2",
+              "timestamp": null
+            },
+            {
+              "speaker": "S115",
+              "text": "Được rồi. Tôi có thể hỏi thêm về những rào cản khác khiến các trường đại học tiếng Wales khó nhận được nhiều nguồn tài trợ từ các hội đồng nghiên cứu của Vương quốc Anh không? Bạn nghĩ những rào cản đó là gì?",
+              "index": 115,
+              "utterance_id": "a034e546-f19f-4936-bf2a-7b1b78780036",
+              "timestamp": null
+            },
+            {
+              "speaker": "S116",
+              "text": "the process of getting involved in these discussions.\nCó vẻ như có vài điều cần được nói. Điều đầu tiên – và nếu chúng ta không cẩn thận thì sẽ nghe như đang nghe đĩa bị kẹt – là có một vấn đề liên quan đến đầu tư, và báo cáo của Reid đã làm rõ điều này rất rõ. Vì vậy, ông ấy đã khẳng định lại những nghiên cứu đã được thực hiện trước đó, cho thấy rằng chất lượng cơ sở nghiên cứu tại các trường đại học xứ Wales và năng suất của cơ sở nghiên cứu này đều tốt, chỉ là số lượng còn thiếu, và cuối cùng, đó là kết quả của các quyết định đầu tư. Họ đặc biệt xem xét tình trạng thiếu hụt trong các lĩnh vực khoa học, công nghệ, kỹ thuật và toán học; tôi luôn nói rằng nghiên cứu không chỉ giới hạn ở STEM. Tôi muốn nói rằng STEM rất quan trọng, và tôi không phủ nhận tình trạng thiếu hụt trong lĩnh",
+              "index": 116,
+              "utterance_id": "d2ef590e-8b48-4cd0-84e0-0ccb53df7a20",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Người nói bày tỏ sự lo ngại về cam kết chính trị của Chính phủ xứ Wales đối với các chính sách cải cách bắt buộc sau khi tốt nghiệp, đặc biệt là về việc can thiệp vào quy trình ngân sách. Có sự nghi ngờ về việc lời khẳng định về việc tái đầu tư tiền tiết k"
+        },
+        {
+          "chunk_id": "b374103c-6a36-4300-b218-d039cfc5b46d",
+          "utterances": [
+            {
+              "speaker": "S117",
+              "text": "Được rồi. Một câu hỏi cuối cùng: xét về các mối quan hệ hợp tác và mạng lưới nghiên cứu hiện có, bạn có thấy những khó khăn tiềm ẩn sau Brexit đối với việc tiếp tục và phát triển chúng không? Và có điều gì đặc biệt mà chúng ta có thể học hỏi từ Sêr Cymru II không?",
+              "index": 117,
+              "utterance_id": "fdd483e5-8d17-48f1-8f19-d3c7b9ea1196",
+              "timestamp": null
+            },
+            {
+              "speaker": "S118",
+              "text": "Tôi nghĩ còn có hai điều cần nói ở đây. Trước hết, thỏa thuận Brexit có thể hoặc không ảnh hưởng tiêu cực đến khả năng của xứ Wales và cả cơ sở hạ tầng nghiên cứu của Vương quốc Anh trong việc tham gia vào các hoạt động hợp tác rộng lớn trên toàn châu Âu. Ở một khía cạnh nào đó, đó là kết quả của thỏa thuận này, bất kể nó trông như thế nào; chúng ta sẽ phải chờ xem. Nhưng chúng ta đã đề cập đến việc tham gia vào Horizon Europe, và việc tiếp tục hoạt động trong khuôn khổ này sẽ là một phần quan trọng trong khả năng đó. Không chỉ là tiền bạc, mà còn là việc được tham gia vào nhóm này và việc cho thấy rằng chúng ta đang tham gia vào cuộc chơi này. Tất cả những điều đó đều rất quan trọng. Phần còn lại của câu trả lời của tôi là: thực tế, xứ Wales cần tiếp tục phát triển tốt trong lĩnh vực nghiên cứu của mình, duy trì chất lượng, duy",
+              "index": 118,
+              "utterance_id": "2eede74e-0f72-4fe1-82a3-5ca695e4111d",
+              "timestamp": null
+            },
+            {
+              "speaker": "S119",
+              "text": "Được rồi. Chỉ còn một điểm nữa từ Darren.",
+              "index": 119,
+              "utterance_id": "abd5e1c3-c179-479f-9c1c-ac3e39654830",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Người tham gia đặt câu hỏi về những khó khăn tiềm ẩn đối với các mối quan hệ hợp tác và mạng lưới nghiên cứu sau Brexit, đồng thời tìm kiếm bài học từ Sêr Cymru II. Người khác nhận định rằng thỏa thuận Brexit có thể không ảnh hưởng tiêu cực đến khả năng hợ"
+        }
+      ],
+      "utterances_start": 93,
+      "utterances_end": 119,
+      "user_title_override": null
+    },
+    {
+      "segment_id": "fcfa7c57-ce00-413c-ba57-5e544ff11f7d",
+      "title": "Nguồn tài trợ nghiên cứu và thách thức tại xứ Wales",
+      "chunks": [
+        {
+          "chunk_id": "059c4224-8821-4f40-bdc8-8bdc3d1c3bc6",
+          "utterances": [
+            {
+              "speaker": "S120",
+              "text": "Chỉ ngắn gọn một chút: Một trong những phản hồi mà các thành viên hội đồng nhận được trong buổi gặp gỡ các bên liên quan trước khi bắt đầu cuộc điều tra này, nhằm thu thập bằng chứng trực tiếp, là về nguồn tài chính dành cho nghiên cứu từ lĩnh vực từ thiện, và mức độ kém trong việc thu hút những nguồn tài chính đó ở xứ Wales. Tôi nghĩ chúng ta có số liệu từ British Heart Foundation, họ nói rằng họ có 100 triệu bảng Anh mỗi năm dành cho các khoản tài trợ nghiên cứu, hoặc điều tương tự, nhưng xứ Wales chỉ nhận được 1% trong số đó, điều này rõ ràng rất thấp. Tôi hiểu rằng trong việc nghiên cứu các lĩnh vực mà họ muốn đầu tư tiền vào, xứ Wales có thể không giỏi lắm, và có thể có những cơ hội khác với các tổ chức từ thiện và hợp tác khác. Bạn đang làm gì để xây dựng năng lực của xứ Wales, để",
+              "index": 120,
+              "utterance_id": "3ea0a613-3902-46ef-8ffe-1805d91f1316",
+              "timestamp": null
+            },
+            {
+              "speaker": "S121",
+              "text": "Một vấn đề là khả năng tiếp nhận nguồn tài chính đó, do vấn đề chi phí mà David đã đề cập. Hiện tại, nguồn tài chính từ các tổ chức từ thiện không thu hút được bất kỳ nguồn tài chính nào khác. Một lần nữa, điều này có thể được tích hợp vào nguồn tài chính của chúng ta, nếu chúng ta có khả năng tăng ngân sách cho nghiên cứu liên quan đến chất lượng. Ở Anh cũng có yếu tố như vậy.",
+              "index": 121,
+              "utterance_id": "ca6ced89-e9ea-433d-8388-7fa9e8bb1f08",
+              "timestamp": null
+            },
+            {
+              "speaker": "S122",
+              "text": "Nhưng áp lực đó vẫn tồn tại ở các khu vực khác của Vương quốc Anh, phải không? Vì vậy, việc tài trợ từ ngân sách nhà nước vẫn là một vấn đề ở Anh và ở những nơi khác.",
+              "index": 122,
+              "utterance_id": "7b6c315f-a249-4379-ba6f-908a9b01885b",
+              "timestamp": null
+            },
+            {
+              "speaker": "S123",
+              "text": "Có sự tăng cường đóng góp, và tôi nghĩ đó là yếu tố được tăng lên trong năm nay để ghi nhận điều này. Nhưng sẽ có sự khác biệt giữa các tổ chức từ thiện khác nhau. Tôi khá chắc rằng một số tổ chức của chúng ta sẽ rất mạnh trong lĩnh vực từ thiện về ung thư, có lẽ không phải là tổ chức từ thiện về tim. Và điều đó sẽ giúp chúng ta tập trung vào điểm mạnh của mình, nhưng cũng để có được cái nhìn toàn diện hơn.",
+              "index": 123,
+              "utterance_id": "a2a23317-68d8-4215-b883-a43089647b5a",
+              "timestamp": null
+            },
+            {
+              "speaker": "S124",
+              "text": "Vậy, vấn đề liên quan đến việc phân bổ nguồn vốn mà bạn đã đề cập trước đây là: với mỗi 1 bảng Anh mà người khác đưa vào, họ có thể thu về thêm 4 bảng Anh nữa, vì 1 bảng Anh đó sẽ chi trả cho các chi phí vận hành, còn số tiền còn lại dùng để nghiên cứu.",
+              "index": 124,
+              "utterance_id": "a41ef404-da3b-4df0-84e5-f25eed991d44",
+              "timestamp": null
+            },
+            {
+              "speaker": "S125",
+              "text": "Đúng vậy. Vì vậy, càng đầu tư nhiều thì tốt hơn. Bạn biết đấy, đôi khi chúng ta có những cuộc trò chuyện về tính chất không có bảo lãnh của nguồn tài chính cho nghiên cứu của chúng ta, nhưng thực tế điều đó tạo ra sự linh hoạt và nguồn vốn đầu tư vào cơ sở hạ tầng, giúp các tổ chức có thể đối phó với những cơ hội khác. Nếu không có điều đó, họ sẽ không thể làm được. Bởi vì nếu không cẩn thận, các tổ chức sẽ tham gia vào các hoạt động nghiên cứu trên quy mô toàn Vương quốc Anh hoặc dựa trên các tổ chức từ thiện, và họ phải tự chi trả chi phí – họ đang hoạt động trong tình trạng lỗ.",
+              "index": 125,
+              "utterance_id": "b8be91e2-64ff-4532-8c36-b3ff96233d92",
+              "timestamp": null
+            },
+            {
+              "speaker": "S126",
+              "text": "Đó chính là vấn đề chính; không phải là các trường đại học ở Wales không cố gắng hết sức để có được số tiền này. Hay là cả hai yếu tố đó đều có ảnh hưởng?",
+              "index": 126,
+              "utterance_id": "41a93a6b-b6d5-47ea-b897-d1903142c4ca",
+              "timestamp": null
+            },
+            {
+              "speaker": "S127",
+              "text": "Tôi nghĩ rằng, về cơ bản, các trường đại học và nhà nghiên cứu sẽ lấy tiền từ bất cứ nguồn nào có thể, vì vậy tôi không nghĩ đó là do thiếu khả năng tài chính.",
+              "index": 127,
+              "utterance_id": "e6533d7f-8039-40de-8e09-92ab7564f6a1",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Các thành viên hội đồng đã thảo luận về nguồn tài chính nghiên cứu từ lĩnh vực từ thiện, đặc biệt là tình hình ở xứ Wales. Có sự so sánh về mức độ thu hút nguồn tài trợ so với các khu vực khác và thảo luận về cơ chế phân bổ nguồn vốn, nhấn mạnh rằng việc đ"
+        },
+        {
+          "chunk_id": "14e2a421-f4b9-459f-a6d3-15b556c9a4d4",
+          "utterances": [
+            {
+              "speaker": "S128",
+              "text": "Được.",
+              "index": 128,
+              "utterance_id": "9986d78a-59e6-4447-97b0-2a16642addd6",
+              "timestamp": null
+            },
+            {
+              "speaker": "S129",
+              "text": "Được rồi. Cảm ơn cả hai bạn đã đến trình bày bằng chứng cho ủy ban vào sáng nay. Bạn sẽ nhận được bản thảo biên bản ghi chép để kiểm tra tính chính xác. Diolch yn fawr. Vậy thì, điểm tiếp theo là điểm 3: các tài liệu cần lưu ý. Điểm đầu tiên là thư từ Bộ trưởng Giáo dục về mã tổ chức trường học. Điểm thứ hai là thư từ Bộ trưởng Dành cho Trẻ em, Người lớn và Chăm sóc Xã hội về Dự luật Hỗ trợ Chăm sóc Trẻ em (Wales). Tài liệu lưu ý số 3 là thư từ Chủ tịch Ủy ban Tài chính về việc xem xét dự báo ngân sách của Chính phủ Wales cho năm tài chính tới, chúng ta sẽ thảo luận về điểm 6 trong chương trình nghị sự. Tài liệu lưu ý số 4 là thư từ Bộ trưởng Dành cho Trẻ em, Người lớn và Chăm sóc",
+              "index": 129,
+              "utterance_id": "da7e530f-487c-4b05-88e9-f3bb48fbe793",
+              "timestamp": null
+            }
+          ],
+          "rolling_summary": "Người điều phối cảm ơn cả hai bên đã trình bày bằng chứng cho ủy ban vào sáng nay và thông báo sẽ gửi bản thảo biên bản ghi chép để kiểm tra tính chính xác. Sau đó, các tài liệu cần lưu ý được liệt kê bao gồm thư từ Bộ trưởng Giáo dục về mã tổ chức trường "
+        }
+      ],
+      "utterances_start": 120,
+      "utterances_end": 129,
+      "user_title_override": null
+    }
+  ],
+  "generated_at": "2026-07-06T01:04:36.827857Z",
+  "processing_time_ms": 572091
+}

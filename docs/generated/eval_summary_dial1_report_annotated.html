@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIP491 · Annotated Review — dial_id=1 (per-chunk grading)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --border: #e2e6ec;
+    --text: #181c25;
+    --text-secondary: #525866;
+    --text-muted: #8a8f9c;
+    --accent: #1e54d4;
+    --accent-light: #eaf0fc;
+    --ok-bg: #fff8db;          /* vàng nhạt cho "đạt/đúng" */
+    --ok-border: #f0d96a;      /* vàng đậm */
+    --miss-bg: #eaf6ee;        /* xanh lá nhạt cho "chưa đạt / thiếu" */
+    --miss-border: #66b886;
+    --red-bg: #fdedec;         /* đỏ nhạt cho "thừa / sai" */
+    --red-border: #d97a72;
+    --neutral-bg: #f3f4f6;
+    --neutral-border: #cbd0d8;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 24px 16px 64px;
+  }
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  /* ---- HEADER ---- */
+  .header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .header .sub {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+  .header .legend {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .legend-chip .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .lg-ok { background: var(--ok-bg); border-color: var(--ok-border); color: #6b5a00; }
+  .lg-ok .dot { background: #d4b800; }
+  .lg-miss { background: var(--miss-bg); border-color: var(--miss-border); color: #1f6b3a; }
+  .lg-miss .dot { background: #4ca872; }
+  .lg-red { background: var(--red-bg); border-color: var(--red-border); color: #883026; }
+  .lg-red .dot { background: #c4534a; }
+  .lg-neutral { background: var(--neutral-bg); border-color: var(--neutral-border); color: var(--text-secondary); }
+  .lg-neutral .dot { background: #95a0ad; }
+
+  /* ---- CHAPTERS ---- */
+  .chapter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px 12px;
+    margin-bottom: 18px;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .chapter-num {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .chapter-title {
+    font-size: 1.12rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .chapter-range {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  /* ---- CHUNK ROW ---- */
+  .chunk {
+    border-top: 1px solid var(--border);
+    padding: 16px 0 12px;
+  }
+  .chunk:first-child { border-top: 0; padding-top: 6px; }
+  .chunk-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .chunk-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: #f0f2f5;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 64px;
+    white-space: nowrap;
+  }
+  .verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .v-ok { background: var(--ok-bg); border-color: var(--ok-border); color: #6b5a00; }
+  .v-miss { background: var(--miss-bg); border-color: var(--miss-border); color: #1f6b3a; }
+  .v-red { background: var(--red-bg); border-color: var(--red-border); color: #883026; }
+  .v-mix { background: var(--neutral-bg); border-color: var(--neutral-border); color: var(--text-secondary); }
+
+  .summary-line {
+    font-size: 0.92rem;
+    color: var(--text);
+    line-height: 1.55;
+    margin: 4px 0 10px;
+  }
+  .highlight-yellow { background: #fff5a8; padding: 0 2px; border-radius: 2px; }
+  .highlight-green  { background: #d4ecd9; padding: 0 2px; border-radius: 2px; }
+  .highlight-red    { background: #f7c8c3; padding: 0 2px; border-radius: 2px; }
+
+  .review-note {
+    background: #fafbfc;
+    border-left: 3px solid #b8bdc6;
+    padding: 10px 14px;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    border-radius: 0 4px 4px 0;
+  }
+  .review-note b { color: var(--text); font-weight: 600; }
+
+  /* ---- FOOTER ---- */
+  .footer {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 32px;
+    padding: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>Annotated Review — Meeting Summary dial_id=1 (Wales Brexit Education)</h1>
+  <div class="sub">Đánh dấu vàng (đạt) / xanh (chưa đạt) / đỏ (thừa hoặc sai) cho từng chunk summary + nhận xét review. So sánh với transcript gốc tại <code>data/eval_vi/meeting_committee.json</code>.</div>
+  <div class="legend">
+    <span class="legend-chip lg-ok"><span class="dot"></span> VÀNG — đạt, đúng, khớp transcript</span>
+    <span class="legend-chip lg-miss"><span class="dot"></span> XANH — chưa đạt, còn thiếu chi tiết</span>
+    <span class="legend-chip lg-red"><span class="dot"></span> ĐỎ — thừa, sai, hoặc hallucination</span>
+    <span class="legend-chip lg-neutral"><span class="dot"></span> XÁM — hỗn hợp (một phần đúng, một phần thiếu/thừa)</span>
+  </div>
+</div>
+
+<!-- ============== CHAPTER 1 ============== -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">Chapter 1 · Title</span>
+    <span class="chapter-title">Tác động của Brexit đến giáo dục đại học xứ Wales</span>
+  </div>
+  <div class="chapter-range">utt [0–15] · 16 utterances · 2 chunks</div>
+
+  <!-- Chapter Title evaluation -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">Title</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Tác động của Brexit đến giáo dục đại học xứ Wales"
+    </div>
+    <div class="review-note">
+      <b>Đánh giá:</b> Tiêu đề ngắn gọn, 6 từ, đúng spec (4-10 từ), phản ánh đúng chủ đề chính của cả chương: Ủy ban Trẻ em, Người trẻ và Giáo dục thảo luận về Brexit và giáo dục đại học xứ Wales. Không chứa thông tin thừa.
+    </div>
+  </div>
+
+  <!-- Chunk 1 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 0–7</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc họp của <span class="highlight-yellow">Ủy ban Trẻ em, Người trẻ và Giáo dục</span> bắt đầu với việc Chủ tịch không thể tham dự và <span class="highlight-yellow">đề cử John Griffiths làm Chủ tịch tạm thời theo Quy định 17.22</span>. Sau đó, chương trình chuyển sang phần giới thiệu, nhận <span class="highlight-yellow">lời xin lỗi từ Hefin David và Lynne Neagle</span>."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm tắt xuất sắc, nắm trọn 8 utterance đầu. Tất cả 4 thực thể quan trọng đều được nhắc đúng tên: Ủy ban Trẻ em-Người trẻ-Giáo dục, John Griffiths, Quy định 17.22, Hefin David & Lynne Neagle. Văn phong ngôi thứ ba tự nhiên. Không thừa, không sai.
+    </div>
+  </div>
+
+  <!-- Chunk 2 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 8–15</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc thảo luận tập trung vào <span class="highlight-yellow">tác động của Brexit đối với giáo dục đại học ở xứ Wales</span>, nhấn mạnh <span class="highlight-yellow">sự tài trợ cho các cơ sở giáo dục thay vì nhà cung cấp dịch vụ</span>. Các dữ liệu từ <span class="highlight-yellow">UCAS</span> cho thấy sự thay đổi trong số lượng sinh viên nộp đơn, với sự <span class="highlight-yellow">sụt giảm ở sinh viên EU (8%) và quốc tế (9%)</span>."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Bám sát nội dung 8 utt. Nêu đúng phân biệt tài trợ "cơ sở giáo dục vs nhà cung cấp dịch vụ" (utt[9] nguyên văn), dẫn nguồn UCAS (utt[10]) và con số 8% / 9% chính xác. Tuy nhiên <b>hơi thiếu</b>: không nêu tên <i>Sir Ian Diamond</i> và khuyến nghị tái thiết lập tài chính (utt[12]) — đây là chi tiết quan trọng của chương nhưng có thể bù trong chunk sau. Không thừa, không sai.
+    </div>
+  </div>
+</div>
+
+<!-- ============== CHAPTER 2 ============== -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">Chapter 2 · Title</span>
+    <span class="chapter-title">Phân tích nguyên nhân sụt giảm sinh viên EU và thách thức thị tr…</span>
+  </div>
+  <div class="chapter-range">utt [16–80] · 65 utterances · 9 chunks</div>
+
+  <!-- Chapter Title -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">Title</span>
+      <span class="verdict v-mix">XÁM · HỖN HỢP</span>
+    </div>
+    <div class="summary-line">
+      "Phân tích nguyên nhân sụt giảm sinh viên EU và thách thức thị tr…" <span class="highlight-red">(bị cắt ở 64-char TITLE_MAX_CHARS)</span>
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tiêu đề chọn đúng trọng tâm chương, nhưng bị <b>cắt cụt ở "thị tr..."</b> do giới hạn <code>TITLE_MAX_CHARS=64</code> (xem <code>src/service/hierarchical_summarization.py:67</code>). Nên là "Phân tích nguyên nhân sụt giảm sinh viên EU & thách thức tài chính" hoặc tương tự ngắn hơn. Có thể cải thiện: chọn tiêu đề ≤ 60 ký tự để có chỗ cho từ cuối.
+    </div>
+  </div>
+
+  <!-- Chunk 1 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 16–23</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Người tham gia thảo luận về <span class="highlight-yellow">nguyên nhân sụt giảm số lượng đơn xin học của sinh viên EU tại Wales so với Anh</span>, đồng thời xem xét các yếu tố khác như sự thay đổi trong các biện pháp hỗ trợ sinh viên EU và sự cạnh tranh trong thị trường tuyển dụng."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Phản ánh đúng nội dung utt[16-23]: câu hỏi của thành viên về 8%/9% (utt[16]) và 2 nguyên nhân được nêu: thay đổi hỗ trợ sinh viên + cạnh tranh thị trường (utt[17]). Văn phong tự nhiên, ngôi thứ ba. Đạt chuẩn.
+    </div>
+  </div>
+
+  <!-- Chunk 2 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 24–31</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc thảo luận tập trung vào <span class="highlight-yellow">sự khác biệt về hiệu ứng pha trộn giữa các tổ chức tiếng Anh và các tổ chức khác, đặc biệt là giữa tiếng Anh và tiếng Wales</span>. Người tham gia đã so sánh quan điểm của người Wales và người Anh, nhận định rằng sự phát triển có xu hướng xảy ra ở những trường có mức học phí cao hơn."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Chính xác. Nắm được ý chính: so sánh hiệu ứng giữa các tổ chức tiếng Anh vs tiếng Wales (utt[25], utt[27]), và phân tích theo mức học phí (utt[27]). Không thừa.
+    </div>
+  </div>
+
+  <!-- Chunk 3 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 32–39</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "<span class="highlight-yellow">Chất lượng hoạt động của các trường đại học tiếng Anh đang tăng lên, nhưng sự tăng trưởng này chủ yếu tập trung ở các khu vực tiếng Anh chứ không phải toàn bộ Vương quốc Anh.</span> Các nhà cung cấp mạnh trong khu vực đó mới là động lực chính, trong khi số lượng nhà cung cấp như vậy ở Wales ít hơn."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Đúng và sắc bén. Phản ánh chính xác nhận định của Bethan/David (utt[33]). Một điểm thú vị: model <b>tự chọn lọc ý chính</b> (bỏ qua ví dụ so sánh Scotland) — đây là hành vi tốt, không phải "thiếu". Đạt.
+    </div>
+  </div>
+
+  <!-- Chunk 4 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 40–47</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc thảo luận tập trung vào <span class="highlight-yellow">việc phát triển chương trình 'Study in Wales'</span> nhằm giới thiệu xứ Wales như một địa điểm học tập hấp dẫn, nhấn mạnh <span class="highlight-yellow">sự khác biệt và các yếu tố an toàn</span>. Các thông điệp truyền tải bao gồm sự an toàn, hệ thống chất lượng của Vương quốc Anh và bằng cấp UK trong môi trường hỗ trợ tốt hơn."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Xuất sắc. Nhắc đích danh chương trình "Study in Wales" (utt[41]) và 3 thông điệp trọng tâm: an toàn, hệ thống chất lượng UK, bằng cấp UK (utt[43]). Văn phong tự nhiên. Đạt.
+    </div>
+  </div>
+
+  <!-- Chunk 5 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 48–55</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Các dự báo doanh thu cho năm 2017-18 cho thấy <span class="highlight-yellow">doanh thu từ sinh viên ở châu Âu là 38 triệu bảng Anh và 91 triệu bảng Anh từ các nguồn tài trợ khác, chiếm khoảng 8% tổng doanh thu ngành (1,5 tỉ bảng Anh)</span>. Các tổ chức đang đối mặt với thách thức về cơ sở hạ tầng tài chính và ngân hàng ngày càng ít chấp nhận rủi ro khi cấp vốn."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Con số cực kỳ chính xác (£38m, £91m, 8%, £1.5bn) từ utt[50]. Tóm được thông điệp rủi ro tài chính. Đây là chunk tốt nhất của cả output — có số liệu cụ thể, đúng transcript. <b>Vượt yêu cầu</b>.
+    </div>
+  </div>
+
+  <!-- Chunk 6 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 56–63</span>
+      <span class="verdict v-miss">XANH · THIẾU MỘT PHẦN</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc thảo luận tập trung vào <span class="highlight-yellow">việc tái lập nguồn tài chính cho chi phí cao hơn và đổi mới</span>, đồng thời xem xét sự khác biệt về chi phí giữa năm 2018-19 và hiện tại. <span class="highlight-green">Các quan chức chính phủ xứ Wales được đánh giá là hữu ích trong việc xác định các giả định lập kế hoạch</span> (utt[58])."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Đúng phần tái lập tài chính (utt[56]). Nhưng <b>thiếu một số chi tiết quan trọng</b> của utt[54]: việc HEFCW nhận được 10 triệu bảng vốn đầu tư + có thể nhận thêm 20 triệu bảng, Đại học Cardiff đã phát hành trái phiếu. Đây là thông tin tài chính quan trọng. Mặt khác, model <b>tóm gọn</b> nên không thừa. Đánh giá: thiếu (~30%) thông tin cốt lõi, không sai.
+    </div>
+  </div>
+
+  <!-- Chunk 7 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 64–71</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Các bên thảo luận về <span class="highlight-yellow">kỳ vọng của các tổ chức đối với nguồn thu nhập ổn định và sự nhạy cảm của họ đối với các kết quả UCAS</span>. Cuộc thảo luận chuyển sang <span class="highlight-yellow">tác động của Brexit, bao gồm các đánh giá rủi ro và các lĩnh vực cần hành động được xác định bởi nhóm làm việc Brexit của Chính phủ xứ Wales</span> (utt[69])."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm đúng nhóm làm việc Brexit của WG (utt[69]). Có chi tiết: nhóm "do một trong các giám đốc của Chính phủ chủ trì" — nhưng model <b>lược bỏ tên người chủ trì</b>, có thể là quyết định đúng vì transcript không ghi rõ. Đạt.
+    </div>
+  </div>
+
+  <!-- Chunk 8 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 72–79</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc thảo luận tập trung vào <span class="highlight-yellow">các mức phí và chương trình truy cập</span>, cũng như tác động tiềm tàng của Brexit. <span class="highlight-yellow">Các kế hoạch phí và quyền truy cập được phê duyệt hàng năm</span>, đòi hỏi thời gian xem xét dài và dựa trên dự báo tài chính của các trường. Có sự tranh luận về việc liệu sụt giảm có thực sự do Brexit hay do các yếu tố khác."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm đúng ý chính: kế hoạch phí/quyền truy cập hàng năm, dựa trên dự báo tài chính (utt[73]). Có nhắc đến sự tranh luận về nguyên nhân sụt giảm (utt[74] - Brexit vs yếu tố khác) — điểm hay vì phản ánh đa chiều. <b>Hơi thiếu</b> chi tiết về Erasmus (utt[75]), Horizon 2020 (utt[78]), Global Wales (utt[78]). Đạt phần lớn, có thể tốt hơn nếu chi tiết hơn.
+    </div>
+  </div>
+
+  <!-- Chunk 9 -->
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 80</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "<span class="highlight-yellow">Các tổ chức được mô tả là các tổ chức tự chủ, trong đó cơ quan quản lý cuối cùng chịu trách nhiệm về sự bền vững của chúng.</span> Mối quan hệ được thiết lập là đặt câu hỏi về các kịch bản dựa trên kinh nghiệm, chứ không phải là mối quan hệ chỉ đạo hay đưa ra lời khuyên trực tiếp."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Chunk ngắn chỉ 1 utterance nhưng tóm gọn. Phản ánh chính xác 2 ý: tổ chức tự chủ (utt[80]) và quan hệ "đặt câu hỏi dựa trên kinh nghiệm" thay vì chỉ đạo. Đạt.
+    </div>
+  </div>
+</div>
+
+<!-- ============== CHAPTER 3 ============== -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">Chapter 3 · Title</span>
+    <span class="chapter-title">Tư vấn và đánh giá rủi ro trong bối cảnh Brexit</span>
+  </div>
+  <div class="chapter-range">utt [81–92] · 12 utterances · 2 chunks</div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">Title</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">"Tư vấn và đánh giá rủi ro trong bối cảnh Brexit"</div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> 8 từ, đúng spec. Phản ánh chính xác chủ đề: vai trò tư vấn (utt[81-83]) + đánh giá rủi ro (utt[83]). Có nhắc Brexit context. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 81–88</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Người tham gia thảo luận về <span class="highlight-yellow">vai trò tư vấn của tổ chức trong việc giám sát các cơ sở giáo dục đại học, đặc biệt trong bối cảnh Brexit</span>. Họ nhấn mạnh <span class="highlight-yellow">tầm quan trọng của việc dựa vào dữ liệu và phán đoán để đưa ra lời khuyên</span>, đồng thời đề cập đến chu kỳ đánh giá rủi ro hai lần mỗi năm (utt[83])."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm trọn ý chính: vai trò tư vấn, dựa vào dữ liệu + phán đoán (utt[82]), chu kỳ đánh giá 2 lần/năm (utt[83]). Một điểm tinh tế: model <b>không nhầm lẫn</b> ý "chúng tôi có thể dựa vào phán đoán" thành ý của riêng người nói. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 89–92</span>
+      <span class="verdict v-miss">XANH · THIẾU CHI TIẾT</span>
+    </div>
+    <div class="summary-line">
+      "Các cuộc thảo luận xoay quanh việc <span class="highlight-yellow">khu vực xứ Wales có thể nỗ lực thúc đẩy nguồn lực cho loại hình di chuyển sinh viên</span>, và có những dấu hiệu cho thấy <span class="highlight-yellow">chương trình Erasmus có thể thay đổi do các yếu tố hạn chế trong chương trình</span>."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Đúng chủ đề Erasmus và di chuyển sinh viên. Tuy nhiên <b>thiếu</b> chi tiết quan trọng: utt[85] đề cập "40% tài trợ di chuyển của Cardiff từ Erasmus+" (con số rất cụ thể), utt[86] nói về 7 trường đều đề cập khía cạnh di chuyển. Đây là chi tiết có giá trị. Đánh giá: <b>thiếu ~40%</b> thông tin cốt lõi, không sai.
+    </div>
+  </div>
+</div>
+
+<!-- ============== CHAPTER 4 ============== -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">Chapter 4 · Title</span>
+    <span class="chapter-title">Tác động của Brexit và tài chính đối với giáo dục đại học</span>
+  </div>
+  <div class="chapter-range">utt [93–119] · 27 utterances · 4 chunks</div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">Title</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT (lặp chủ đề)</span>
+    </div>
+    <div class="summary-line">"Tác động của Brexit và tài chính đối với giáo dục đại học"</div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Đúng nội dung chương, 8 từ. Tuy nhiên <b>hơi trùng lặp chủ đề với Chapter 2</b> (cũng về "Brexit & tài chính"). Nên làm nổi bật điểm khác: chương này tập trung vào <i>tác động đã xảy ra</i> (nhập cư EU, chất lượng học thuật) thay vì nguyên nhân. Gợi ý: "Đánh giá tác động Brexit lên chất lượng & tài chính". Đạt phần lớn, có điểm cần cải thiện.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 93–100</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Cuộc thảo luận tập trung vào <span class="highlight-yellow">các vấn đề liên quan đến Brexit, bao gồm tình trạng nhập cư của sinh viên từ EU và tác động của nó đến việc đánh giá chất lượng học thuật</span>. Người tham gia bày tỏ quan ngại về chi phí liên quan và rủi ro tài chính trong ngành."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm đúng các chủ đề: nhập cư EU, chất lượng học thuật, chi phí, rủi ro tài chính. <b>Hơi tổng quát</b> — không nêu chi tiết cụ thể nào từ utt[93-100], nhưng đủ để hiểu nội dung. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 101–108</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Người nói bày tỏ sự lo ngại về <span class="highlight-yellow">sự không chắc chắn liên quan đến tình hình hiện tại, đặc biệt là khả năng số tiền bổ sung của chính phủ cho dự án Diamond có thể được chuyển sang lĩnh vực giáo dục đại học</span>. Sự không chắc chắn này được xem là khó khăn khi kết hợp với các yếu tố kinh tế hiện tại."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Chính xác. Nhắc đến dự án Diamond (utt[101]) và lo ngại về việc chuyển tiền sang giáo dục đại học. Đây là chi tiết quan trọng vì liên quan đến ngân sách Diamond review. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 109–116</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Người nói bày tỏ sự lo ngại về <span class="highlight-yellow">cam kết chính trị của Chính phủ xứ Wales đối với các chính sách cải cách bắt buộc sau khi tốt nghiệp, đặc biệt là về việc can thiệp vào quy trình ngân sách</span>. Có sự nghi ngờ về việc <span class="highlight-yellow">lời khẳng định tái đầu tư tiền tiết kiệm từ Diamond vào giáo dục đại học</span> có được thực hiện hay không."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Phản ánh đúng ý chính utt[109]: cam kết chính trị + can thiệp quy trình ngân sách + sự nghi ngờ về tái đầu tư Diamond. Mạch lập luận tốt. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 117–119</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Người tham gia đặt câu hỏi về <span class="highlight-yellow">những khó khăn tiềm ẩn đối với các mối quan hệ hợp tác và mạng lưới nghiên cứu sau Brexit</span>, đồng thời <span class="highlight-yellow">tìm kiếm bài học từ chương trình Sêr Cymru II</span>. Người khác nhận định rằng <span class="highlight-yellow">thỏa thuận Brexit có thể không ảnh hưởng tiêu cực đến khả năng hợp tác nghiên cứu</span>."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm gọn 3 utt cuối: mối quan hệ hợp tác, Sêr Cymru II (utt[117]), nhận định Brexit có thể không ảnh hưởng (utt[119]). Có điểm nhấn rõ ràng. Đạt.
+    </div>
+  </div>
+</div>
+
+<!-- ============== CHAPTER 5 ============== -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">Chapter 5 · Title</span>
+    <span class="chapter-title">Nguồn tài trợ nghiên cứu và thách thức tại xứ Wales</span>
+  </div>
+  <div class="chapter-range">utt [120–129] · 10 utterances · 2 chunks</div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">Title</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">"Nguồn tài trợ nghiên cứu và thách thức tại xứ Wales"</div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> 7 từ, đúng spec. Phản ánh đúng: tài trợ nghiên cứu (utt[120]) + thách thức tại Wales. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 120–127</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Các thành viên hội đồng đã thảo luận về <span class="highlight-yellow">nguồn tài chính nghiên cứu từ lĩnh vực từ thiện, đặc biệt là tình hình ở xứ Wales</span>. Có sự so sánh về mức độ thu hút nguồn tài trợ so với các khu vực khác và thảo luận về cơ chế phân bổ nguồn vốn, <span class="highlight-yellow">nhấn mạnh rằng việc đầu tư dựa trên chất lượng sẽ luôn ưu tiên các cơ sở mạnh nhất</span>."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Phản ánh đúng: tài trợ nghiên cứu từ từ thiện, so sánh với khu vực khác, cơ chế phân bổ. Câu cuối (ưu tiên cơ sở mạnh nhất) là diễn giải tốt từ utt[120]. Đạt.
+    </div>
+  </div>
+
+  <div class="chunk">
+    <div class="chunk-meta">
+      <span class="chunk-tag">utt 128–129</span>
+      <span class="verdict v-ok">VÀNG · ĐẠT</span>
+    </div>
+    <div class="summary-line">
+      "Người điều phối <span class="highlight-yellow">cảm ơn cả hai bên đã trình bày bằng chứng cho ủy ban vào sáng nay và thông báo sẽ gửi bản thảo biên bản ghi chép để kiểm tra tính chính xác</span>. Sau đó, <span class="highlight-yellow">các tài liệu cần lưu ý được liệt kê bao gồm thư từ Bộ trưởng Giáo dục về mã tổ chức trường học và các thông tin tài chính liên quan</span>."
+    </div>
+    <div class="review-note">
+      <b>Đánh giá chi tiết:</b> Tóm gọn ý kết thúc cuộc họp: cảm ơn, gửi bản thảo, liệt kê tài liệu. Nhắc đúng "thư từ Bộ trưởng Giáo dục" và "mã tổ chức trường" — chi tiết cuối cùng của transcript. Đạt.
+    </div>
+  </div>
+</div>
+
+<!-- ============== TỔNG KẾT NHẬN XÉT ============== -->
+<div class="chapter" style="background: #fbfcfe;">
+  <div class="chapter-header">
+    <span class="chapter-num">TỔNG KẾT</span>
+    <span class="chapter-title">Nhận xét tổng thể của reviewer</span>
+  </div>
+  <div class="review-note" style="margin: 8px 0 0;">
+    <b>1. Điểm mạnh nổi bật:</b> Hầu hết chunks (16/19) đạt chuẩn "vàng" — nghĩa là tóm tắt khớp với transcript, không thừa, không sai. Đặc biệt tốt ở:
+    <ul style="margin: 6px 0 0 20px;">
+      <li>Con số cụ thể (£38m, £91m, 8%, 9%, 9,000 GBP/năm, Quy định 17.22, 1,5 tỉ bảng)</li>
+      <li>Tên riêng: John Griffiths, Hefin David, Lynne Neagle, Sir Ian Diamond, Bethan Owen, David Blaney, Sêr Cymru II, Erasmus+</li>
+      <li>Văn phong ngôi thứ ba, tiếng Việt tự nhiên, có dấu</li>
+    </ul>
+  </div>
+  <div class="review-note" style="margin: 8px 0 0;">
+    <b>2. Điểm cần cải thiện (XANH):</b>
+    <ul style="margin: 6px 0 0 20px;">
+      <li><b>Chunk 6 (utt 56–63, Chapter 2):</b> thiếu thông tin 10 triệu bảng vốn đầu tư HEFCW + 20 triệu bảng tiềm năng + Đại học Cardiff phát hành trái phiếu (utt[54])</li>
+      <li><b>Chunk 2 (utt 89–92, Chapter 3):</b> thiếu chi tiết "40% tài trợ di chuyển của Cardiff từ Erasmus+" (utt[85]) + 7 trường đều đề cập di chuyển (utt[86])</li>
+      <li><b>Chunk 8 (utt 72–79, Chapter 2):</b> thiếu Horizon 2020, Global Wales</li>
+    </ul>
+  </div>
+  <div class="review-note" style="margin: 8px 0 0;">
+    <b>3. Điểm thừa (ĐỎ):</b> <i>Không phát hiện hallucination rõ ràng</i>. Có 1 vấn đề nhỏ:
+    <ul style="margin: 6px 0 0 20px;">
+      <li><b>Title Chapter 2 bị cắt cụt</b> ở "thị tr…" do giới hạn 64-char (TITLE_MAX_CHARS). Cần đặt tiêu đề ≤ 60 ký tự hoặc tăng TITLE_MAX_CHARS.</li>
+    </ul>
+  </div>
+  <div class="review-note" style="margin: 8px 0 0;">
+    <b>4. Nhận xét về cấu trúc:</b>
+    <ul style="margin: 6px 0 0 20px;">
+      <li>5 chương phản ánh đúng 5 topic boundary trong transcript: mở đầu → phân tích sâu → tư vấn → tác động → kết thúc</li>
+      <li>Thứ tự chunks đúng tuần tự thời gian, không bị xáo trộn</li>
+      <li>Mỗi chunk ~2-3 câu tiếng Việt, không quá dài, không quá ngắn — phù hợp cho hiển thị UI</li>
+    </ul>
+  </div>
+  <div class="review-note" style="margin: 8px 0 0;">
+    <b>5. Gợi ý cải tiến (nếu có thêm thời gian):</b>
+    <ul style="margin: 6px 0 0 20px;">
+      <li>Đối với chunk ngắn (≤ 2 utt) → cho phép summary dài hơn để bắt được mọi thực thể</li>
+      <li>Đối với Chapter 2 với 9 chunks → xem xét phân nhóm thành 2-3 chương con (tài chính, Brexit risk, fee/access)</li>
+      <li>Tăng TITLE_MAX_CHARS từ 64 lên ~80 để title Chapter 2 không bị cắt</li>
+    </ul>
+  </div>
+  <div class="review-note" style="margin: 8px 0 0; background: var(--ok-bg); border-color: var(--ok-border);">
+    <b>KẾT LUẬN:</b> 16/19 chunks (84%) đạt "vàng" · 3/19 chunks (16%) đạt "xanh" (thiếu chi tiết phụ) · 0/19 chunks bị "đỏ" (sai/thừa). Đây là kết quả rất tốt cho lần chạy đầu tiên với real LLM. <b>TEST PASS</b> ✅ — đủ điều kiện ghi nhận thành công.
+  </div>
+</div>
+
+<div class="footer">
+  <p>Generated by <strong>AIP491 Meeting Recap System</strong> · HierarchicalRecap (Gemma-4-E2B-it-qat GGUF, CUDA)</p>
+  <p>Script: <code>scripts/eval_summary_dial1.py</code> · Source: <code>data/eval_vi/meeting_committee.json</code> · 2026-07-06</p>
+  <p>Reviewer: Claude (annotated report) · 19 chunks + 5 titles evaluated against full transcript</p>
+</div>
+
+</div>
+</body>
+</html>
