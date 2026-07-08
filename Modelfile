@@ -1,0 +1,1 @@
+FROM /home/quangnhvn34/.cache/huggingface/hub/models--unsloth--gemma-4-E4B-it-GGUF/snapshots/e1d90e5fb9f61d8dc71ef016580784a054e5c787/gemma-4-E4B-it-Q4_K_M.gguf
