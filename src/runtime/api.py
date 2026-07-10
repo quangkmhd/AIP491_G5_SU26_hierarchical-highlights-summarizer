@@ -199,8 +199,7 @@ def _materialize(payload: TranscriptIngestionRequest) -> DialogueTranscript:
     return payload.materialize()
 
 
-# No eager module-level `app` -- it would trigger the full model-load
-# chain (StreamingOrchestrator → CoherenceScorer → NSP checkpoint)
+# No eager module-level `app` -- it would trigger model loading
 # at import time, breaking every test that touches src.runtime.
 #
 # Start the server with the --factory flag:
@@ -218,7 +217,7 @@ def _suggest_fix_for_http(exc: HTTPException) -> str:
     if exc.status_code == 413:
         return "split the request into smaller batches (limit is 5000 utterances per transcript)"
     if exc.status_code == 503:
-        return "the model failed to load; check that vibert_checkpoints_vi/cpt_4000.pth exists and is readable"
+        return "the model failed to load; check the runtime logs for the model loader error"
     return f"client error {exc.status_code}: review the response detail and retry"
 
 

@@ -1,17 +1,15 @@
-"""ModelLoader -- per-process singleton for HF model + 4-bit LLM caching.
+"""ModelLoader -- per-process singleton for the LLM backbone caching.
 
 Spec: docs/superpowers/specs/2026-07-04-model-002-design.md (D3).
 
 Holds at most one `ModelHandle` per `ModelKind` for the lifetime of
-the process. `MODEL_LOAD_LLM=0` env var swaps the real gemma-4-E2B-it-qat-GGUF load
-for a `MockLLMBackbone` so unit tests + offline CI never touch the
+the process. `MODEL_LOAD_LLM=0` env var swaps the real gemma-4-E2B-it-qat-GGUF
+load for a `MockLLMBackbone` so unit tests + offline CI never touch the
 network.
 
-Concurrency (C3): the per-process singleton is guarded by a class-
-level lock, but the cache lookup-and-insert is also guarded by a
-second lock so that two threads concurrently calling
-`load_coherence_net()` for the first time do not both trigger the
-expensive HF load (which would double VRAM usage).
+The NSP-BERT CoherenceNet infrastructure was removed; topic segmentation
+is now handled entirely by the lexical Sliding TextTiling in
+`src/service/text_tiling.py`.
 """
 
 from __future__ import annotations
@@ -21,12 +19,8 @@ import logging
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from typing import Any, ClassVar
 
-import torch
-
-from .coherence_net import NSP_CKPT_PATH, CoherenceNet
 
 logger = logging.getLogger("src.repo.model_loader")
 
@@ -34,7 +28,6 @@ logger = logging.getLogger("src.repo.model_loader")
 class ModelKind(str, Enum):
     """Catalog of model identifiers cached by ModelLoader."""
 
-    NSP = "nsp"
     LLM_BACKBONE = "llm_backbone"
 
 
@@ -42,9 +35,6 @@ class ModelKind(str, Enum):
 LLM_BACKBONE_ID: str = "unsloth/gemma-4-E2B-it-qat-GGUF"
 GGUF_MODEL_ID: str = LLM_BACKBONE_ID
 GGUF_MODEL_FILENAME: str = "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf"
-NSP_ENCODER_ID: str = "vibert_checkpoints_vi/cpt_4000.pth"
-NSP_BASE_MODEL_ID: str = "FPTAI/vibert-base-cased"
-NSP_TOKENIZER_ID: str = NSP_BASE_MODEL_ID
 
 
 @dataclass(frozen=True)
@@ -66,10 +56,8 @@ class MockLLMBackbone:
     """
 
     CANNED_RESPONSES: ClassVar[dict[str, str]] = {
-        "hierarchical_abstractive": '{"notes": [{"chunk_id": "mock", "summary": "Nhóm đã thảo luận về chủ đề này.", "contains_key_point": false, "contains_action_item": false}]}',
-        "hierarchical_title": '{"title": "Chương mẫu", "one_line_summary": "none"}',
-        "ssdst_abstractive": '{"notes": [{"chunk_id": "mock", "summary": "Nhóm đã cập nhật trạng thái chủ đề.", "contains_key_point": false, "contains_action_item": false}]}',
-        "ssdst_state_update": '{"current_topic": "", "entities": [], "decisions": [], "open_actions": [], "resolved_references": []}',
+        "hierarchical_abstractive": "Nhóm đã thảo luận về chủ đề này.",
+        "hierarchical_title": "Chương mẫu\nnone",
     }
 
     def __init__(self) -> None:
@@ -92,7 +80,7 @@ class GGUFLLMBackbone:
 
     SYSTEM_PROMPT: str = (
         "Bạn là engine tạo meeting recap chuyên nghiệp. "
-        "Luôn trả lời bằng tiếng Việt. Chỉ trả về JSON hợp lệ, không thêm giải thích."
+        "Luôn trả lời bằng tiếng Việt."
     )
 
     def __init__(self, llm: "Llama") -> None:
@@ -110,7 +98,6 @@ class GGUFLLMBackbone:
             ],
             max_tokens=512,
             temperature=0.1,
-            response_format={"type": "json_object"},
         )
         return response["choices"][0]["message"]["content"].strip()
 
@@ -122,47 +109,7 @@ def _resolve_device() -> str:
     `torch.cuda.is_available()` themselves (see I3 in the review doc).
     This helper only reports the resolved device; it does not enforce.
     """
-    return "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def _load_nsp_weights(ckpt_path: str | Path, device: str) -> CoherenceNet:
-    """Load the project's pre-trained CoherenceNet checkpoint.
-
-    Mirrors the reference inference code at
-    ``references_code/dialogue-topic-segmenter/segment.py:89-93``: build
-    CoherenceNet from ``AutoModel.from_pretrained(NSP_BASE_MODEL_ID)``,
-    then overwrite with the fine-tuned ``cpt_4000.pth`` state dict.
-
-    The base model (``FPTAI/vibert-base-cased``, vocab 38168) and the
-    checkpoint share the same vocabulary, so no token-ID clamping is
-    needed.
-    """
-    from transformers import AutoModel  # local import to keep module import cheap
-
-    p = Path(ckpt_path)
-    logger.info("loading NSP checkpoint path=%s device=%s", p, device)
-    if not p.is_file():
-        raise FileNotFoundError(
-            f"NSP checkpoint not found at {p}. "
-            "Run `uv run python scripts/download_models.sh` first."
-        )
-
-    bert = AutoModel.from_pretrained(NSP_BASE_MODEL_ID)
-    net = CoherenceNet(bert=bert, device=device)
-
-    state = torch.load(p, map_location="cpu", weights_only=True)
-    net.load_state_dict(state, strict=False)
-    net.to(device)
-    net.eval()
-
-    ck_vocab = net.bert.embeddings.word_embeddings.num_embeddings
-    logger.info(
-        "NSP checkpoint loaded base=%s vocab_size=%d device=%s",
-        NSP_BASE_MODEL_ID,
-        ck_vocab,
-        device,
-    )
-    return net
+    return "cuda" if __import__("torch").cuda.is_available() else "cpu"
 
 
 def _load_llm_backbone(device: str) -> ModelHandle:
@@ -212,7 +159,7 @@ class ModelLoader:
 
     Concurrency: `_instance_lock` makes the singleton creation safe;
     `_cache_lock` makes the per-kind lookup-and-insert safe so that
-    two threads cannot both trigger a fresh `ModelKind.NSP` load.
+    two threads cannot both trigger a fresh load.
     """
 
     _instance: "ModelLoader | None" = None
@@ -235,27 +182,6 @@ class ModelLoader:
             cls._instance = None
 
     # -- public API ----------------------------------------------------------
-
-    def load_coherence_net(self) -> ModelHandle:
-        with self._cache_lock:
-            if ModelKind.NSP in self._cache:
-                logger.debug("model cache hit kind=%s", ModelKind.NSP.value)
-                return self._cache[ModelKind.NSP]
-            device = _resolve_device()
-            net = _load_nsp_weights(NSP_CKPT_PATH, device)
-            from transformers import AutoTokenizer  # local import for cost
-
-            tokenizer = AutoTokenizer.from_pretrained(NSP_TOKENIZER_ID)
-            handle = ModelHandle(
-                kind=ModelKind.NSP,
-                model=net,
-                device=device,
-                checkpoint_path=NSP_CKPT_PATH,
-                tokenizer=tokenizer,
-            )
-            self._cache[ModelKind.NSP] = handle
-            logger.info("model cache store kind=%s device=%s", ModelKind.NSP.value, device)
-            return handle
 
     def load_llm_backbone(self) -> ModelHandle:
         with self._cache_lock:
