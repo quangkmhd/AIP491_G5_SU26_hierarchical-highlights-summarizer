@@ -17,7 +17,7 @@ import pydantic
 from src.config import (
     ConfigBase,
     MeetingRecapConfig,
-    TextTilingConfig,
+    SlidingTextTilingConfig,
 )
 from src.config.errors import ConfigError
 
@@ -34,11 +34,11 @@ class ComposeTests(unittest.TestCase):
 
     def test_defaults_match_sub_config_defaults(self) -> None:
         cfg = MeetingRecapConfig(_env_file=None)
-        self.assertEqual(cfg.text_tiling.window_size, 30)
-        self.assertEqual(cfg.text_tiling.stride, 10)
+        self.assertEqual(cfg.text_tiling.block_size, 3)
+        self.assertEqual(cfg.text_tiling.alpha, 0.9)
+        self.assertEqual(cfg.text_tiling.radii, [3, 5, 10, 15, 20])
         self.assertEqual(cfg.chunking.chunk_size, 8)
         self.assertEqual(cfg.chunking.overlap, 0)
-        # HighlightsConfig removed in config-001+ (D2).
         self.assertEqual(cfg.abstractive.context_window, 512)
         self.assertEqual(cfg.language.tag, "vi")
         self.assertEqual(cfg.language.model_variant, "FPTAI/vibert-base-cased")
@@ -53,7 +53,7 @@ class ComposeTests(unittest.TestCase):
                     cfg.abstractive, cfg.language):
             self.assertIsInstance(sub, ConfigBase)
             with self.assertRaises(ConfigError):
-                sub.window_size = 1  # type: ignore[attr-defined]
+                sub.block_size = 1  # type: ignore[attr-defined]
 
 
 class EnvPrefixTests(unittest.TestCase):
@@ -63,11 +63,11 @@ class EnvPrefixTests(unittest.TestCase):
     def test_meeting_recap_prefix_maps_to_nested_field(self) -> None:
         with mock.patch.dict(os.environ, {
             "MEETING_RECAP_CHUNKING__CHUNK_SIZE": "12",
-            "MEETING_RECAP_TEXT_TILING__STRIDE": "20",
+            "MEETING_RECAP_TEXT_TILING__ALPHA": "1.4",
         }, clear=False):
             cfg = MeetingRecapConfig(_env_file=None)
             self.assertEqual(cfg.chunking.chunk_size, 12)
-            self.assertEqual(cfg.text_tiling.stride, 20)
+            self.assertEqual(cfg.text_tiling.alpha, 1.4)
 
     def test_env_beats_dotenv_file(self) -> None:
         with tempfile.NamedTemporaryFile("w", suffix=".env", delete=False) as f:
@@ -105,13 +105,6 @@ class EnvPrefixTests(unittest.TestCase):
             _clear_recap_env()
 
     def test_extra_env_var_ignored_by_default(self) -> None:
-        # Pydantic-settings treats unknown env vars as 'ignore' (the
-        # underlying model has extra='forbid' for kwarg validation, but
-        # the env source does not propagate that to unknown env names).
-        # A stricter 'env=forbid' check is deferred -- the current
-        # contract is "env vars only set fields that exist; unknown
-        # ones are silently ignored", which is also the default for
-        # 12-factor config.
         with mock.patch.dict(os.environ, {"MEETING_RECAP_BLOOPER": "1"}, clear=False):
             cfg = MeetingRecapConfig(_env_file=None)
             # No field set, defaults still apply.
@@ -127,10 +120,12 @@ class ErrorShapeTests(unittest.TestCase):
         self.assertTrue(issubclass(ConfigError, pydantic.ValidationError))
 
     def test_cross_field_rejection_raises_config_error(self) -> None:
+        # SlidingTextTilingConfig rejects empty `radii` lists.
         with self.assertRaises(ConfigError) as ctx:
-            MeetingRecapConfig(_env_file=None,
-                               text_tiling=TextTilingConfig(window_size=10, stride=20))
-        # Pydantic .errors() structure must be preserved
+            MeetingRecapConfig(
+                _env_file=None,
+                text_tiling=SlidingTextTilingConfig(radii=[]),
+            )
         self.assertTrue(hasattr(ctx.exception, "errors"))
         self.assertIsInstance(ctx.exception.errors(), list)
 

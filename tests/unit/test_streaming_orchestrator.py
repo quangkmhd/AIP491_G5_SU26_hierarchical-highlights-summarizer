@@ -1,8 +1,10 @@
 """Unit tests for StreamingOrchestrator (svc-006+streaming).
 
 Tests use a tiny synthetic transcript (8 utterances, 1 clear boundary) so
-the pipeline can run quickly on CPU with MockLLMBackbone. The NSP-BERT
-scoring is real but for a tiny input it finishes in <1s.
+the pipeline can run quickly on CPU with MockLLMBackbone.
+
+The orchestrator uses lexical Sliding TextTiling for segmentation;
+it requires no external scoring model.
 """
 
 from __future__ import annotations
@@ -20,11 +22,10 @@ sys.path.insert(0, str(ROOT))
 
 from src.service import (
     ChunkingService,
-    CoherenceScorer,
     HierarchicalSummarizationService,
     RecapEventType,
+    SlidingTextTilingService,
     StreamingOrchestrator,
-    TextTilingService,
 )
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
@@ -109,11 +110,15 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
         utt_events = [e for e in events if e.type == RecapEventType.UTTERANCE_ACCEPTED]
         self.assertEqual(len(utt_events), 4)  # 5 utt - 1 first
 
-    def test_streaming_emits_depth_score_updated(self) -> None:
+    def test_no_depth_score_updated_events(self) -> None:
+        # DEPTH_SCORE_UPDATED was dropped from the event type enum;
+        # verify the enum no longer has that member.
         transcript = _t(["a", "b", "c", "d"])
         events = list(self.orchestrator.process_stream(transcript))
-        depth_events = [e for e in events if e.type == RecapEventType.DEPTH_SCORE_UPDATED]
-        self.assertEqual(len(depth_events), 3)  # 4 utt - 1 first
+        self.assertFalse(hasattr(RecapEventType, "DEPTH_SCORE_UPDATED"))
+        # No event should carry a type that does not exist in the enum
+        for e in events:
+            self.assertIsInstance(e.type, RecapEventType)
 
     def test_chunk_closed_events_present(self) -> None:
         # 10 utterances, likely 1 segment, 2 chunks
@@ -167,9 +172,8 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
     def test_segments_non_overlapping_with_real_data(self) -> None:
         """Real dial_id=0 transcript: segments must not overlap.
 
-        This is the core regression test for the overlapping-segment
-        bug that occurs when process_stream uses transcript.utterances[boundary]
-        after pending_utts has been sliced, instead of pending_utts[boundary].
+        Regression test for the overlapping-segment bug that triggered
+        the rewrite of the boundary handling in the orchestrator.
         """
         import json
         p = ROOT / "data" / "eval_vi" / "dialseg_711.json"
@@ -206,3 +210,14 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
                 )
                 covered.add(idx)
         self.assertEqual(len(covered), len(texts))
+
+    def test_custom_tiler_pluggable(self) -> None:
+        """Caller can pass a SlidingTextTilingService directly via the
+        orchestrator's `tiler` constructor arg."""
+        from src.config.text_tiling import SlidingTextTilingConfig
+        cfg = SlidingTextTilingConfig(radii=[3, 5], alpha=0.5, min_segment_ratio=0.1)
+        tiler = SlidingTextTilingService(cfg)
+        orch = StreamingOrchestrator(tiler=tiler)
+        transcript = _t([f"chủ đề {i}" for i in range(10)])
+        recap = orch.process_batch(transcript)
+        self.assertGreaterEqual(len(recap.segments), 1)

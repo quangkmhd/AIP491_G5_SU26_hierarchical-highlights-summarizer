@@ -1,6 +1,7 @@
 """Unit tests for ModelLoader singleton + cache + offline mock."""
 
 import os
+import threading
 import unittest
 from unittest import mock
 
@@ -11,7 +12,6 @@ from src.repo.model_loader import (
     ModelLoader,
 )
 from src.repo.prompts_vi import LLMTask
-from src.repo.coherence_net import NSP_CKPT_PATH
 
 
 class TestModelLoaderSingleton(unittest.TestCase):
@@ -33,15 +33,11 @@ class TestModelLoaderSingleton(unittest.TestCase):
         b = ModelLoader.instance()
         self.assertIsNot(a, b)
 
-    def test_nsp_ckpt_path_is_the_project_artifact(self) -> None:
-        # Spec D1: cpt_4000.pth is the project's pre-trained artifact.
-        self.assertTrue(NSP_CKPT_PATH.endswith("cpt_4000.pth"))
-
     def test_llm_backbone_id(self) -> None:
         self.assertEqual(LLM_BACKBONE_ID, "unsloth/gemma-4-E2B-it-qat-GGUF")
 
-    def test_model_kind_enum_has_nsp_and_llm(self) -> None:
-        self.assertEqual({k.name for k in ModelKind}, {"NSP", "LLM_BACKBONE"})
+    def test_model_kind_enum_has_only_llm_backbone(self) -> None:
+        self.assertEqual({k.name for k in ModelKind}, {"LLM_BACKBONE"})
 
 
 class TestMockLLMBackbone(unittest.TestCase):
@@ -56,7 +52,7 @@ class TestMockLLMBackbone(unittest.TestCase):
         mock_llm = MockLLMBackbone()
         for task in LLMTask:
             mock_llm.generate(prompt="x", task=task.value)
-        self.assertEqual(mock_llm.call_count, 4)
+        self.assertEqual(mock_llm.call_count, 2)
 
 
 class TestOfflineMode(unittest.TestCase):
@@ -83,6 +79,17 @@ class TestOfflineMode(unittest.TestCase):
         self.assertIn("MODEL_LOAD_LLM=0", text)
 
 
+def _mock_handle() -> "ModelHandle":
+    """Build a ModelHandle carrying a MockLLMBackbone."""
+    from src.repo.model_loader import ModelHandle
+    return ModelHandle(
+        kind=ModelKind.LLM_BACKBONE,
+        model=MockLLMBackbone(),
+        device="cpu",
+        checkpoint_path="mock",
+    )
+
+
 class TestCaching(unittest.TestCase):
     def setUp(self) -> None:
         ModelLoader.reset_instance()
@@ -90,30 +97,28 @@ class TestCaching(unittest.TestCase):
     def tearDown(self) -> None:
         ModelLoader.reset_instance()
 
-    def test_nsp_handle_cached_on_second_access(self) -> None:
+    def test_llm_handle_cached_on_second_access(self) -> None:
         loader = ModelLoader.instance()
-        # Patch load_coherence_net's underlying loader to count invocations.
-        with mock.patch("src.repo.model_loader._load_nsp_weights") as fresh:
-            fresh.return_value = object()  # any object stand-in for the net
-            a = loader.load_coherence_net()
-            b = loader.load_coherence_net()
+        with mock.patch(
+            "src.repo.model_loader._load_llm_backbone",
+            return_value=_mock_handle(),
+        ) as fresh:
+            a = loader.load_llm_backbone()
+            b = loader.load_llm_backbone()
         self.assertIs(a, b)
         # Only one underlying load call.
         self.assertEqual(fresh.call_count, 1)
 
-    def test_nsp_cache_hit_logs_debug_only(self) -> None:
+    def test_llm_cache_hit_logs_debug_only(self) -> None:
         loader = ModelLoader.instance()
-        with mock.patch("src.repo.model_loader._load_nsp_weights") as fresh:
-            fresh.return_value = object()
-            with mock.patch("transformers.AutoTokenizer.from_pretrained"):
-                loader.load_coherence_net()
-                with self.assertLogs("src.repo.model_loader", level="DEBUG") as logs:
-                    loader.load_coherence_net()
-        self.assertIn("model cache hit kind=nsp", "\n".join(logs.output))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        with mock.patch(
+            "src.repo.model_loader._load_llm_backbone",
+            return_value=_mock_handle(),
+        ):
+            loader.load_llm_backbone()
+            with self.assertLogs("src.repo.model_loader", level="DEBUG") as logs:
+                loader.load_llm_backbone()
+        self.assertIn("model cache hit kind=llm_backbone", "\n".join(logs.output))
 
 
 class TestModelLoaderConcurrency(unittest.TestCase):
@@ -125,18 +130,18 @@ class TestModelLoaderConcurrency(unittest.TestCase):
     def tearDown(self) -> None:
         ModelLoader.reset_instance()
 
-    def test_concurrent_first_call_loads_nsp_once(self) -> None:
+    def test_concurrent_first_call_loads_llm_once(self) -> None:
         loader = ModelLoader.instance()
-        with mock.patch("src.repo.model_loader._load_nsp_weights") as fresh:
-            fresh.return_value = object()
-            import threading
-
+        with mock.patch(
+            "src.repo.model_loader._load_llm_backbone",
+            return_value=_mock_handle(),
+        ) as fresh:
             handles: list = []
             errors: list = []
 
             def worker() -> None:
                 try:
-                    handles.append(loader.load_coherence_net())
+                    handles.append(loader.load_llm_backbone())
                 except Exception as exc:  # pragma: no cover -- we assert no error
                     errors.append(exc)
 
@@ -153,3 +158,7 @@ class TestModelLoaderConcurrency(unittest.TestCase):
                 self.assertIs(h, first)
             # The expensive load ran exactly once.
             self.assertEqual(fresh.call_count, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

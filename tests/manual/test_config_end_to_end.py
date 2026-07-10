@@ -2,7 +2,7 @@
 
 This is a runnable sanity check, NOT production code. It proves that:
 
-  1. Default MeetingRecapConfig composes 5 sub-configs with paper defaults.
+  1. Default MeetingRecapConfig composes 4 sub-configs with paper defaults.
   2. A custom .env.test file overrides via MEETING_RECAP_<SUB>__<FIELD>.
   3. Process env vars beat .env file values.
   4. _env_file=None skips the file.
@@ -33,7 +33,7 @@ from src.config import (
     ConfigError,
     LanguageConfig,
     MeetingRecapConfig,
-    TextTilingConfig,
+    SlidingTextTilingConfig,
 )
 from src.types import Chunk, TranscriptIngestionRequest
 
@@ -49,8 +49,9 @@ class DefaultsFlowTests(unittest.TestCase):
 
     def test_default_compose_matches_paper(self) -> None:
         cfg = MeetingRecapConfig(_env_file=None)
-        self.assertEqual(cfg.text_tiling.window_size, 30)
-        self.assertEqual(cfg.text_tiling.stride, 10)
+        self.assertEqual(cfg.text_tiling.block_size, 3)
+        self.assertEqual(cfg.text_tiling.alpha, 0.9)
+        self.assertEqual(cfg.text_tiling.radii, [3, 5, 10, 15, 20])
         self.assertEqual(cfg.chunking.chunk_size, 8)
         self.assertEqual(cfg.abstractive.context_window, 512)
         self.assertEqual(cfg.language.tag, "vi")
@@ -63,12 +64,12 @@ class DotEnvOverrideTests(unittest.TestCase):
     def test_dotenv_test_loads_correctly(self) -> None:
         with tempfile.NamedTemporaryFile("w", suffix=".env.test", delete=False) as f:
             f.write("MEETING_RECAP_CHUNKING__CHUNK_SIZE=12\n")
-            f.write("MEETING_RECAP_TEXT_TILING__STRIDE=20\n")
+            f.write("MEETING_RECAP_TEXT_TILING__ALPHA=1.4\n")
             env_path = f.name
         try:
             cfg = MeetingRecapConfig(_env_file=env_path)
             self.assertEqual(cfg.chunking.chunk_size, 12)
-            self.assertEqual(cfg.text_tiling.stride, 20)
+            self.assertEqual(cfg.text_tiling.alpha, 1.4)
         finally:
             os.unlink(env_path)
             _clear_recap_env()
@@ -101,11 +102,11 @@ class CrossFieldRejectionTests(unittest.TestCase):
     def setUp(self) -> None:
         _clear_recap_env()
 
-    def test_stride_gt_window_raises(self) -> None:
+    def test_empty_radii_raises(self) -> None:
         with self.assertRaises(ConfigError):
             MeetingRecapConfig(
                 _env_file=None,
-                text_tiling=TextTilingConfig(window_size=10, stride=20),
+                text_tiling=SlidingTextTilingConfig(radii=[]),
             )
 
     def test_overlap_ge_chunk_size_raises(self) -> None:
