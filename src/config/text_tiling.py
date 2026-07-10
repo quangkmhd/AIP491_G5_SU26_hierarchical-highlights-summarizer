@@ -1,18 +1,28 @@
-"""TextTilingConfig: TextTiling parameters (paper-1 §3.3).
+"""SlidingTextTilingConfig: parameters for the multi-scale Sliding TextTiling.
 
-Defaults are paper-anchored:
-  * window_size = 30 utterances (paper-1 §3.3)
-  * stride      = 10 utterances (paper-1 §3.3)
-  * smoothing   = "mean"      (paper-1 §3.3 -- marked as "tune" default)
-  * alpha       = 0.0         (paper-1 §3.3: threshold = mean + alpha * std)
+The pipeline combines a custom BoW + cosine TextTiling (depth scores, alpha
+threshold) with a sliding-window idea taken from the LLM-powered Meeting
+Recap paper (Asthana et al., 2025, Section 3.2.2). The paper sweeps a
+window of utterances with a fixed stride and merges boundaries by
+max-voting; because the BoW TextTiling is not token-bounded, the sliding
+behaviour is reproduced by computing depth scores at multiple peak-search
+radii and aggregating the z-scored depths.
 
-In the paper, alpha is tuned on a dev set via grid search over
-[-2, 2] with step 0.1 (segment.py:111). Default alpha=0 means
-threshold = mean(depths).
+Fields:
+  * block_size: how many utterances on each side are pooled into the BoW
+    blocks compared at every gap (1 = pure pairwise similarity).
+  * radii: list of peak-search radii; each radius produces one depth
+    profile that is z-scored before being aggregated.
+  * alpha: depth threshold = mean + alpha * std. Default 0.9 matches the
+    reference implementation in 16-eval-DTS.
+  * use_stopwords: if True, drops Vietnamese stop words (loaded lazily).
+  * agg: how to combine the per-radius depth profiles ("mean", "max",
+    "sum").
+  * normalize: per-radius normalization ("zscore" or "minmax").
+  * min_segment_ratio: minimum segment size as a fraction of total
+    utterances, used for the small-segment post-merge pass.
 
-Cross-field rule: stride <= window_size. Stride > window would skip
-utterances entirely, which is invalid for a sliding-window TextTiling
-pipeline.
+Cross-field rule: radii must be a non-empty list of positive integers.
 """
 
 from __future__ import annotations
@@ -23,28 +33,45 @@ from pydantic import Field, model_validator
 
 from ._base import ConfigBase
 
-Smoothing = Literal["mean", "median", "ema"]
+Agg = Literal["mean", "max", "sum"]
+Normalize = Literal["zscore", "minmax"]
 
 
-class TextTilingConfig(ConfigBase):
-    """TextTiling parameters (paper-1 §3.3)."""
+class SlidingTextTilingConfig(ConfigBase):
+    """Sliding TextTiling parameters."""
 
-    window_size: int = Field(default=30, ge=1, description="paper-1 §3.3: window of N utterances")
-    stride: int = Field(default=10, ge=1, description="paper-1 §3.3: slide by N utterances")
-    smoothing: Smoothing = Field(
-        default="mean",
-        description="paper-1 §3.3 smoothing policy (tune default = mean)",
+    block_size: int = Field(default=3, ge=1, description="BoW block size for cosine similarity")
+    radii: list[int] = Field(
+        default_factory=lambda: [3, 5, 10, 15, 20],
+        description="peak-search radii (one depth profile per radius)",
     )
     alpha: float = Field(
-        default=1.0,
-        description="paper-1 §3.3: threshold = mean + alpha * std; tuned on dev set [-2, 2]",
+        default=0.9,
+        description="depth threshold = mean + alpha * std",
+    )
+    use_stopwords: bool = Field(
+        default=True,
+        description="drop Vietnamese stop words from BoW tokens",
+    )
+    agg: Agg = Field(default="mean", description="how to combine per-radius depth profiles")
+    normalize: Normalize = Field(
+        default="zscore",
+        description="per-radius depth normalization",
+    )
+    min_segment_ratio: float = Field(
+        default=0.08,
+        ge=0.0,
+        le=1.0,
+        description="minimum segment size as a fraction of n_utterances",
     )
 
     @model_validator(mode="after")
-    def _stride_le_window(self) -> "TextTilingConfig":
-        if self.stride > self.window_size:
-            raise ValueError(
-                f"stride ({self.stride}) must be <= window_size ({self.window_size}); "
-                "otherwise utterances would be skipped."
-            )
+    def _radii_non_empty(self) -> "SlidingTextTilingConfig":
+        if not self.radii:
+            raise ValueError("radii must be a non-empty list of positive integers")
+        for r in self.radii:
+            if not isinstance(r, int) or r < 1:
+                raise ValueError(
+                    f"each radius must be a positive integer; got {r!r}"
+                )
         return self

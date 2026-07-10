@@ -2,8 +2,7 @@
 
 The project extends paper-1 (which supports en/zh) to Vietnamese ("vi").
 Default: tag="vi" with the Vietnamese BERT base
-("FPTAI/vibert-base-cased"), the same base the CoherenceNet
-checkpoint loads from in `src/repo/coherence_net.py`.
+("FPTAI/vibert-base-cased").
 
 The model_variant choices are kept as a small closed set so a
 mismatched (tag, variant) pair is rejected at config construction

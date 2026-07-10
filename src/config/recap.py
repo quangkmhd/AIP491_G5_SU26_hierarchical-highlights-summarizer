@@ -1,6 +1,6 @@
 """MeetingRecapConfig: the single entry point for the orchestrator.
 
-Composes all five sub-configs and is the ONLY object in the config
+Composes all four sub-configs and is the ONLY object in the config
 layer that reads `.env` and applies `env_prefix`. Sub-configs are
 independently instantiable for unit testing without env interference.
 
@@ -24,9 +24,8 @@ from pydantic_settings import SettingsConfigDict
 from ._base import ConfigBase
 from .abstractive import AbstractiveConfig
 from .chunking import ChunkingConfig
-# HighlightsConfig removed in config-001+ (D2).
 from .language import LanguageConfig
-from .text_tiling import TextTilingConfig
+from .text_tiling import SlidingTextTilingConfig
 
 
 def _default_env_file() -> str | None:
@@ -55,9 +54,8 @@ class MeetingRecapConfig(ConfigBase):
         env_file_encoding="utf-8",
     )
 
-    text_tiling: TextTilingConfig = Field(default_factory=TextTilingConfig)
+    text_tiling: SlidingTextTilingConfig = Field(default_factory=SlidingTextTilingConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
-    # highlights: HighlightsConfig -- removed in config-001+ (D2).
     abstractive: AbstractiveConfig = Field(default_factory=AbstractiveConfig)
     language: LanguageConfig = Field(default_factory=LanguageConfig)
 
