@@ -1,13 +1,15 @@
-"""StreamingOrchestrator -- end-to-end meeting recap with 6 event types.
+"""StreamingOrchestrator -- end-to-end meeting recap with 5 event types.
 
-Wires CoherenceScorer + TextTilingService + ChunkingService +
+Wires SlidingTextTilingService + ChunkingService +
 HierarchicalSummarizationService into a single async generator that yields
 incremental state events as the pipeline produces them.
 
-Event types (per spec D5):
+The segmentation layer is standalone lexical Sliding TextTiling
+(multi-scale BoW + cosine + depth); it requires no external scoring model.
+
+Event types (per spec D5, revised):
   - utterance-accepted: every new utterance after the first
-  - depth-score-updated: new pair score from CoherenceScorer
-  - segment-closed: TextTiling boundary crossed
+  - segment-closed: Sliding TextTiling boundary crossed
   - chunk-closed: chunk filled (8 utt) or segment closed; rolling_summary is synchronous
   - title-emitted: segment closed; hierarchical_title returned (deferred at MVP via mock)
   - meeting-completed: transcript exhausted; final HierarchicalRecap attached
@@ -26,11 +28,10 @@ from enum import Enum
 from typing import Any, Iterator
 from uuid import UUID, uuid4
 
-from src.config.text_tiling import TextTilingConfig
+from src.config.text_tiling import SlidingTextTilingConfig
 from src.service.chunking_service import ChunkingService
-from src.service.coherence_scorer import CoherenceScorer
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
-from src.service.text_tiling import TextTilingService
+from src.service.text_tiling import SlidingTextTilingService
 from src.types.hierarchical_recap import HierarchicalRecap
 from src.types.segment import Chunk, SegmentResult
 from src.logging import (
@@ -42,10 +43,9 @@ from src.types.transcript import DialogueTranscript
 
 
 class RecapEventType(str, Enum):
-    """The 6 canonical recap event types from spec D5."""
+    """The 5 canonical recap event types from spec D5 (revised)."""
 
     UTTERANCE_ACCEPTED = "utterance-accepted"
-    DEPTH_SCORE_UPDATED = "depth-score-updated"
     SEGMENT_CLOSED = "segment-closed"
     CHUNK_CLOSED = "chunk-closed"
     TITLE_EMITTED = "title-emitted"
@@ -71,14 +71,12 @@ class StreamingOrchestrator:
 
     def __init__(
         self,
-        scorer: CoherenceScorer | None = None,
-        tiler: TextTilingService | None = None,
+        tiler: SlidingTextTilingService | None = None,
         chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
         self.logger = get_logger("src.service.orchestrator")
-        self.scorer = scorer or CoherenceScorer()
-        self.tiler = tiler or TextTilingService(TextTilingConfig())
+        self.tiler = tiler or SlidingTextTilingService(SlidingTextTilingConfig())
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
 
@@ -87,12 +85,12 @@ class StreamingOrchestrator:
     ) -> Iterator[OrchestratorEvent]:
         """Process a transcript; yield events as the pipeline produces them.
 
-        Phase 1 — real-time scoring: yields utterance-accepted and
-        depth-score-updated events for every utterance after the first.
+        Phase 1 — utterance intake: yields utterance-accepted events for
+        every utterance after the first.
 
-        Phase 2 — batch segmentation: runs TextTilingService.process()
-        over all accumulated scores to detect topic boundaries using the
-        paper-1 depth formula and adaptive tau = mu - sigma/2 cutoff.
+        Phase 2 — batch segmentation: runs SlidingTextTilingService.process()
+        directly on the utterance texts to detect topic boundaries using
+        multi-scale depth scoring and adaptive thresholding.
 
         Phase 3 — segment assembly: yields chunk-closed, segment-closed,
         and title-emitted for each detected segment. Yields meeting-completed
@@ -132,51 +130,22 @@ class StreamingOrchestrator:
     ):
         n = len(transcript.utterances)
         all_utterances = transcript.utterances
-        all_scores: list[float] = []
-        for idx, utt in enumerate(all_utterances):
-            if idx == 0:
-                pending_utts = [utt]
-                continue
 
+        # Phase 1: Utterance intake — emit utterance-accepted for every
+        # utterance after the first (the first is the anchor).
+        for idx, utt in enumerate(all_utterances[1:], start=1):
             yield OrchestratorEvent(
                 type=RecapEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
             )
 
-            prev = all_utterances[idx - 1]
-            score = self.scorer.score_pair(prev.text, utt.text)
-            all_scores.append(score)
-            self.logger.info(
-                "coherence pair=%d score=%.4f  utt[%d]=\"%s\" -> utt[%d]=\"%s\"",
-                idx - 1, score,
-                idx - 1, prev.text[:60],
-                idx, utt.text[:60],
-            )
-            yield OrchestratorEvent(
-                type=RecapEventType.DEPTH_SCORE_UPDATED,
-                data={
-                    "pair_index": idx - 1,
-                    "score": score,
-                },
-            )
+        # Phase 2: Batch segmentation using SlidingTextTilingService.
+        # The service takes raw utterance texts (not pre-computed scores).
+        utterance_texts = [u.text for u in all_utterances]
+        seg_events = self.tiler.process(utterance_texts)
 
-            pending_utts.append(utt)
-
-        # Phase 2: Batch segmentation using TextTilingService
-        if n < 2:
-            bounds: list[int] = []
-        else:
-            seg_events = self.tiler.process(all_scores, n)
-            bounds = [e.boundary_index for e in seg_events if e.boundary_index >= 0]
-
-        # Build segment utterance ranges from boundaries
-        seg_ranges: list[tuple[int, int]] = []
-        seg_start = 0
-        for b in bounds:
-            seg_ranges.append((seg_start, b))
-            seg_start = b + 1
-        if seg_start <= n - 1:
-            seg_ranges.append((seg_start, n - 1))
+        # Build segment utterance ranges from boundaries.
+        seg_ranges = [(e.utterances_start, e.utterances_end) for e in seg_events]
 
         self.logger.info(
             "segmentation complete n_segments=%d ranges=%s",
@@ -189,7 +158,7 @@ class StreamingOrchestrator:
                 i + 1, s, e, e - s + 1, utt_texts,
             )
 
-        # Phase 3: Build segments, emit events
+        # Phase 3: Build segments, emit events.
         for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
             segment_utts = all_utterances[start_utt:end_utt + 1]
             seg = SegmentResult(
@@ -268,5 +237,3 @@ class StreamingOrchestrator:
             if event.type == RecapEventType.MEETING_COMPLETED:
                 recap_dict = event.data["hierarchical_recap"]
         return HierarchicalRecap.model_validate(recap_dict)
-
-
