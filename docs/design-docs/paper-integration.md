@@ -57,8 +57,14 @@ this checkpoint via `ModelLoader.load_coherence_net()`.
 `references_code/dialogue-topic-segmenter/model_utils.py` (`CoherenceNet`
 architecture, replicated in `src/repo/coherence_net.py`).
 
-The matching service code lives in `src/service/coherence_scorer.py`
+The matching service code originally lived in `src/service/coherence_scorer.py`
 and `src/service/text_tiling.py` (planned in `svc-001+002`).
+
+> **Note (2026-07-10):** The topic segmentation was rewritten to use
+> lexical Sliding TextTiling (BoW + cosine + multi-scale depth). The
+> `CoherenceScorer` was removed; `src/segmenters/sliding_texttiling.py`
+> provides the core algorithm and `src/service/text_tiling.py` provides
+> `SlidingTextTilingService`. No neural scoring model is required.
 
 ## 2. Hierarchical Recap Presentation (paper-2 DR2)
 
@@ -73,9 +79,9 @@ architectural blueprint for the _Hierarchical_ recap:
   share knowledge and build consensus (DR2, paper-2 §3.1).
 - It uses `hierarchical_segment` to divide the transcript into chapters
   (paper-2 §3.2.2 originally used a BART classifier trained on 12,600
-  UHRS-annotated meetings; **we replace this with the paper-1
-  `Ours (full)` pipeline because it is unsupervised and the user has
-  a fine-tuned Vietnamese checkpoint**).
+  UHRS-annotated meetings; **we replace this with lexical Sliding
+  TextTiling (BoW + cosine + multi-scale depth) for a GPU-free,
+  deterministic segmentation**).
 - `hierarchical_abstractive` (deBERTa) generates 3rd-person rolling
   summaries per 8-utterance chunk. `hierarchical_title` (deBERTa)
   generates chapter titles (paper-2 §3.2).
@@ -161,7 +167,7 @@ This hybrid approach ensures that:
 | Turn / Utterance                 | Utterance                                  | `Utterance`                                   |
 | Topic boundary                   | Chapter / Segment                          | `SegmentResult`                               |
 | Window of 8 utterances           | Chunk (context window for 512-token limit) | `Chunk`                                       |
-| NSP coherence score (not stored) | —                                          | computed by `CoherenceScorer` (`svc-001+002`) |
+| BoW cosine similarity (not stored) | —                                        | computed by `SlidingTextTilingService` (`svc-001+002`) |
 | —                                | Chapter title                              | `SegmentResult.title` / `user_title_override` |
 | —                                | Chunk rolling summary                      | `Chunk.rolling_summary`                       |
 | —                                | Full recap                                 | `HierarchicalRecap`                           |
@@ -171,10 +177,9 @@ This hybrid approach ensures that:
 - **Paper-2 DR1 (Highlights)** — explicitly out of scope. If re-added in
   a future milestone, it would be a new feature `svc-008-highlights-pipeline`
   with new data models, new AI checkpoints, and a new UI tab.
-- **Paper-2 §3.2.2 supervised BART segmenter** — replaced by paper-1
-  _Ours (full)_ because the user has a Vietnamese fine-tuned NSP-BERT
-  checkpoint and the unsupervised method matches paper-1 SOTA
-  performance.
+- **Paper-2 §3.2.2 supervised BART segmenter** — replaced by lexical
+  Sliding TextTiling (BoW + cosine + multi-scale depth), which is
+  GPU-free, deterministic, and requires no neural checkpoint.
 - **Live ASR ingestion** — the orchestrator is streaming-capable but
   the runtime surface is HTTP+SSE only. A future WebSocket route
   could pipe live ASR utterances into

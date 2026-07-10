@@ -10,7 +10,7 @@ Tài liệu này đặc tả chi tiết kiến trúc, cấu trúc dữ liệu, g
 
 Họp trực tuyến và làm việc từ xa ngày càng phổ biến, dẫn đến quá tải thông tin và nhu cầu cao về các biên bản cuộc họp hiệu quả. **Hierarchical Meeting Recap System** giải quyết vấn đề này bằng cách:
 
-* **Chia nhỏ chủ đề tự động (Unsupervised Dialogue Topic Segmentation):** Sử dụng thuật toán Neural TextTiling (được huấn luyện dựa trên tác vụ Coherence Scoring của cặp câu thoại qua mô hình NSP BERT/CoherenceNet) để chia nhỏ một bản ghi hội thoại tuyến tính dài thành các đoạn chủ đề riêng biệt (Chapters).
+* **Chia nhỏ chủ đề tự động (Unsupervised Dialogue Topic Segmentation):** Sử dụng thuật toán lexical Sliding TextTiling (BoW + cosine similarity + multi-scale depth scoring) để chia nhỏ một bản ghi hội thoại tuyến tính dài thành các đoạn chủ đề riêng biệt (Chapters).
 * **Tóm tắt phân cấp (Hierarchical Recap):** Sinh ra tiêu đề chương ngắn gọn, tóm tắt chi tiết các khối 8 câu thoại (Chunks) dưới dạng kể ở ngôi thứ ba, và trích xuất song song các điểm chính (Key-Points/Notes) cũng như hành động cần làm (Action Items/Tasks).
 * **Hỗ trợ tương tác:** Cho phép người dùng chỉnh sửa tiêu đề chương, đánh dấu sao điểm chính và hộp kiểm hành động trực quan để cải thiện độ chính xác và cá nhân hóa.
 
@@ -55,9 +55,8 @@ graph TB
     end
 
     subgraph Service Container
-        TTS[TextTiling Service]
+        TTS[SlidingTextTilingService]
         MRecap[Meeting Recap Orchestrator]
-        CoherenceScorer[Coherence Scorer Service]
     end
 
     subgraph Repository Container
@@ -67,9 +66,7 @@ graph TB
     end
 
     subgraph Model Checkpoints
-        BERT[NSP BERT / CoherenceNet]
-        deBERTa[hierarchical_title & hierarchical_abstractive]
-        BART[highlights_extractive & highlights_abstractive]
+        LLM[Viet-Mistral LLM / MockLLMBackbone]
     end
 
     UI -->|HTTP REST| API
@@ -77,15 +74,12 @@ graph TB
 
     API -->|Orchestrates| MRecap
     MRecap -->|Calculates Boundaries| TTS
-    MRecap -->|Summarizes / Titles| deBERTa
-    MRecap -->|Extracts Highlights| BART
+    MRecap -->|Summarizes / Titles| LLM
+    TTS -->|BoW + cosine (no model)| TTS
 
-    TTS -->|Uses| CoherenceScorer
-    CoherenceScorer -->|Model Inference| BERT
-  
-    MLoader -->|Loads weights to CPU/GPU| BERT
-    MLoader -->|Loads weights| deBERTa
-    MLoader -->|Loads weights| BART
+    MLoader -->|Loads weights| LLM
+    MRecap -->|Saves state / reads| FS
+    TRepo -->|Reads raw inputs| FS
 
     MRecap -->|Saves state / reads| FS
     TRepo -->|Reads raw inputs| FS
@@ -100,16 +94,18 @@ sequenceDiagram
     autonumber
     actor Client
     participant Service as MeetingRecapOrchestrator
-    participant Segmentation as Neural TextTiling Service
-    participant Summarization as Abstractive Summarizer (deBERTa/BART)
+    participant Segmentation as SlidingTextTilingService
+    participant Summarization as LLM Backbone (MockLLMBackbone)
     participant FS as Repository / File System
 
     Client->>Service: Send Raw Transcript (List of Utterances)
-    Service->>Segmentation: Request Topic Boundaries (Utterance-Pair Coherence)
+    Service->>Segmentation: Request Topic Boundaries (Sliding TextTiling)
     activate Segmentation
-    Segmentation->>Segmentation: Compute Coherence Scores between pairs c_i = CS(u_i, u_i+1)
-    Segmentation->>Segmentation: Calculate Depth Scores dp_i & Threshold (t = mean - std/2)
-    Segmentation-->>Service: Return Segment boundaries (e.g. Seg1: U1-U40, Seg2: U41-U70)
+    Segmentation->>Segmentation: BoW every utterance
+    Segmentation->>Segmentation: Cosine similarity at each gap (block_size=3)
+    Segmentation->>Segmentation: Depth scores at multiple radii → z-score → aggregate
+    Segmentation->>Segmentation: Threshold (mean + alpha*std) & merge small segments
+    Segmentation-->>Service: Return Segment boundaries (SegmentEvent list)
     deactivate Segmentation
 
     loop For each Segment
@@ -120,19 +116,15 @@ sequenceDiagram
             Service->>Service: Keep Segment as one Chunk
         end
 
-        Service->>Summarization: Generate Chapter Title (hierarchical_title on full segment)
-        Summarization-->>Service: Chapter Title (e.g. "Dark Mode UI Designs")
+        Service->>Summarization: Generate Chapter Title
+        Summarization-->>Service: Chapter Title
       
         loop For each Chunk
-            Service->>Summarization: Summarize Chunk (hierarchical_abstractive to 3rd person)
+            Service->>Summarization: Summarize Chunk
             Summarization-->>Service: Chunk Rolling Summary
         end
     end
 
-    Service->>Summarization: Run Highlights Pipeline (extractive + abstractive)
-    Summarization-->>Service: Return Key Points & Action Items
-
-    Service->>Service: Merge titles, summaries & decorate highlights onto chunks
     Service->>FS: Save recap JSON file (structured output metadata)
     Service-->>Client: Return final structured JSON Hierarchical Recap
 ```

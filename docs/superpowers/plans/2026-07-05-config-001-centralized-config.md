@@ -772,6 +772,11 @@ Default: tag="vi" with the multilingual BERT base
 ("bert-base-multilingual-cased"), the same base the CoherenceNet
 checkpoint loads from in `src/repo/coherence_net.py`.
 
+Note (2026-07-10): Topic segmentation has been rewritten to use lexical
+Sliding TextTiling; CoherenceNet / NSP checkpoint are no longer called
+by the orchestrator. The LanguageConfig `model_variant` field remains
+for the LLM backbone.
+
 The model_variant choices are kept as a small closed set so a
 mismatched (tag, variant) pair is rejected at config construction
 time, not at model load time.

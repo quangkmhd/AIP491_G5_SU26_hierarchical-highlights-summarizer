@@ -13,9 +13,9 @@ enough to act on.
   sequence of utterances with speaker labels.
 - The user is using the Web App (`ui-001`, not yet implemented) **or**
   the Python CLI / `uv run src/runtime/cli.py` (depends on `api-001`).
-- The system has all five AI model checkpoints available
-  locally (`vibert_checkpoints_vi/cpt_1000.pth` for NSP BERT;
-  deBERTa and BART checkpoints from `model-002`).
+- The system requires an LLM backbone (or `MockLLMBackbone` via
+  `MODEL_LOAD_LLM=0`). Topic segmentation uses lexical Sliding
+  TextTiling — no neural checkpoint required for segmentation.
 
 ## User Flow
 
@@ -30,17 +30,13 @@ enough to act on.
    - Calls `TranscriptIngestionRequest.materialize()` to build a
      `DialogueTranscript`. Empty payloads and payloads over
      `MAX_UTTERANCES = 5000` are rejected here with a clear error.
-   - Runs `TextTiling` to split the transcript into `SegmentResult`s
-     (planned in `svc-001`).
+   - Runs `SlidingTextTilingService` to split the transcript into `SegmentResult`s.
    - Chunks each segment into <= 8-utterance `Chunk`s.
-   - Runs `hierarchical_title` (deBERTa) on each segment and
-     `hierarchical_abstractive` (deBERTa) on each chunk.
-   - Runs the highlights pipeline (BART) to extract `key_points` and
-     `action_items`.
+   - Runs `hierarchical_title` on each segment and
+     `hierarchical_abstractive` on each chunk (via `MockLLMBackbone` or LLM).
    - Returns a `HierarchicalRecap` in the response body.
 6. The client renders the recap. The hierarchical view shows chapters in
-   chronological order; the highlights view shows notes and tasks
-   across the whole meeting.
+   chronological order.
 
 ## Acceptance Criteria
 

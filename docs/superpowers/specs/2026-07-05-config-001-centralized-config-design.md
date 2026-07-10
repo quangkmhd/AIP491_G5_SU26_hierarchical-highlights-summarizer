@@ -46,9 +46,8 @@ src/config/
 ├── __init__.py            # re-export public surface
 ├── _base.py               # ConfigBase: frozen BaseSettings
 ├── errors.py              # ConfigError = pydantic.ValidationError
-├── text_tiling.py         # TextTilingConfig
+├── text_tiling.py         # SlidingTextTilingConfig
 ├── chunking.py            # ChunkingConfig
-├── highlights.py          # HighlightsConfig
 ├── abstractive.py         # AbstractiveConfig
 ├── language.py            # LanguageConfig
 ├── recap.py               # MeetingRecapConfig
@@ -85,11 +84,13 @@ override of the form `MEETING_RECAP_<SUB>__<FIELD>` (handled by
 
 | Sub-config          | Field               | Type                                                        | Default (paper)                | Validator                                                                                                                                                    |
 | ------------------- | ------------------- | ----------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `TextTilingConfig`  | `window_size`       | int (ge=1)                                                  | 30 (paper-1 §3.3)              | `@field_validator`                                                                                                                                           |
-|                     | `stride`            | int (ge=1)                                                  | 10 (paper-1 §3.3)              |                                                                                                                                                              |
-|                     | `smoothing`         | Literal["mean","median","ema"]                              | "mean"                         |                                                                                                                                                              |
-|                     | `cutoff_policy`     | Literal["mean","mean+2std","depth_knee"]                    | "mean+2std"                    |                                                                                                                                                              |
-|                     |                     |                                                             |                                | `@model_validator(mode="after")`: `stride <= window_size`                                                                                                    |
+| `SlidingTextTilingConfig` | `block_size`       | int (ge=1)                                                  | 3                              |                                                                                                                                                              |
+|                     | `radii`            | list[int]                                                  | [3, 5, 10, 15, 20]            | all positive ints                                                                                                                                                              |
+|                     | `alpha`         | float                                 | 0.9                         |                                                                                                                                                              |
+|                     | `use_stopwords`     | bool                    | True                    |                                                                                                                                                              |
+|                     | `agg`     | Literal["mean","max","sum"]                    | "mean"                    |                                                                                                                                                              |
+|                     | `normalize`     | Literal["zscore","minmax"]                    | "zscore"                    |                                                                                                                                                              |
+|                     | `min_segment_ratio`     | float (0.0–1.0)                    | 0.08                    |                                                                                                                                                              |
 | `ChunkingConfig`    | `chunk_size`        | int (ge=1)                                                  | 8 (paper-2 §3.3)               |                                                                                                                                                              |
 |                     | `overlap`           | int (ge=0)                                                  | 0                              | `@model_validator(mode="after")`: `overlap < chunk_size`                                                                                                     |
 | `HighlightsConfig`  | `extractive_window` | int (ge=1)                                                  | 10 (~106 tokens, paper-2 §3.3) |                                                                                                                                                              |
@@ -115,11 +116,10 @@ class MeetingRecapConfig(ConfigBase):
         case_sensitive=False,
         validate_default=True,
     )
-    text_tiling: TextTilingConfig = Field(default_factory=TextTilingConfig)
-    chunking:    ChunkingConfig    = Field(default_factory=ChunkingConfig)
-    highlights:  HighlightsConfig  = Field(default_factory=HighlightsConfig)
-    abstractive: AbstractiveConfig = Field(default_factory=AbstractiveConfig)
-    language:    LanguageConfig    = Field(default_factory=LanguageConfig)
+    text_tiling: SlidingTextTilingConfig = Field(default_factory=SlidingTextTilingConfig)
+    chunking:    ChunkingConfig           = Field(default_factory=ChunkingConfig)
+    abstractive: AbstractiveConfig        = Field(default_factory=AbstractiveConfig)
+    language:    LanguageConfig           = Field(default_factory=LanguageConfig)
     device:         Literal["auto","cpu","cuda"] = "auto"
     data_dir:       Path = Path("data/eval_vi")
     artifacts_dir:  Path = Path("docs/generated")

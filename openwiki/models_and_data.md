@@ -6,16 +6,17 @@ The capabilities of the Meeting Recap System rely on a combination of machine le
 
 ## 🔬 1. The Machine Learning Models
 
-### CoherenceNet (NSP-BERT Scorer)
-We adopt the best-performing unsupervised topic segmentation model configuration described in **Paper 1 (_Ours (full)_)**:
+### Sliding TextTiling (Topic Segmentation)
+Topic segmentation now uses a purely **lexical Sliding TextTiling** approach — no neural scoring model required.
 
-*   **Pre-trained Base**: `bert-base-multilingual-cased` (tailored to resolve multilingual syntax structures like Vietnamese).
-*   **Architecture**: 12 Transformer layers, 12 attention heads, hidden state size of 768.
-*   **Coherence MLP Decoder Deck**: Consists of `Linear(768, 768) -> ReLU() -> Dropout(0.1) -> Linear(768, 2)`.
-*   **Loss Criterion**: Optimized via a custom Marginal Ranking Loss function:
-    $$L = \frac{1}{N} \sum \max(0, \eta + c^- - c^+)$$
-    with a margin threshold of $\eta = 1$. It leverages both dialog flow and open-topic dialog negatives.
-*   **Local Checkpoint**: We load from the local, pre-trained checkpoint: `vibert_checkpoints_vi/cpt_4000.pth`.
+*   **Bag-of-Words**: Each utterance is tokenised by lowercasing, stripping punctuation, and filtering against Vietnamese stop words (`stopwordsiso`).
+*   **Cosine Similarity**: Cosine similarity is computed at every consecutive utterance gap, with each side pooled into a `block_size` window (default: 3).
+*   **Multi-Scale Depth Scores**: Depth scores are computed at multiple peak-search radii (default `[3, 5, 10, 15, 20]`) using the classic TextTiling formula:
+    $$dp_i = \frac{hl(i) + hr(i) - 2 \cdot s_i}{2}$$
+    where $s_i$ is the similarity at gap $i$, and $hl$/$hr$ are the nearest peaks on each side.
+*   **Normalisation & Aggregation**: Each radius's depth profile is independently z-score normalised, then aggregated via mean/max/sum into a single multi-scale depth profile.
+*   **Thresholding**: Boundaries are placed at gaps where $dp_i > \tau$, with $\tau = \mu + \alpha \cdot \sigma$ (default $\alpha = 0.9$).
+*   **Small-Segment Merge**: Segments smaller than `min_segment_ratio * n_utterances` are greedily merged into the shallower-depth neighbour.
 
 ### Summarization Backbone
 The system features dual summarization models (for chunk summaries and chapter titles):
@@ -24,16 +25,18 @@ The system features dual summarization models (for chunk summaries and chapter t
 
 ---
 
-## 📐 2. The Mathematics of Neural TextTiling
+## 📐 2. The Mathematics of Sliding TextTiling
 
-Consecutive utterances are scored in pairs. If a dialogue contains $N$ utterances, the pipeline computes $N-1$ scoring tuples. The transition algorithm computes local "depth scores" measuring semantic valleys:
+For a dialogue of $N$ utterances, we compute $N-1$ cosine similarity scores $s_i$ between adjacent utterance windows (each window pools `block_size` utterances). The algorithm then computes local "depth scores" measuring how deep each valley is relative to nearby peaks:
 
-$$dp_i = \frac{hl(i) + hr(i) - 2c_i}{2}$$
+$$dp_i = \frac{hl(i) + hr(i) - 2 \cdot s_i}{2}$$
 
 Where:
-*   $c_i$ is the coherence score between utterance $i$ and $i+1$.
-*   $hl(i)$ is the highest coherence peak value reached to the left of index $i$.
-*   $hr(i)$ is the highest coherence peak value reached to the right of index $i$.
+*   $s_i$ is the cosine similarity between the BoW vectors at gap $i$.
+*   $hl(i)$ is the highest similarity peak value reached to the left of gap $i$ within a given search radius.
+*   $hr(i)$ is the highest similarity peak value reached to the right of gap $i$.
+
+This depth computation is repeated at **multiple radii** (default `[3, 5, 10, 15, 20]`). Each radius produces one depth profile which is z-score normalised. The normalised profiles are then aggregated (mean/max/sum) into a single multi-scale depth profile.
 
 ### Boundary Cutting Threshold ($\tau$)
 A segment boundary is triggered between utterance $i$ and $i+1$ when:
@@ -43,9 +46,10 @@ $$dp_i > \tau$$
 $$\tau = \mu + \alpha \cdot \sigma$$
 
 Where:
-*   $\mu$ is the mean of all computed depth scores across the dialogue.
-*   $\sigma$ is the standard deviation of depth scores.
-*   $\alpha$ is our tuning hyperparameter. For our Vietnamese dataset, **$\alpha$ is set to 1.0** (or customized in `TextTilingConfig`).
+*   $\mu$ is the mean of the aggregated multi-scale depth scores.
+*   $\sigma$ is the standard deviation of the depth scores.
+*   $\alpha$ is the tuning hyperparameter (default `0.9`, configurable in `SlidingTextTilingConfig`).
+*   After thresholding, segments smaller than `min_segment_ratio * N` are greedily merged into the shallower-depth neighbour.
 
 ---
 

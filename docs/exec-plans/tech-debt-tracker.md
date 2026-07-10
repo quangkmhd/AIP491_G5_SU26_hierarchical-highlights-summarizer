@@ -177,11 +177,11 @@ current milestone but should be addressed before the next major one.
 Five architecturally-confirmed correctness bugs; each needs a dedicated
 bug-fix branch with a failing reproducer test before fixing.
 
-- **C1: Token-ID clamp maps out-of-range IDs to `[PAD]` (0) not `[UNK]` (100)**
-  - File: `src/service/coherence_scorer.py:50-54`, `src/repo/model_loader.py:140-152`
-  - Issue: `_clamp_input_ids` uses `torch.zeros_like(input_ids)` (token ID 0), which is `[PAD]` in `bert-base-multilingual-cased`. The actual `[UNK]` token is ID **100**. Also `_coerce_token_ids` clamps to `vocab_size - 1` (38167), mapping to a random subword, not `[UNK]`. Every Vietnamese utterance produces corrupted coherence scores because padding embeddings replace real unknown-token embeddings.
-  - Fix: Replace `torch.zeros_like(input_ids)` with `torch.full_like(input_ids, 100)` (the actual UNK token id) or better, obtain a 38168-vocab tokenizer from the checkpoint author.
-  - Owner: next agent working on segmentation accuracy (svc-001/svc-002).
+- ~~**C1: Token-ID clamp maps out-of-range IDs to `[PAD]` (0) not `[UNK]` (100)**~~ — **RESOLVED (2026-07-10)**
+  - File: `src/service/coherence_scorer.py:50-54` (deleted), `src/repo/model_loader.py:140-152`
+  - Issue: `_clamp_input_ids` used `torch.zeros_like(input_ids)` (token ID 0), corrupting coherence scores.
+  - Resolution: The NSP-BERT CoherenceScorer was removed when topic segmentation was rewritten to lexical Sliding TextTiling. The `_coerce_token_ids` helper in `model_loader.py` is still present but no longer called by the orchestrator.
+  - Owner: resolved.
 
 - **C2: WinDiff summation cancels disagreements before `abs()` — metric mathematically invalid**
   - File: `src/eval/segmentation_metrics.py:49-55`

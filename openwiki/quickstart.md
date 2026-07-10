@@ -2,7 +2,7 @@
 
 Welcome to the **LLM-Powered Hierarchical Meeting Recap System with Topic Segmentation** Wiki. This serves as the system-of-truth documentation designed for humans and future development agents.
 
-This project delivers a streaming, unsupervised topic-segmentation and meeting-recap pipeline. It fuses the core mathematical model from Paper 1 (unsupervised Coherence-Net + TextTiling) with the presentation and user-experience guidelines from Paper 2 (hierarchical rolling chunk summaries + deferred titles).
+This project delivers a streaming, unsupervised topic-segmentation and meeting-recap pipeline. Topic segmentation uses lexical Sliding TextTiling (BoW + cosine + multi-scale depth), while the presentation and user-experience follow guidelines from Paper 2 (hierarchical rolling chunk summaries + deferred titles).
 
 ---
 
@@ -13,7 +13,7 @@ openwiki/
 ├── quickstart.md             # This document (central navigation & overview)
 ├── architecture.md           # The strict 6-layer architecture and boundaries
 ├── workflows.md              # The 6-event end-to-end streaming and batch timelines
-├── models_and_data.md        # NSP-BERT, TextTiling math, and schemas
+├── models_and_data.md        # Sliding TextTiling math, prompts, and schemas
 └── operations.md             # Evaluation metrics, UX harnesses, CLI/Static API commands
 ```
 
@@ -21,7 +21,7 @@ Start with the core sections to understand how the system is put together:
 
 *   **[System Architecture](architecture.md)**: Explore the strict directional model (`Types -> Config -> Repo -> Service -> Runtime -> UI`) and hard dependency enforcement.
 *   **[Core Workflows](workflows.md)**: Understand the async streaming pipeline, how utterance streams yield events, and when rolling summaries & titles are calculated.
-*   **[Models, Prompts & Data Validation](models_and_data.md)**: Deep dive into the machine learning models (`CoherenceNet` / `MockLLMBackbone`), Pydantic structural bounds, and neural TextTiling mathematical formulas.
+*   **[Models, Prompts & Data Validation](models_and_data.md)**: Deep dive into the Sliding TextTiling algorithm, Pydantic structural bounds, and prompt schemas.
 *   **[System Operations & Testing](operations.md)**: Run the standard evaluation scripts, perform validation loops, use CLI diagnostic tools, and understand the test suite layout.
 
 ---

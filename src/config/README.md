@@ -35,10 +35,13 @@ overrides `cfg.chunking.chunk_size`.
 
 | Sub-config | Field | Env var | Default |
 |---|---|---|---|
-| `TextTilingConfig` | `window_size` | `MEETING_RECAP_TEXT_TILING__WINDOW_SIZE` | 30 (paper-1 §3.3) |
-| `TextTilingConfig` | `stride` | `MEETING_RECAP_TEXT_TILING__STRIDE` | 10 (paper-1 §3.3) |
-| `TextTilingConfig` | `smoothing` | `MEETING_RECAP_TEXT_TILING__SMOOTHING` | "mean" |
-| `TextTilingConfig` | `cutoff_policy` | `MEETING_RECAP_TEXT_TILING__CUTOFF_POLICY` | "mean+2std" |
+| `SlidingTextTilingConfig` | `block_size` | `MEETING_RECAP_TEXT_TILING__BLOCK_SIZE` | 3 |
+| `SlidingTextTilingConfig` | `radii` | `MEETING_RECAP_TEXT_TILING__RADII` | [3, 5, 10, 15, 20] |
+| `SlidingTextTilingConfig` | `alpha` | `MEETING_RECAP_TEXT_TILING__ALPHA` | 0.9 |
+| `SlidingTextTilingConfig` | `use_stopwords` | `MEETING_RECAP_TEXT_TILING__USE_STOPWORDS` | True |
+| `SlidingTextTilingConfig` | `agg` | `MEETING_RECAP_TEXT_TILING__AGG` | "mean" |
+| `SlidingTextTilingConfig` | `normalize` | `MEETING_RECAP_TEXT_TILING__NORMALIZE` | "zscore" |
+| `SlidingTextTilingConfig` | `min_segment_ratio` | `MEETING_RECAP_TEXT_TILING__MIN_SEGMENT_RATIO` | 0.08 |
 | `ChunkingConfig` | `chunk_size` | `MEETING_RECAP_CHUNKING__CHUNK_SIZE` | 8 (paper-2 §3.3) |
 | `ChunkingConfig` | `overlap` | `MEETING_RECAP_CHUNKING__OVERLAP` | 0 |
 | ~~`HighlightsConfig`~~ | ~~`extractive_window`~~ | ~~`MEETING_RECAP_HIGHLIGHTS__EXTRACTIVE_WINDOW`~~ | removed in config-001+ (D2) |
@@ -66,7 +69,6 @@ TextTilingConfig().window_size  # 45
 
 ## Cross-field rules
 
-* `TextTilingConfig.stride <= window_size`
 * `ChunkingConfig.overlap < chunk_size`
 * `LanguageConfig.tag="zh"` ⇒ `model_variant="bert-base-chinese"`
 * `LanguageConfig.tag in ("en","vi")` ⇒ `model_variant="bert-base-multilingual-cased"`

@@ -6,7 +6,7 @@
 **Layer position:** `Types -> Config -> Repo -> Service -> Runtime -> UI`
 **Related specs:**
 
-- `docs/superpowers/specs/2026-07-04-model-002-design.md` (Approved) — NSP-BERT CoherenceNet + ModelLoader
+- `docs/superpowers/specs/2026-07-04-model-002-design.md` (Approved) — CoherenceNet + ModelLoader (CoherenceNet no longer used by segmentation; see D4 note)
 - `docs/superpowers/specs/2026-07-05-config-001-centralized-config-design.md` (Approved) — `MeetingRecapConfig` + 5 sub-configs
 
 ---
@@ -22,16 +22,14 @@ project's product surface and pipeline design:
    only the Hierarchical method (`hierarchical_segment` + `hierarchical_abstractive`
    - `hierarchical_title`) and explicitly excluded the highlights
      extractive model.
-2. **Topic segmentation uses paper-1's _Ours (full)_ method.** Paper-1
-   Table 4 shows `Ours (full)` wins on every metric on both English
-   test sets (DialSeg_711 P_k=26.80, F1=0.776; Doc2Dial P_k=45.23, F1=0.660).
-   Paper-1 §3.2 specifies the architecture (BERT_base 12L/12H/768, MLP
-   decoder `[768→768→ReLU→Dropout(0.1)→2]`, marginal ranking loss η=1).
-   The checkpoint at `vibert_checkpoints_vi/cpt_4000.pth` (463 MB) is a
-   user-fine-tuned instantiation of this architecture with
-   `bert-base-multilingual-cased` as the BERT backbone — the dev
-   workflow has already proven it loads (`model-002` smoke loader, 92/92
-   tests green).
+ 2. **Topic segmentation uses lexical Sliding TextTiling.** The pipeline
+    was rewritten to use a purely lexical BoW + cosine similarity +
+    multi-scale depth scoring approach, removing the NSP-BERT CoherenceScorer.
+    This method computes depth scores at multiple peak-search radii
+    (default `[3, 5, 10, 15, 20]`), normalises each via z-score,
+    aggregates them (mean), then thresholds at `mean + alpha * std`.
+    No neural scoring model is required, making segmentation fast and
+    deterministic without GPU dependencies.
 3. **End-to-end streaming pipeline (C3).** The recap is delivered as a
    stream of incremental state events over Server-Sent Events (HTTP) or
    NDJSON (CLI). The orchestrator is an async generator that emits
@@ -163,67 +161,63 @@ the right shape.
 
 ## 3. New / merged features
 
-### D4. `svc-001+002` — Topic Segmentation Pipeline (paper-1 _Ours (full)_)
+### D4. `svc-001+002` — Topic Segmentation Pipeline (Sliding TextTiling)
 
 **Components:**
 
-- `src/service/coherence_scorer.py` — `CoherenceScorer` class that wraps
-  `CoherenceNet` (from `model-002`) and exposes a streaming API:
-  - `score_pair(utt_i: str, utt_i_plus_1: str) -> float` — returns the
-    positive-pair softmax probability (`output[0, 0, 0]`), the same
-    value the paper code returns in `neural_texttiling.py:32-37` under
-    mode `CM`.
-  - `score_stream(iterator) -> Iterator[float]` — async generator that
-    yields one score per consecutive pair in the streamed input.
-  - Uses `bert-base-multilingual-cased` tokenizer (already resolved
-    in `model-002`), `padding='max_length'`, `max_length=128`,
-    `truncation=True` — verbatim from the paper code.
-- `src/service/text_tiling.py` — `TextTilingService` class:
-  - `__init__(scorer, config: TextTilingConfig)` where `config` is
-    the `TextTilingConfig` from `config-001` (`window_size=30`,
-    `stride=10`, `smoothing="mean"`, `cutoff_policy="mean-std/2"`).
-  - `process_stream(scores) -> Iterator[SegmentEvent]` — consumes a
-    score stream from `CoherenceScorer` and yields `SegmentEvent`s as
-    depth-score cutoffs are crossed. Maintains a sliding window of
-    `window_size` scores with `stride` step.
-  - `depth_score(s, i) -> float` — ports
-    `neural_texttiling.py::depth_computing` line-for-line:
-    `0.5 * (left_flag + right_flag - 2 * s[i])`.
-  - `cutoff_threshold(depths) -> float` — `μ - σ/2` (paper-1 §3
-    formula).
-  - `boundaries_to_segments(indices, total) -> list[int]` — ports
-    `neural_texttiling.py::boundaries_to_segments`.
-  - **Implementation note:** the paper's `neural_texttiling.py` calls
-    the encoder on a whole batch at once; our streaming version
-    processes one pair at a time. The paper-1 results (P_k=26.80) are
-    reproducible because the encoder is deterministic per pair.
+- `src/segmenters/sliding_texttiling.py` — core algorithm functions:
+  - `bow(utterance, stopwords) -> dict[str, int]` — tokenises by
+    lowercasing, stripping punctuation, and filtering Vietnamese stop
+    words.
+  - `similarity_scores(utterances, block_size, stopwords) -> list[float]`
+    — computes cosine similarity between BoW vectors at every
+    consecutive gap, pooling each side into a `block_size` window.
+  - `depth_scores(scores, radius) -> list[float]` — classic TextTiling
+    depth formula: `0.5 * (left_peak + right_peak - 2 * score[i])`
+    within a search radius.
+  - `multiscale_depth(scores, radii, normalize, agg) -> list[float]`
+    — runs depth scoring at multiple radii, normalises each profile
+    (z-score or minmax), and aggregates (mean/max/sum) into a single
+    multi-scale depth profile.
+  - `find_boundaries(scores, radii, alpha, normalize, agg, min_segment_ratio)`
+    — end-to-end: multiscale depth → threshold (mean + alpha * std)
+    → candidate boundaries → merge small segments.
+  - `merge_small_segments(boundaries, depths, n_utterances, min_ratio)`
+    — greedy merge of segments below `min_ratio * n_utterances` into
+    the shallower-depth neighbour.
+- `src/service/text_tiling.py` — `SlidingTextTilingService` class:
+  - `process(utterances: list[str]) -> list[SegmentEvent]` — consumes
+    utterance strings directly (no external scorer), calls
+    `find_boundaries()`, and emits `SegmentEvent` dataclass instances.
+  - Stateless and reusable across calls; loads Vietnamese stopwords
+    via `stopwordsiso` on first use when `use_stopwords=True`.
 
-**Architectural fit with the checkpoint:**
+**Pipeline (per-call):**
 
-The paper code (`segment.py:79-81`) instantiates
-`CoherenceNet(AutoModel.from_pretrained('aws-ai/dse-bert-base'),
-device)` for English. We instantiate
-`CoherenceNet(AutoModel.from_pretrained('bert-base-multilingual-cased'),
-device)` and load `vibert_checkpoints_vi/cpt_4000.pth`. The
-`coherence_decoder` MLP weights are exactly the same shape
-(`Linear(768,768) → ReLU → Dropout(0.1) → Linear(768,2)`), so the
-checkpoint keys map 1:1 except for the BERT encoder embeddings
-(multilingual vocab 119547 vs checkpoint vocab 38168 — handled by
-`model-002`'s `_coerce_token_ids` and embedding resize).
+1. BoW every utterance.
+2. Cosine similarity at every gap with `block_size` pooling.
+3. Multi-scale depth: run depth scoring per radius, z-score, aggregate.
+4. Threshold: `mean + alpha * std`.
+5. Merge segments smaller than `min_segment_ratio`.
+6. Emit `SegmentEvent`s.
+
+**Key difference from the original paper-1 approach:** no neural
+coherence scoring model is used. The pipeline is purely lexical,
+GPU-free, and deterministic.
 
 **Verification block:**
 
-- `test_coherence_scorer.py` — `CoherenceScorer.score_pair` returns a
-  float in [0, 1] on a synthetic Vietnamese pair.
-- `test_text_tiling.py`:
-  - `TextTilingService.process_stream` on a 100-utterance fixture
-    yields at least 1 `SegmentEvent` (proves boundary detection is
-    non-empty).
-  - Boundaries are non-overlapping, strictly increasing, and
-    cover `[0, n)`.
-  - `cutoff_threshold` returns `μ - σ/2` on a known input.
-  - Sliding-window params (window=30, stride=10) come from
-    `TextTilingConfig` (config-001), not hard-coded.
+- `test_sliding_text_tiling.py`:
+  - `bow` returns correct token counts, filters stopwords.
+  - `similarity_scores` returns values in [-1, 1] with correct length.
+  - `depth_scores` identifies valleys on synthetic similarity data.
+  - `multiscale_depth` produces fewer distinct values than input
+    length (proves aggregation happened).
+  - `find_boundaries` returns empty list on flat similarity (no
+    boundaries), non-empty on valley-rich input.
+  - `merge_small_segments` consolidates tiny segments.
+  - `SlidingTextTilingService.process` returns `SegmentEvent`s with
+    unique IDs, non-overlapping ranges covering `[0, n)`.
 
 ### D5. `svc-006+streaming` — Streaming Orchestrator
 
@@ -235,7 +229,7 @@ class.
 | Event                 | Payload                                                                   | Trigger                                              |
 | --------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `utterance-accepted`  | `{index, speaker, text}`                                                  | every new utterance after the first                  |
-| `depth-score-updated` | `{window_idx, depth_score, pair: [utt_i, utt_i+1]}`                       | new pair score from CoherenceScorer                  |
+| `depth-score-updated` | `{window_idx, depth_score, pair: [utt_i, utt_i+1]}`                       | new depth score from SlidingTextTilingService         |
 | `segment-closed`      | `{segment_id, utterances_start, utterances_end, depth_score_at_boundary}` | `depth_score > τ` (TextTiling cutoff crossed)        |
 | `chunk-closed`        | `{chunk_id, segment_id, rolling_summary}`                                 | chunk fills to 8 utt OR segment closes               |
 | `title-emitted`       | `{segment_id, title}`                                                     | segment closes; `hierarchical_title` deBERTa returns |
@@ -453,7 +447,7 @@ re-activation of `svc-005`.
 
 | Path                                                                       | Purpose                                                                                                    |
 | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `src/service/coherence_scorer.py`                                          | `CoherenceScorer` wrapping `CoherenceNet` (D4)                                                             |
+| `src/segmenters/sliding_texttiling.py`                                     | Core Sliding TextTiling algorithm (BoW, cosine, depth, multiscale, merge) (D4)                               |
 | `src/service/text_tiling.py`                                               | `TextTilingService` with sliding-window + depth-score cutoffs (D4)                                         |
 | `src/service/chunking_service.py`                                          | `ChunkingService` for 8-utterance chunks (D5)                                                              |
 | `src/service/hierarchical_summarization.py`                                | `HierarchicalSummarizationService` (deBERTa title + abstractive, mocked via `MockLLMBackbone` at MVP) (D5) |
@@ -501,11 +495,13 @@ re-activation of `svc-005`.
 
 ### Untouched
 
-- `src/repo/coherence_net.py` — `CoherenceNet` is the correct paper-1
-  architecture; checkpoint loads cleanly. (This is `model-002`.)
-- `src/repo/model_loader.py` — `ModelLoader` already supports
-  `ModelKind.NSP` with `bert-base-multilingual-cased` +
-  `vibert_checkpoints_vi/cpt_4000.pth` (smoke loader green).
+- `src/repo/coherence_net.py` — `CoherenceNet` loads from the
+  checkpoint but is **not used by the current segmentation pipeline**
+  (topic segmentation uses lexical Sliding TextTiling instead).
+- `src/repo/model_loader.py` — `ModelLoader` supports `ModelKind.NSP`
+  with `bert-base-multilingual-cased` + `vibert_checkpoints_vi/cpt_4000.pth`
+  (smoke loader green), but the NSP path is only loaded if explicitly
+  requested; the orchestrator no longer calls it.
 - `src/repo/transcript_repo.py`, `src/repo/recap_repo.py` — file IO
   paths unchanged; `RecapRepo` is shared between the streaming and
   batch paths.
@@ -611,7 +607,7 @@ uses `{"type": <type>, "payload": <payload>}` per line (no framing).
 
 | Test file                                                 | Layer         | Coverage                                                                        | Min tests    |
 | --------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------- | ------------ |
-| `tests/unit/test_coherence_scorer.py`                     | service       | score_pair shape, determinism, edge cases                                       | 6            |
+| `tests/unit/test_sliding_text_tiling.py`                  | service       | bow, cosine, depth, multiscale, boundaries, merge, service process              | 10           |
 | `tests/unit/test_text_tiling.py`                          | service       | depth_score formula, cutoff_threshold, sliding window, boundary count, coverage | 8            |
 | `tests/unit/test_chunking_service.py`                     | service       | 8-utt chunks, overlap semantics, oversize handling                              | 4            |
 | `tests/unit/test_hierarchical_summarization.py`           | service       | title and abstractive mocked via `MockLLMBackbone`; output shape                | 4            |
@@ -625,8 +621,8 @@ uses `{"type": <type>, "payload": <payload>}` per line (no framing).
 | `tests/manual/test_meeting_committee_sample.py` (UPDATED) | end-to-end    | Recap round-trip without highlights fields                                      | 1 (existing) |
 | `tests/manual/test_streaming_ux_harness.py`               | evaluation    | Synthetic participant run; report shape                                         | 1            |
 | `tests/unit/test_layer_rule_*.py` (existing)              | cross-cutting | AST scans; no cross-layer imports introduced                                    | 3 (existing) |
-| **Total new**                                             |               |                                                                                 | ~46          |
-| **Total after all migrations**                            |               |                                                                                 | **~132**     |
+| **Total new**                                             |               |                                                                                 | ~50          |
+| **Total after all migrations**                            |               |                                                                                 | **~136**     |
 
 ---
 
@@ -692,14 +688,13 @@ post-spec snapshot.
   the UX degrades. **Mitigation:** a 3 s `processing_time_ms` budget
   is documented in `RELIABILITY.md`; if exceeded, the spec ships
   anyway but the UX test is marked as needing follow-up.
-- **R4 — Vietnamese NSP scoring accuracy on real meetings.** The
-  checkpoint was fine-tuned on a DailyDialog-equivalent Vietnamese
-  corpus (user-trained, not paper-1's DailyDialog). On real
-  meeting transcripts (AMI/ICSI committee style), the
-  paper-1-quality F1 ≈ 0.78 may not hold. **Mitigation:** the
-  `eval-001` (P_k, Win-Diff, F1) feature is preserved and will
+- **R4 — Lexical segmentation accuracy on real meetings.** The
+  Sliding TextTiling method uses BoW + cosine similarity, which may
+  miss topic boundaries that depend on semantic understanding (e.g.,
+  same vocabulary used in different topic contexts). **Mitigation:**
+  the `eval-001` (P_k, Win-Diff, F1) feature is preserved and will
   surface the actual score; `progress.md` records the achieved
-  number so future agents can plan further fine-tuning.
+  number so future agents can plan improvements.
 - **R5 — The 17 → 12 feature reduction is a one-way door for the
   current milestone.** Highlights code paths are deleted (D1, D2,
   D8). If a future milestone wants highlights back, it must be a

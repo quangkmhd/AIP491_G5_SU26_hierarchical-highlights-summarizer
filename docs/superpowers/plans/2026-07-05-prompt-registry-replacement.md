@@ -180,7 +180,7 @@ def get_prompt(task: LLMTask) -> str:
 ```
 
 - Do not include `HIGHLIGHTS_PROMPT_VI`.
-- Do not include `HIERARCHIC_SEGMENT_PROMPT_VI` because segmentation is NSP-BERT + TextTiling, not an LLM prompt task.
+- Do not include `HIERARCHIC_SEGMENT_PROMPT_VI` because segmentation is lexical Sliding TextTiling, not an LLM prompt task.
 
 - [x] **Step 2: Update repo package exports**
 

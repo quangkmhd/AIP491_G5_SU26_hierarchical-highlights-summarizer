@@ -6,7 +6,7 @@ to deeper documents when needed.
 ## System Shape
 
 - Product: Streaming LLM-Powered Hierarchical Meeting Recap System with Topic Segmentation
-- Primary user workflow: Ingest a meeting transcript, segment by topic using the user-fine-tuned CoherenceNet (NSP-BERT `bert-base-multilingual-cased`) + TextTiling pipeline, and stream chapter cards (segment + chunk + title) to the user as soon as the pipeline produces them. Highlights pipeline (paper-2 DR1) is out of scope.
+- Primary user workflow: Ingest a meeting transcript, segment by topic using lexical Sliding TextTiling (BoW + cosine + multi-scale depth), and stream chapter cards (segment + chunk + title) to the user as soon as the pipeline produces them. Highlights pipeline (paper-2 DR1) is out of scope.
 - Runtime surfaces: cli (NDJSON) / services (FastAPI SSE)
 - Source of truth for product behavior: `docs/papers/` + `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md`
 
@@ -14,7 +14,7 @@ to deeper documents when needed.
 
 | Domain               | Purpose                                                                                                   | Primary Entry Points                                                | Related Spec                                                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Topic Segmentation` | `Identifying coherent topics using user-fine-tuned NSP-BERT + TextTiling (paper-1 *Ours (full)* method)`  | `src/service/text_tiling.py`, `src/service/coherence_scorer.py`     | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md`                                                            |
+| `Topic Segmentation` | `Identifying coherent topics using lexical Sliding TextTiling (BoW + cosine + multi-scale depth)`  | `src/service/text_tiling.py`, `src/segmenters/sliding_texttiling.py`     | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md`                                                            |
 | `Hierarchical Recap` | `Meeting summarization, chapter titles, rolling summaries (deBERTa, mocked at MVP), streaming end-to-end` | `src/service/meeting_recap_orchestrator.py` (StreamingOrchestrator) | `docs/papers/llm-powered-meeting-recap-system.md` + `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` |
 
 ## Layer Model
@@ -46,8 +46,8 @@ boundaries instead of reaching across layers directly.
 
 ## Current Hot Spots
 
-- `CoherenceNet / NSP-BERT integration with HuggingFace pipeline (mode CM = Coherence Modeling, not raw NSP)`
-- `TextTilingService sliding-window depth-score cutoffs (τ = μ - σ/2)`
+- `Sliding TextTiling multi-scale depth aggregation (radii=[3,5,10,15,20], z-score + mean)`
+- `SlidingTextTilingService threshold cutoffs (τ = μ + α·σ)`
 - `StreamingOrchestrator: 6-event end-to-end pipeline with deferred title inference`
 - `FastAPI SSE route + CLI NDJSON runner (not yet implemented)`
 
@@ -55,8 +55,7 @@ boundaries instead of reaching across layers directly.
 
 | Service                            | File                                        | Layer   | Depends On                                               | Streaming?                                             |
 | ---------------------------------- | ------------------------------------------- | ------- | -------------------------------------------------------- | ------------------------------------------------------ |
-| `CoherenceScorer`                  | `src/service/coherence_scorer.py`           | Service | `CoherenceNet` (Repo), `ModelLoader` (Repo)              | yes — pair scoring per utterance                       |
-| `TextTilingService`                | `src/service/text_tiling.py`                | Service | `CoherenceScorer` (Service), `TextTilingConfig` (Config) | yes — sliding depth-score array                        |
+| `SlidingTextTilingService`         | `src/service/text_tiling.py`                | Service | `SlidingTextTilingConfig` (Config)                       | yes — sliding depth-score array                        |
 | `ChunkingService`                  | `src/service/chunking_service.py`           | Service | (none)                                                   | yes — 8-utt chunk accumulator                          |
 | `HierarchicalSummarizationService` | `src/service/hierarchical_summarization.py` | Service | `ModelLoader` (Repo), `MockLLMBackbone` (Repo)           | yes — title deferred, chunk summary synchronous at MVP |
 | `StreamingOrchestrator`            | `src/service/meeting_recap_orchestrator.py` | Service | All above + `ModelLoader` (Repo)                         | yes — main entry point (6 event types)                 |

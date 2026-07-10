@@ -17,8 +17,8 @@ Dựa trên luồng dữ liệu, trình tự phát triển lý tưởng là đi 
    - `ModelLoader` preload các checkpoint AI Models (BERT, deBERTa, BART) vào CPU/GPU. *Phải làm trước khi viết logic gọi chúng.*
 
 3. **Bước 3: Viết Thuật Toán & Xử Lý Nghiệp Vụ (Service Layer)**
-   - `svc-001`: TextTiling + Chunking dùng `CoherenceScorer` (NSP BERT).
-   - `svc-002`: `MeetingRecapOrchestrator` kết nối TextTiling -> deBERTa title/abstractive -> BART highlights.
+   - `svc-001`: Sliding TextTiling + Chunking (lexical BoW + cosine + multi-scale depth — không dùng neural model).
+   - `svc-002`: `MeetingRecapOrchestrator` kết nối SlidingTextTilingService -> LLM title/abstractive.
 
 4. **Bước 4: Khung Giao Tiếp API (Runtime / FastAPI)** — `api-001`
    - Bọc services thành RESTful API Endpoints.
@@ -62,10 +62,10 @@ test pass (xem `tests/unit/test_types.py`).
 Các AI Models này được tải từ bộ trọng số checkpoint thông qua thư viện
 `transformers` của Hugging Face. Chưa có code thật (chờ `model-002`).
 
-1. **NSP BERT / CoherenceNet** — *Chưa tải*
-   - Chấm điểm độ liên kết giữa 2 câu thoại liền kề.
-   - Checkpoint gợi ý: `vibert_checkpoints_vi/cpt_1000.pth` (đã có sẵn trong repo).
-   - Vị trí dùng: TextTiling trong `svc-001`.
+1. ~~**NSP BERT / CoherenceNet**~~ — *Không còn dùng cho segmentation*
+   - Topic segmentation đã chuyển sang lexical Sliding TextTiling (BoW + cosine + multi-scale depth).
+   - `CoherenceNet` và checkpoint `vibert_checkpoints_vi/cpt_4000.pth` không còn được orchestrator gọi tới.
+   - Mã nguồn `CoherenceNet` vẫn tồn tại trong repo layer để tương thích ngược.
 
 2. **deBERTa (hierarchical_title_model)** — *Chưa tải*
    - Sinh Chapter Title ngắn gọn từ full `Segment`.
@@ -89,7 +89,7 @@ Các AI Models này được tải từ bộ trọng số checkpoint thông qua 
 | Turn / Utterance | Utterance | `Utterance` |
 | Topic boundary | Chapter / Segment | `SegmentResult` |
 | Window of 8 utterances | Chunk (context window for 512-token limit) | `Chunk` |
-| NSP coherence score (not stored) | — | computed by `CoherenceScorer` (svc-001) |
+| BoW cosine similarity (not stored) | — | computed by `SlidingTextTilingService` (svc-001) |
 | — | Chapter title | `SegmentResult.title` / `user_title_override` |
 | — | Chunk rolling summary | `Chunk.rolling_summary` |
 | — | Key-point (note) | `Highlight(type=KEY_POINT)` |

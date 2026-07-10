@@ -3,21 +3,23 @@
 ## Objective
 
 Implement the Repository layer: a `ModelLoader` that loads HuggingFace
-checkpoints (NSP BERT / CoherenceNet, deBERTa title & abstractive, BART
-extract & abstractive) into memory on the right device, and a
-`TranscriptRepo` that reads raw transcript files and parses them into
-domain `DialogueTranscript` objects.
+checkpoints and a `TranscriptRepo` that reads raw transcript files and
+parses them into domain `DialogueTranscript` objects.
+
+> **Note (2026-07-10):** Topic segmentation now uses lexical Sliding
+> TextTiling instead of NSP-BERT CoherenceNet. The `CoherenceNet` code
+> still exists in `src/repo/` for backward compatibility but is no
+> longer called by the orchestrator.
 
 ## Scope
 
 - `src/repo/model_loader.py`: `ModelLoader` class with explicit
-  `load_coherence_net()`, `load_title_model()`, `load_abstractive_model()`,
-  `load_highlights_models()` methods. Each returns a `ModelHandle`
+  `load_coherence_net()`, `load_llm_backbone()` methods. Each returns a `ModelHandle`
   dataclass that records the device (cpu/cuda), checkpoint path, and any
   tokenizer. Each method must cache so the same model isn't reloaded twice
   in the same process.
 - `src/repo/coherence_net.py`: PyTorch module architecture for the NSP
-  coherence model. It should accept a pair of texts and return a
+  coherence model (legacy — no longer used by segmentation).
   `CoherenceScore` (float in [0, 1]).
 - `src/repo/transcript_repo.py`: read a raw JSON / TXT transcript, parse
   it into `Utterance` objects, wrap in a `DialogueTranscript`. Support

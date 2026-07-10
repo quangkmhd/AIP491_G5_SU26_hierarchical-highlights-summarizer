@@ -34,7 +34,7 @@ tests while removing highlights from the supported LLM task surface.
 ## Out Of Scope
 
 - No new model inference code.
-- No changes to the NSP-BERT topic segmentation model.
+- No changes to the Sliding TextTiling topic segmentation (NSP-BERT was already removed; current segmentation is purely lexical).
 - No reintroduction of highlights extractive or highlights abstractive behavior.
 - No runtime prompt loading from `references_code/prompts.yaml`; reference code
   remains a source reference, not a runtime dependency.
@@ -52,7 +52,7 @@ Use a vendored-constant approach:
    - optional `SSDST_ABSTRACTIVE_PROMPT_VI`
    - optional `SSDST_STATE_UPDATE_PROMPT_VI`
 3. Update `LLMTask` so it represents only LLM-backed recap tasks that remain in
-   scope. Topic segmentation is handled by NSP-BERT + TextTiling and should not
+    scope. Topic segmentation is handled by lexical Sliding TextTiling and should not
    be represented as an LLM prompt task.
 4. Keep `get_prompt(task)` as the small public interface used by smoke tests and
    future model callers.

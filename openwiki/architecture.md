@@ -17,7 +17,7 @@ $$\text{Types} \rightarrow \text{Config} \rightarrow \text{Repo} \rightarrow \te
 | **Types** | `src/types/` | Data containers, structures, schemas, and basic structural invariants. | **Forbidden from importing from any other layer.** Immutable data types (e.g., `Utterance`, `DialogueTranscript`). |
 | **Config** | `src/config/` | System configuration definitions, environment variable parsers, and defaults. | Can import `types`, but **cannot import `repo`, `service`, `runtime`, or `ui`**. Powered by Pydantic settings. |
 | **Repo**| `src/repo/` | Input/output adapters, persistence triggers, ML weight handlers, model loaders. | Direct data interaction only (filesystem, HF hub, or local checkpoints). Must not host high-level orchestrator logic. |
-| **Service**| `src/service/` | Core business logic, mathematical text tiling, chunkers, and streaming engines. | Contains all algorithm implementations. Coordinates repos and config items into a cohesive unit. |
+| **Service**| `src/service/` | Core business logic, Sliding TextTiling, chunkers, and streaming engines. | Contains all algorithm implementations. Coordinates repos and config items into a cohesive unit. |
 | **Runtime**| `src/runtime/` | Communication interfaces: CLI structures, Web server endpoints, middleware. | Acts as the shell interface surrounding the service modules. Instantiates services lazily. |
 | **UI** | `src/ui/` | Client-side visual representation. Static index files and vanilla JS. | Communicates exclusively with the runtime API layer via REST or SSE streams. |
 
@@ -45,14 +45,13 @@ src/
 │   └── hierarchical_recap.py    # Structured output schema (Chapters, Chunks, Metadata)
 ├── config/
 │   ├── language.py              # BCP-47 tag mapping ("vi" and "FPTAI/vibert-base-cased")
-│   └── text_tiling.py           # Window size, slide, and alpha parameters
+│   └── text_tiling.py           # Block size, radii, alpha, aggregation params
 ├── repo/
 │   ├── model_loader.py          # Process singleton model caching
-│   ├── coherence_net.py         # The PyTorch BERT neural net architecture definition
+│   ├── coherence_net.py         # The PyTorch BERT neural net (legacy, not used by current segmentation)
 │   └── prompts_vi.py            # Centralized Vietnamese YAML/JSON task prompt string constants
 └── service/
-    ├── coherence_scorer.py      # Computes pair scores between sequential utterance pairs
-    ├── text_tiling.py           # Executes Hearst 1997 valley analysis
+    ├── text_tiling.py           # Executes Sliding TextTiling (BoW + cosine + multi-scale depth)
     ├── chunking_service.py      # Splits segment dialogues into <= 8 utterance chunks
     ├── hierarchical_summarization.py # Hits the backbone for rolling summaries and chapter titles
     └── meeting_recap_orchestrator.py # Wires the whole streaming flow together (the orchestrator)

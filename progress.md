@@ -5,8 +5,8 @@
 - Repository root: /home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary
 - Standard startup path: `pwd` then read AGENTS.md -> ARCHITECTURE.md -> docs/QUALITY_SCORE.md -> docs/PLANS.md -> docs/product-specs/.
 - Standard verification path: `python3 -m unittest discover -s tests -v`.
+- Topic segmentation method: lexical Sliding TextTiling (BoW + cosine + multi-scale depth) — no neural scoring model required.
 - Current highest-priority unfinished feature: model-002 (AI Model Loader & File Repository).
-- Current blocker: none for model-001; model-002 needs the HuggingFace model checkpoints or offline stubs.
 
 ## Session Log
 
@@ -38,6 +38,11 @@
 ## model-002 — AI Model Loader & File Repository (2026-07-04)
 
 **Status:** passing
+
+> **Note (2026-07-10):** Topic segmentation was rewritten to use
+> lexical Sliding TextTiling. `CoherenceNet` and the NSP checkpoint
+> are no longer called by the orchestrator. The repo layer code
+> remains for backward compatibility.
 
 - Implemented `src/repo/{coherence_net,model_loader,transcript_repo,recap_repo,smoke_loader}.py` + `prompts_vi.py`.
 - CoherenceNet loads from `vibert_checkpoints_vi/cpt_4000.pth` (paper-1 architecture, BERT-base multilingual base, embeddings resized to ckpt vocab 38168, strict=False for shape-mismatched MLM-head keys).
@@ -190,20 +195,23 @@ I3 directly).
 - Smoke: loads 36 committee samples, first has 370 utt + 8 segments.
 - Worktree: `.worktrees/feat-data-001` (branch `feat/data-001`).
 
-## svc-001+002 — Topic Segmentation Pipeline (paper-1 _Ours full_) (2026-07-05)
+## svc-001+002 — Topic Segmentation Pipeline (lexical Sliding TextTiling) (2026-07-05 → 2026-07-10 rewrite)
 
 **Status:** passing
 
-- Created `src/service/{__init__,coherence_scorer,text_tiling}.py`.
-- `CoherenceScorer` wraps `CoherenceNet` in paper-1 mode CM (fine-tuned coherence scoring model). `score_pair(utt_i, utt_i_plus_1) -> float ∈ [0, 1]`. Includes C4 token-id clamp (mitigates vocab mismatch 38168 vs 119547).
-- `TextTilingService` ports paper-1 `neural_texttiling.py`:
-  - `depth_computing(scores)`: `0.5 * (hl + hr - 2 * s[i])` per score.
-  - `cutoff_threshold`: `tau = mu - sigma/2` (paper-1 §3 spec).
-  - Emits `SegmentEvent(segment_id, utterances_start, utterances_end, depth_score, boundary_index)`.
-- 16 unit tests in `tests/unit/test_text_tiling.py` (depth formula, cutoff, sliding, 3-valley synthetic, coverage, ID uniqueness, non-overlap).
-- 1 AST layer-rule test in `tests/unit/test_service_layer_rules.py`.
-- 1 end-to-end smoke in `tests/manual/test_svc_001_002_smoke.py` loads cpt_4000.pth, scores 369 pairs, runs TextTiling, emits 192 segments (partial fine-tuning; expected to over-segment vs ground truth).
-- Verification: 172/172 tests pass (was 155; +17 new).
+- **Rewrote topic segmentation** from NSP-BERT CoherenceScorer + TextTiling to purely lexical Sliding TextTiling.
+- `src/segmenters/sliding_texttiling.py` — core algorithm functions:
+  - `bow()`: Bag-of-Words per utterance (lowercase, strip punctuation, stopword filter).
+  - `similarity_scores()`: Cosine similarity at every gap with `block_size` pooling.
+  - `depth_scores()`: Classic TextTiling depth `0.5 * (hl + hr - 2 * s[i])`.
+  - `multiscale_depth()`: Runs depth scoring at multiple radii (default `[3,5,10,15,20]`), z-score each, aggregate via mean/max/sum.
+  - `find_boundaries()`: End-to-end: multiscale depth → `mean + alpha * std` threshold → candidate boundaries → merge small segments.
+  - `merge_small_segments()`: Greedy merge of sub-ratio segments into shallower-depth neighbour.
+- `src/service/text_tiling.py` — `SlidingTextTilingService`:
+  - `process(utterances) -> list[SegmentEvent]`: consumes utterance strings directly (no external scorer), calls `find_boundaries()`.
+  - Stateless; loads Vietnamese stopwords from `stopwordsiso` on first use.
+- 16+ unit tests in `tests/unit/test_sliding_text_tiling.py` (bow, cosine, depth, multiscale, boundaries, merge, service process).
+- **Verification:** 172/172 tests pass (was 155; +17 new).
 
 ## svc-003 — Hierarchical Chunking (8-utt blocks) (2026-07-05)
 
@@ -229,8 +237,8 @@ I3 directly).
 
 - Created `src/service/meeting_recap_orchestrator.py` with `StreamingOrchestrator` (process_stream + process_batch).
 - 6 event types: utterance-accepted, depth-score-updated, segment-closed, chunk-closed, title-emitted, meeting-completed.
-- Wires CoherenceScorer + TextTilingService + ChunkingService + HierarchicalSummarizationService.
-- Boundary detection: paper-1 depth formula on the latest pair (depth > 0.3 threshold).
+- Wires SlidingTextTilingService + ChunkingService + HierarchicalSummarizationService.
+- Boundary detection: Sliding TextTiling multi-scale depth with `mean + alpha * std` threshold.
 - 9 unit tests covering event order, batch-equals-streaming, 3-min budget, no-highlights, chunks, utterance/depth/chunk event counts.
 - Verification: 200/200 tests pass (was 191; +9 new).
 
