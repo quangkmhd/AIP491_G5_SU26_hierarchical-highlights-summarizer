@@ -11,7 +11,7 @@ Event types (per spec D5, revised):
   - utterance-accepted: every new utterance after the first
   - segment-closed: Sliding TextTiling boundary crossed
   - chunk-closed: chunk filled (8 utt) or segment closed; rolling_summary is synchronous
-  - title-emitted: segment closed; hierarchical_title returned (deferred at MVP via mock)
+  - title-emitted: segment closed; title generated from all completed chunk summaries
   - meeting-completed: transcript exhausted; final HierarchicalRecap attached
 
 Both process_stream (async generator) and process_batch (one-shot returning

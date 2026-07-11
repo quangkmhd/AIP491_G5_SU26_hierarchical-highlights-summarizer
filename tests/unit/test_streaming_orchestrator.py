@@ -1,7 +1,7 @@
 """Unit tests for StreamingOrchestrator (svc-006+streaming).
 
 Tests use a tiny synthetic transcript (8 utterances, 1 clear boundary) so
-the pipeline can run quickly on CPU with MockLLMBackbone.
+the pipeline can run quickly with an injected summarization double.
 
 The orchestrator uses lexical Sliding TextTiling for segmentation;
 it requires no external scoring model.
@@ -9,13 +9,9 @@ it requires no external scoring model.
 
 from __future__ import annotations
 
-import os
 import sys
 import unittest
 from pathlib import Path
-
-# Force MockLLMBackbone so the suite stays offline (no real GGUF download).
-os.environ.setdefault("MODEL_LOAD_LLM", "0")
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -37,10 +33,37 @@ def _t(texts: list[str]) -> DialogueTranscript:
     )
 
 
+class FakeSummarizer:
+    def __init__(self) -> None:
+        self.calls: list[tuple] = []
+
+    def abstractive(self, chunk, chapter_number=1, chunk_index=0):
+        value = f"summary-{chunk.utterances[0].index}"
+        self.calls.append(("summary", chunk.utterances[0].index))
+        return value
+
+    def title(self, segment, chapter_number=1):
+        summaries = tuple(chunk.rolling_summary for chunk in segment.chunks)
+        assert all(summaries)
+        self.calls.append(("title", summaries))
+        return f"title-{chapter_number}"
+
+
 class StreamingOrchestratorEventTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.orchestrator = StreamingOrchestrator()
+        cls.orchestrator = StreamingOrchestrator(summarizer=FakeSummarizer())
+
+    def test_summaries_complete_before_title(self) -> None:
+        recorder = FakeSummarizer()
+        orchestrator = StreamingOrchestrator(summarizer=recorder)
+        events = list(orchestrator.process_stream(_t([f"u{i}" for i in range(10)])))
+        title_calls = [call for call in recorder.calls if call[0] == "title"]
+        self.assertTrue(title_calls)
+        for _, summaries in title_calls:
+            self.assertTrue(all(summary.startswith("summary-") for summary in summaries))
+        types = [event.type for event in events]
+        self.assertEqual(types[-1], RecapEventType.MEETING_COMPLETED)
 
     def test_event_order_for_tiny_transcript(self) -> None:
         # 6 utterances, one likely topic shift at index 2
@@ -217,7 +240,7 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
         from src.config.text_tiling import SlidingTextTilingConfig
         cfg = SlidingTextTilingConfig(radii=[3, 5], alpha=0.5, min_segment_ratio=0.1)
         tiler = SlidingTextTilingService(cfg)
-        orch = StreamingOrchestrator(tiler=tiler)
+        orch = StreamingOrchestrator(tiler=tiler, summarizer=FakeSummarizer())
         transcript = _t([f"chủ đề {i}" for i in range(10)])
         recap = orch.process_batch(transcript)
         self.assertGreaterEqual(len(recap.segments), 1)
