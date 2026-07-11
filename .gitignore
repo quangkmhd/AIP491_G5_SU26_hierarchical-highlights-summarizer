@@ -11,6 +11,7 @@ venv/
 env/
 ENV/
 .pytest_cache/
+.deepeval/
 .coverage
 htmlcov/
 
