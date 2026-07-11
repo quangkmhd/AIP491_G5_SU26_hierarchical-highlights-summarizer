@@ -20,6 +20,13 @@ from .model_loader import (
     ModelLoadError, ModelLoader,
 )
 from .recap_repo import RecapRepo, RecapRepoError
+from .seq2seq_inference import (
+    BARTphoTopicTitler,
+    ChunkSummarizer,
+    GenerationError,
+    TopicTitler,
+    ViT5ChunkSummarizer,
+)
 from .transcript_repo import TranscriptRepo, TranscriptRepoError
 
 __all__ = [
@@ -29,6 +36,11 @@ __all__ = [
     "ModelLoadError",
     "CHUNK_SUMMARIZER_PATH",
     "TOPIC_TITLER_PATH",
+    "ChunkSummarizer",
+    "TopicTitler",
+    "ViT5ChunkSummarizer",
+    "BARTphoTopicTitler",
+    "GenerationError",
     "TranscriptRepo",
     "TranscriptRepoError",
     "RecapRepo",
