@@ -17,6 +17,9 @@ This file defines the security and safety rules that agents must not guess at.
 - HuggingFace model checkpoints in `vibert_checkpoints_vi/*.pth` are
   > 450 MB binary files and are excluded from the repo via `.gitignore`.
   Pull them through approved HuggingFace authenticated download paths.
+- Recap checkpoints under `models/` are ignored local artifacts copied from
+  the adjacent training project. Runtime uses `local_files_only=True` and
+  never downloads a replacement checkpoint.
 
 ## Untrusted Input
 
@@ -67,5 +70,5 @@ This file defines the security and safety rules that agents must not guess at.
 - `transformers` (planned for `model-002`) -- HuggingFace model loading.
 - `python-dotenv` (planned for `config`) -- `.env` loading.
 - `fastapi` + `uvicorn` (planned for `api-001`) -- HTTP runtime.
-- `pytest` is intentionally **not** added; the repo uses `unittest` from the
-  standard library to keep the dependency surface minimal.
+- `pytest` is a development-only dependency used for markers and the opt-in
+  CUDA model smoke test; it is not a runtime dependency.

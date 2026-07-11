@@ -40,3 +40,6 @@ vibert_checkpoints_vi/
 dialog_datasets/
 data/
 bamibert-1dod-vi-v1/
+
+# Local inference checkpoints (copied by the operator; never committed)
+models/

@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 import unittest
 from pathlib import Path
-
-os.environ.setdefault("MODEL_LOAD_LLM", "0")
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -16,12 +13,24 @@ sys.path.insert(0, str(ROOT))
 from httpx import ASGITransport, AsyncClient
 
 from src.runtime.api import create_app
+from src.service import StreamingOrchestrator
+
+
+class FakeSummarizer:
+    def abstractive(self, chunk, chapter_number=1, chunk_index=0):
+        return f"Tóm tắt {chunk.utterances[0].index}"
+    def title(self, segment, chapter_number=1):
+        return f"Chủ đề {chapter_number}"
+
+
+def build_test_app():
+    return create_app(StreamingOrchestrator(summarizer=FakeSummarizer()))
 
 
 class ApiProcessTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.app = create_app()
+        cls.app = build_test_app()
 
     def test_process_endpoint_returns_recap(self) -> None:
         async def _run() -> None:
@@ -73,7 +82,7 @@ class ApiProcessTests(unittest.TestCase):
 class ApiStreamingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.app = create_app()
+        cls.app = build_test_app()
 
     def test_stream_endpoint_returns_sse(self) -> None:
         async def _run() -> None:

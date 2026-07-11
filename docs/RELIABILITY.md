@@ -4,12 +4,13 @@ This file defines how the system proves it is healthy and restartable.
 
 ## Standard Paths
 
-- Bootstrap: use the existing Python environment for now; keep `MODEL_LOAD_LLM=0` for deterministic offline verification.
-- Unit tests: `MODEL_LOAD_LLM=0 python3 -m unittest discover -v`
+- Bootstrap: `uv sync --extra dev`; local ignored checkpoints must exist in `models/` for runtime.
+- Fast tests: `uv run pytest tests/ -q -m 'not real_model'` (injected model doubles).
+- CUDA release check: `uv run pytest tests/manual/test_local_recap_models_smoke.py -v -m real_model`.
 - End-to-end smoke test: `python3 tests/manual/test_meeting_committee_sample.py`
-- Start API: `MODEL_LOAD_LLM=0 uvicorn src.runtime.api:app --reload`
-- Run CLI: `MODEL_LOAD_LLM=0 python3 -m src.runtime.cli stream <transcript.json>`
-- Debug or inspect runtime: `MODEL_LOAD_LLM=0 python3 -m pdb -m src.runtime.cli`
+- Start API: `uv run uvicorn src.runtime.api:create_app --factory --port 8000`
+- Run CLI: `uv run python -m src.runtime.cli stream <transcript.json>`
+- Debug: `uv run python -m pdb -m src.runtime.cli`
 
 ## Required Runtime Signals
 
@@ -30,7 +31,7 @@ This file defines how the system proves it is healthy and restartable.
   Path: `python3 -m unittest discover -s tests -v`
   Verifies: all unit, integration, e2e, and UI tests across the current
   hierarchical-only streaming system. Current evidence: 250/250 tests green
-  with `MODEL_LOAD_LLM=0` on 2026-07-05.
+  with injected inference doubles; real checkpoints have a separate CUDA smoke test.
 
 - **`POST /api/v1/meetings/process` end-to-end**
   Path: `tests/integration/test_api_streaming.py`

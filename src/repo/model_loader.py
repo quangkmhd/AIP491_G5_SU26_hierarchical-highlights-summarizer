@@ -1,176 +1,85 @@
-"""ModelLoader -- per-process singleton for the LLM backbone caching.
-
-Spec: docs/superpowers/specs/2026-07-04-model-002-design.md (D3).
-
-Holds at most one `ModelHandle` per `ModelKind` for the lifetime of
-the process. `MODEL_LOAD_LLM=0` env var swaps the real gemma-4-E2B-it-qat-GGUF
-load for a `MockLLMBackbone` so unit tests + offline CI never touch the
-network.
-
-The NSP-BERT CoherenceNet infrastructure was removed; topic segmentation
-is now handled entirely by the lexical Sliding TextTiling in
-`src/service/text_tiling.py`.
-"""
+"""CUDA-only loader and process cache for local recap seq2seq models."""
 
 from __future__ import annotations
 
-import os
 import logging
 import threading
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any, ClassVar
 
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 logger = logging.getLogger("src.repo.model_loader")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CHUNK_SUMMARIZER_PATH = PROJECT_ROOT / "models" / "vit5-chunk-summarizer-v1"
+TOPIC_TITLER_PATH = PROJECT_ROOT / "models" / "bartpho-topic-titler-v2"
 
 
 class ModelKind(str, Enum):
-    """Catalog of model identifiers cached by ModelLoader."""
+    CHUNK_SUMMARIZER = "chunk_summarizer"
+    TOPIC_TITLER = "topic_titler"
 
-    LLM_BACKBONE = "llm_backbone"
 
-
-# Backbone choices (spec D2).
-LLM_BACKBONE_ID: str = "unsloth/gemma-4-E2B-it-qat-GGUF"
-GGUF_MODEL_ID: str = LLM_BACKBONE_ID
-GGUF_MODEL_FILENAME: str = "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf"
+class ModelLoadError(RuntimeError):
+    """A local model cannot be loaded with its required runtime contract."""
 
 
 @dataclass(frozen=True)
 class ModelHandle:
-    """A loaded model + its provenance."""
-
     kind: ModelKind
     model: Any
+    tokenizer: Any
     device: str
-    checkpoint_path: str | None = None
-    tokenizer: Any = None
+    checkpoint_path: str
 
 
-class MockLLMBackbone:
-    """Offline stand-in for the Vietnamese LLM backbone.
-
-    Records every `generate` call so tests can assert on prompt
-    formatting without loading 4-bit weights.
-    """
-
-    CANNED_RESPONSES: ClassVar[dict[str, str]] = {
-        "hierarchical_abstractive": "Nhóm đã thảo luận về chủ đề này.",
-        "hierarchical_title": "Chương mẫu\nnone",
-    }
-
-    def __init__(self) -> None:
-        self.call_count: int = 0
-        self.last_prompt: str = ""
-
-    def generate(self, prompt: str, task: str) -> str:
-        self.call_count += 1
-        self.last_prompt = prompt
-        return self.CANNED_RESPONSES.get(task, "")
+REQUIRED_FILES = {
+    ModelKind.CHUNK_SUMMARIZER: {
+        "config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json",
+    },
+    ModelKind.TOPIC_TITLER: {
+        "config.json", "model.safetensors", "dict.txt", "sentencepiece.bpe.model", "tokenizer_config.json",
+    },
+}
 
 
-class GGUFLLMBackbone:
-    """Adapter wrapping a llama_cpp.Llama GGUF model into the backbone
-    interface expected by HierarchicalSummarizationService.
-
-    The generate() method formats a chat completion with JSON-constrained
-    decoding and returns the assistant response text.
-    """
-
-    SYSTEM_PROMPT: str = (
-        "Bạn là engine tạo meeting recap chuyên nghiệp. "
-        "Luôn trả lời bằng tiếng Việt."
-    )
-
-    def __init__(self, llm: "Llama") -> None:
-        self._llm = llm
-        self.call_count: int = 0
-        self.last_prompt: str = ""
-
-    def generate(self, prompt: str, task: str) -> str:
-        self.call_count += 1
-        self.last_prompt = prompt
-        response = self._llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": self.SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=512,
-            temperature=0.1,
+def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
+    if not torch.cuda.is_available():
+        raise ModelLoadError(
+            "CUDA is unavailable; fix: run the recap service on the configured CUDA host"
         )
-        return response["choices"][0]["message"]["content"].strip()
-
-
-def _resolve_device() -> str:
-    """Return 'cuda' if available else 'cpu'.
-
-    Note: callers that REQUIRE CUDA should assert
-    `torch.cuda.is_available()` themselves (see I3 in the review doc).
-    This helper only reports the resolved device; it does not enforce.
-    """
-    return "cuda" if __import__("torch").cuda.is_available() else "cpu"
-
-
-def _load_llm_backbone(device: str) -> ModelHandle:
-    """Load Gemma 4 E2B GGUF via llama.cpp.
-
-    Uses the quantized GGUF (Q4_K_XL) for efficient inference on 8GB VRAM.
-    Falls back to `MockLLMBackbone` when `MODEL_LOAD_LLM=0` so
-    offline unit tests can still construct a usable handle.
-    """
-    if os.environ.get("MODEL_LOAD_LLM", "1") == "0":
-        logger.info("loading LLM backbone mode=mock MODEL_LOAD_LLM=0 device=cpu")
-        return ModelHandle(
-            kind=ModelKind.LLM_BACKBONE,
-            model=MockLLMBackbone(),
-            device="cpu",
-            checkpoint_path=None,
+    missing = sorted(name for name in REQUIRED_FILES[kind] if not (path / name).is_file())
+    if missing:
+        raise ModelLoadError(
+            f"{kind.value} checkpoint is incomplete at {path}; missing={missing}; "
+            "fix: copy the complete inference artifact set"
         )
-
-    from huggingface_hub import hf_hub_download
-    from llama_cpp import Llama
-
-    logger.info("loading GGUF model id=%s filename=%s device=%s", GGUF_MODEL_ID, GGUF_MODEL_FILENAME, device)
-    gguf_path = hf_hub_download(
-        repo_id=GGUF_MODEL_ID,
-        filename=GGUF_MODEL_FILENAME,
-    )
-    n_gpu_layers = -1 if device == "cuda" else 0
-    llm = Llama(
-        model_path=gguf_path,
-        n_gpu_layers=n_gpu_layers,
-        n_ctx=8192,
-        verbose=False,
-        flash_attn=True,
-    )
-    backbone = GGUFLLMBackbone(llm)
-    return ModelHandle(
-        kind=ModelKind.LLM_BACKBONE,
-        model=backbone,
-        device=device,
-        checkpoint_path=gguf_path,
-        tokenizer=None,
-    )
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True, use_fast=True)
+        model = AutoModelForSeq2SeqLM.from_pretrained(path, local_files_only=True)
+        model.to("cuda")
+        model.eval()
+    except Exception as exc:
+        raise ModelLoadError(
+            f"failed to load {kind.value} from {path}: {exc}; "
+            "fix: verify CUDA memory and the complete local inference artifacts"
+        ) from exc
+    return ModelHandle(kind, model, tokenizer, "cuda", str(path))
 
 
 class ModelLoader:
-    """Per-process singleton that caches `ModelHandle` by `ModelKind`.
-
-    Concurrency: `_instance_lock` makes the singleton creation safe;
-    `_cache_lock` makes the per-kind lookup-and-insert safe so that
-    two threads cannot both trigger a fresh load.
-    """
-
-    _instance: "ModelLoader | None" = None
+    _instance: ClassVar[ModelLoader | None] = None
     _instance_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self) -> None:
         self._cache: dict[ModelKind, ModelHandle] = {}
-        self._cache_lock: threading.Lock = threading.Lock()
+        self._cache_lock = threading.Lock()
 
     @classmethod
-    def instance(cls) -> "ModelLoader":
+    def instance(cls) -> ModelLoader:
         with cls._instance_lock:
             if cls._instance is None:
                 cls._instance = cls()
@@ -181,20 +90,15 @@ class ModelLoader:
         with cls._instance_lock:
             cls._instance = None
 
-    # -- public API ----------------------------------------------------------
-
-    def load_llm_backbone(self) -> ModelHandle:
+    def _load(self, kind: ModelKind, path: Path) -> ModelHandle:
         with self._cache_lock:
-            if ModelKind.LLM_BACKBONE in self._cache:
-                logger.debug("model cache hit kind=%s", ModelKind.LLM_BACKBONE.value)
-                return self._cache[ModelKind.LLM_BACKBONE]
-            device = _resolve_device()
-            handle = _load_llm_backbone(device)
-            self._cache[ModelKind.LLM_BACKBONE] = handle
-            logger.info(
-                "model cache store kind=%s device=%s checkpoint=%s",
-                ModelKind.LLM_BACKBONE.value,
-                handle.device,
-                handle.checkpoint_path or "mock",
-            )
-            return handle
+            if kind not in self._cache:
+                self._cache[kind] = _load_seq2seq_handle(kind, path)
+                logger.info("model cache store kind=%s checkpoint=%s", kind.value, path)
+            return self._cache[kind]
+
+    def load_chunk_summarizer(self) -> ModelHandle:
+        return self._load(ModelKind.CHUNK_SUMMARIZER, CHUNK_SUMMARIZER_PATH)
+
+    def load_topic_titler(self) -> ModelHandle:
+        return self._load(ModelKind.TOPIC_TITLER, TOPIC_TITLER_PATH)

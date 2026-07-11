@@ -24,6 +24,14 @@ The system measures segmentation accuracy using three core metric calculations:
 
 ## 🐳 2. Dev & Validation Loop Scripts
 
+```bash
+# Fast, network-free suite (model doubles)
+uv run pytest tests/ -q -m 'not real_model'
+
+# Required CUDA checkpoint smoke test
+uv run pytest tests/manual/test_local_recap_models_smoke.py -v -m real_model
+```
+
 Multiple specialized evaluation and tuning scripts live under the `/scripts` directory to support developer workflows:
 
 ```bash
@@ -61,11 +69,8 @@ If you encounter an exception, look at the error log formatting. Example:
 ### Common Resolutions
 
 #### 1. Out of Memory (OOM) on CUDA
-If loading the `bert-base-multilingual-cased` checkpoint with batch processing crashes your GPU structure:
-*   Ensure that PyTorch leverages CPU fallback by adjusting your process environment:
-    ```bash
-    export REQUIRE_CUDA=0
-    ```
+If both recap checkpoints cannot fit, free GPU memory and retry. The recap
+runtime intentionally has no CPU fallback; loader errors include a `fix` hint.
 
 #### 2. Local Tokenizer UNK Errors (The C4 Vocab Mismatch)
 During initial setup, the pre-trained checkpoint `cpt_4000.pth` is hardwired to a 38,168-vocab Vietnamese-subset tokenizer. This is different in length from the standard 119,547-vocab multilingual tokenizer.

@@ -11,7 +11,7 @@ Event types (per spec D5, revised):
   - utterance-accepted: every new utterance after the first
   - segment-closed: Sliding TextTiling boundary crossed
   - chunk-closed: chunk filled (8 utt) or segment closed; rolling_summary is synchronous
-  - title-emitted: segment closed; hierarchical_title returned (deferred at MVP via mock)
+  - title-emitted: segment closed; title generated from all completed chunk summaries
   - meeting-completed: transcript exhausted; final HierarchicalRecap attached
 
 Both process_stream (async generator) and process_batch (one-shot returning
@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterator
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from src.config.text_tiling import SlidingTextTilingConfig
 from src.service.chunking_service import ChunkingService
@@ -128,7 +128,6 @@ class StreamingOrchestrator:
     def _process_stream_body(  # type: ignore[no-untyped-def]
         self, transcript, t0, meeting_id, segments,
     ):
-        n = len(transcript.utterances)
         all_utterances = transcript.utterances
 
         # Phase 1: Utterance intake — emit utterance-accepted for every

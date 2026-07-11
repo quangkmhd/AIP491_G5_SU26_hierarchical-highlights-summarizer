@@ -4,17 +4,45 @@ from __future__ import annotations
 
 import json
 import os
+import io
+import logging
 import subprocess
 import sys
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-
-os.environ.setdefault("MODEL_LOAD_LLM", "0")
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from src.runtime.cli import main as cli_main
+from src.service import StreamingOrchestrator
+
+
+class FakeSummarizer:
+    def abstractive(self, chunk, chapter_number=1, chunk_index=0):
+        return f"Tóm tắt {chunk.utterances[0].index}"
+    def title(self, segment, chapter_number=1):
+        return f"Chủ đề {chapter_number}"
+
+
+def run_cli(argv):
+    stdout, stderr = io.StringIO(), io.StringIO()
+    def factory():
+        return StreamingOrchestrator(summarizer=FakeSummarizer())
+    root = logging.getLogger()
+    root_level = root.level
+    handler_levels = [handler.level for handler in root.handlers]
+    try:
+        with mock.patch("src.runtime.cli.StreamingOrchestrator", side_effect=factory):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = cli_main(argv)
+    finally:
+        root.setLevel(root_level)
+        for handler, level in zip(root.handlers, handler_levels):
+            handler.setLevel(level)
+    return code, stdout.getvalue(), stderr.getvalue()
 
 
 def _make_transcript_file(path: Path, n_utterances: int = 10) -> None:
@@ -35,7 +63,7 @@ class CliProcessTests(unittest.TestCase):
             old_argv = sys.argv
             try:
                 sys.argv = ["cli", "process", str(tf)]
-                rc = cli_main()
+                rc, _, _ = run_cli(["process", str(tf)])
                 self.assertEqual(rc, 0)
             finally:
                 sys.argv = old_argv
@@ -49,7 +77,7 @@ class CliProcessTests(unittest.TestCase):
             old_argv = sys.argv
             try:
                 sys.argv = ["cli", "process", str(tf), "--output", str(of)]
-                rc = cli_main()
+                rc, _, _ = run_cli(["process", str(tf), "--output", str(of)])
                 self.assertEqual(rc, 0)
                 self.assertTrue(of.exists())
                 recap = json.loads(of.read_text(encoding="utf-8"))
@@ -77,7 +105,7 @@ class CliProcessTests(unittest.TestCase):
                 [sys.executable, "-m", "src.runtime.cli", "process", str(tf)],
                 capture_output=True,
                 text=True,
-                env={**os.environ, "MODEL_LOAD_LLM": "0"},
+                env=os.environ.copy(),
                 cwd=ROOT,
                 timeout=60,
             )
@@ -92,19 +120,9 @@ class CliStreamTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tf = Path(tmp) / "transcript.json"
             _make_transcript_file(tf, n_utterances=8)
-            # Use subprocess to capture stdout
-            env = os.environ.copy()
-            env["MODEL_LOAD_LLM"] = "0"
-            result = subprocess.run(
-                [sys.executable, "-m", "src.runtime.cli", "stream", str(tf)],
-                capture_output=True,
-                text=True,
-                env=env,
-                cwd=ROOT,
-                timeout=60,
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
+            code, stdout, stderr = run_cli(["stream", str(tf)])
+            self.assertEqual(code, 0, msg=stderr)
+            lines = [ln for ln in stdout.splitlines() if ln.strip()]
             self.assertGreater(len(lines), 0)
             # All lines should be valid NDJSON with a "type" and "payload"
             for line in lines:
@@ -125,17 +143,8 @@ class CliStreamTests(unittest.TestCase):
             tf = Path(tmp) / "transcript.json"
             of = Path(tmp) / "recap.json"
             _make_transcript_file(tf, n_utterances=6)
-            env = os.environ.copy()
-            env["MODEL_LOAD_LLM"] = "0"
-            result = subprocess.run(
-                [sys.executable, "-m", "src.runtime.cli", "stream", str(tf), "--output", str(of)],
-                capture_output=True,
-                text=True,
-                env=env,
-                cwd=ROOT,
-                timeout=60,
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            code, _, stderr = run_cli(["stream", str(tf), "--output", str(of)])
+            self.assertEqual(code, 0, msg=stderr)
             self.assertTrue(of.exists())
             recap = json.loads(of.read_text(encoding="utf-8"))
             self.assertIn("segments", recap)
@@ -145,18 +154,8 @@ class CliStreamTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tf = Path(tmp) / "transcript.json"
             _make_transcript_file(tf, n_utterances=8)
-            env = os.environ.copy()
-            env["MODEL_LOAD_LLM"] = "0"
-            result = subprocess.run(
-                [sys.executable, "-m", "src.runtime.cli", "stream", str(tf), "--pretty"],
-                capture_output=True,
-                text=True,
-                env=env,
-                cwd=ROOT,
-                timeout=60,
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            stdout = result.stdout
+            code, stdout, stderr = run_cli(["stream", str(tf), "--pretty"])
+            self.assertEqual(code, 0, msg=stderr)
             self.assertIn("Tóm tắt chunk:", stdout)
             self.assertIn("Chủ đề:", stdout)
             # Ensure it is not NDJSON

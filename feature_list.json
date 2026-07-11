@@ -56,7 +56,7 @@
     },
     {
       "feature": "ui-001+002+streaming",
-      "gap": "MVP UI uses MockLLMBackbone for chunk rolling summaries and chapter titles. When the real deBERTa checkpoint is wired in, chunk inference latency (~100-500 ms each) may exceed the 1-second UX threshold and require chunk-summary events to become deferred too (currently only titles are deferred per spec D5)."
+      "gap": "Runtime uses synchronous local ViT5 chunk summaries followed by BARTpho titles. Long-meeting latency should be tracked on target CUDA hardware."
     }
   ],
   "features": [
@@ -92,23 +92,23 @@
       "priority": 2,
       "area": "repo",
       "title": "Build AI Model Loader & File Repository",
-      "user_visible_behavior": "System successfully loads the user's fine-tuned NSP-BERT coherence scorer (vibert_checkpoints_vi/cpt_4000.pth with bert-base-multilingual-cased, vocab 38168) and the MockLLMBackbone stand-in for deBERTa hierarchical_title and hierarchical_abstractive (the real gemma-4-E2B-it-qat-GGUF is deferred behind MODEL_LOAD_LLM=1). RecapRepo and TranscriptRepo persist HierarchicalRecap and DialogueTranscript via atomic JSON writes.",
+      "user_visible_behavior": "System loads the local CUDA-only ViT5 chunk summarizer and BARTpho topic titler with independent process caches. RecapRepo and TranscriptRepo persist HierarchicalRecap and DialogueTranscript via atomic JSON writes.",
       "status": "passing",
       "verification": [
-        "MODEL_LOAD_LLM=0 python3 -m unittest discover -s tests -v -- 144/144 (current state, post-patches expected to be 132/132) green.",
+        "uv run pytest tests/ -q uses injected inference adapters; the real_model marker is opt-in.",
         "python3 -m src.repo.smoke_loader loads CoherenceNet from cpt_4000.pth on the resolved device (cuda preferred, cpu fallback).",
         "RecapRepo.write uses tempfile.NamedTemporaryFile + os.replace (atomic).",
         "CoherenceNet.coerce_token_ids clamps out-of-range token IDs to UNK (0)."
       ],
       "evidence": [
         "tests/unit/test_coherence_net.py: CoherenceNet forward pass + shape + CLS hidden state.",
-        "tests/unit/test_model_loader.py: per-process singleton + per-kind cache + MockLLMBackbone.",
+        "tests/unit/test_model_loader.py: per-process singleton + independent ViT5/BARTpho caches.",
         "tests/unit/test_recap_repo.py + tests/unit/test_transcript_repo.py: atomic writes + round-trip.",
         "tests/unit/test_io.py: shared _io.py module.",
         "tests/unit/test_repo_layer_rules.py: AST scan forbids config/service/runtime/ui/types imports.",
         "tests/e2e/test_repo_e2e.py: end-to-end load + write flow."
       ],
-      "notes": "Status: passing as of 2026-07-04 (4-critical-bug code review + 3 important fixes applied 2026-07-05). Unchanged by the 2026-07-05 spec rewrite except that the MockLLMBackbone is now the *only* LLM path until MODEL_LOAD_LLM=1 is enabled (deBERTa-class tasks keep using MockLLMBackbone for the Hierarchical recap; gemma-4-E2B-it-qat-GGUF is unrelated). C4 token-ID clamp remains Important tech debt for real Vietnamese text quality (see docs/exec-plans/tech-debt-tracker.md)."
+      "notes": "Updated 2026-07-11: recap inference is local-files-only and CUDA-only; missing CUDA/artifacts fail with actionable errors. Historical CoherenceNet debt is unrelated to the lexical segmentation runtime."
     },
     {
       "id": "config-001+",
@@ -179,7 +179,7 @@
         "Boundaries are non-overlapping, strictly increasing, and cover [0, n).",
         "cutoff_threshold returns μ - σ/2 on a known input.",
         "Sliding-window params (window=30, stride=10) come from TextTilingConfig, not hard-coded.",
-        "Full 100-utterance inference finishes in < 5 seconds on a CPU (MockLLMBackbone fast-path not used for NSP)."
+        "Fast orchestration tests use injected task adapters; real inference is verified separately on CUDA."
       ],
       "evidence": [
         "src/service/__init__.py: re-exports CoherenceScorer, SegmentEvent, TextTilingService",
@@ -216,21 +216,21 @@
       "id": "svc-004",
       "priority": 7,
       "area": "service",
-      "title": "Implement Hierarchical Summarization (deBERTa title + abstractive, mocked at MVP)",
-      "user_visible_behavior": "HierarchicalSummarizationService.title(segment) returns a chapter title (deBERTa hierarchical_title model, 512-token context, 3rd-person). HierarchicalSummarizationService.abstractive(chunk) returns a 3rd-person rolling summary (deBERTa hierarchical_abstractive model, 512-token context). At MVP both call into MockLLMBackbone from model-002 (canned Vietnamese responses in src/repo/prompts_vi.py).",
+      "title": "Implement Hierarchical Summarization (ViT5 summary + BARTpho title)",
+      "user_visible_behavior": "HierarchicalSummarizationService.abstractive(chunk) sends chronological speaker/text lines to local ViT5. After every topic chunk is summarized, title(segment) sends only those ordered summaries to local BARTpho.",
       "status": "passing",
       "verification": [
         "title(segment) returns a non-empty string <= 64 chars.",
         "abstractive(chunk) returns a non-empty string in 3rd person (regex assert on 'nhóm', 'cuộc họp', or similar Vietnamese 3rd-person markers).",
-        "MockLLMBackbone.generate is called with the correct task name ('title' vs 'abstractive').",
-        "When MODEL_LOAD_LLM=1, the real gemma-4-E2B-it-qat-GGUF is loaded (gated; not exercised in unit tests)."
+        "Task adapters use exact fine-tuning prefixes, limits, and deterministic beam settings.",
+        "The opt-in real_model CUDA smoke test loads both checkpoints and generates non-empty output."
       ],
       "evidence": [
-        "src/service/hierarchical_summarization.py: title() and abstractive() methods; uses ModelLoader.load_llm_backbone() (MockLLMBackbone at MVP via MODEL_LOAD_LLM=0)",
+        "src/service/hierarchical_summarization.py: title() consumes completed summaries only; abstractive() formats speaker/text input.",
         "src/service/__init__.py: re-exports HierarchicalSummarizationService",
         "tests/unit/test_hierarchical_summarization.py: 8 tests (nonempty output, truncation, empty segment, 3rd-person marker, helper method)"
       ],
-      "notes": "Unchanged from original spec; the only diff is that the highlights prompt is removed (D1) and the deBERTa calls go through MockLLMBackbone at MVP. The real deBERTa checkpoints are not yet publicly available for Vietnamese; the canned responses are realistic Vietnamese 3rd-person summaries for testing the streaming pipeline."
+      "notes": "Updated 2026-07-11. Fast tests use injected task adapters; production always uses the two local CUDA checkpoints."
     },
     {
       "id": "svc-006+streaming",
@@ -283,7 +283,7 @@
         "tests/unit/test_logging.py: 14 tests for logger formatters, request context, and fix-aware error logging",
         "tests/unit/test_cli.py: 6 tests including empty transcript Fix output and stream NDJSON",
         "tests/integration/test_api_streaming.py: 6 tests including request-id echo and 422 fix fields",
-        "Full suite: 250/250 tests pass with MODEL_LOAD_LLM=0"
+        "Default fast suite passes with the real_model marker excluded; explicit CUDA smoke passes with both local checkpoints."
       ],
       "notes": "Why SSE not WebSocket: SSE is HTTP, works through corporate proxies, has built-in reconnect via EventSource, and is sufficient because the recap is unidirectional. The end-to-end design is streaming-capable in the orchestrator, so a future 'live ASR' feature can be added by either (a) a WebSocket route that ingests utterances and pipes them into StreamingOrchestrator.process_stream, or (b) HTTP chunked-transfer on the POST body. Both are no-ops in the orchestrator; they only change the transport adapter. Logging/tracing is treated as a cross-cutting runtime quality slice, not a separate feature, because it improves API, CLI, repo, and service diagnosability without changing the recap contract."
     },

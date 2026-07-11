@@ -1,5 +1,9 @@
 # Lộ Trình Phát Triển & Thiết Kế Các Models
 
+> **Deprecated 2026-07-11.** This roadmap predates the implemented lexical
+> segmentation and local ViT5/BARTpho recap models. Use `ARCHITECTURE.md`,
+> `docs/QUALITY_SCORE.md`, and the active execution-plan index.
+
 Dựa trên phân tích `ARCHITECTURE.png` và `system-architecture.md`, dưới đây là lộ trình phát triển hệ thống (thứ tự ưu tiên xây dựng) cùng với danh sách toàn bộ các Model (bao gồm Data Models và AI Models) sẽ cần được tạo lập.
 
 ## 1. Trình Tự Thiết Kế & Phát Triển (Implementation Roadmap)

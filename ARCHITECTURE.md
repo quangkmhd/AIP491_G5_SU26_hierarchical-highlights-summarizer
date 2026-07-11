@@ -15,7 +15,7 @@ to deeper documents when needed.
 | Domain               | Purpose                                                                                                   | Primary Entry Points                                                | Related Spec                                                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `Topic Segmentation` | `Identifying coherent topics using lexical Sliding TextTiling (BoW + cosine + multi-scale depth)`  | `src/service/text_tiling.py`, `src/segmenters/sliding_texttiling.py`     | `docs/papers/improving-unsupervised-dialogue-topic-segmentation.md`                                                            |
-| `Hierarchical Recap` | `Meeting summarization, chapter titles, rolling summaries (deBERTa, mocked at MVP), streaming end-to-end` | `src/service/meeting_recap_orchestrator.py` (StreamingOrchestrator) | `docs/papers/llm-powered-meeting-recap-system.md` + `docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md` |
+| `Hierarchical Recap` | `ViT5 chunk summaries, BARTpho titles from completed topic summaries, streaming end-to-end` | `src/service/meeting_recap_orchestrator.py` (StreamingOrchestrator) | `docs/superpowers/specs/2026-07-11-local-finetuned-recap-models-design.md` |
 
 ## Layer Model
 
@@ -40,8 +40,7 @@ boundaries instead of reaching across layers directly.
 | ------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Logging and tracing | `Standard Python logging`                   | `structured only, console allowed for CLI`                                                             |
 | Auth                | `N/A`                                       | `token/session rules`                                                                                  |
-| External APIs       | `HuggingFace Transformers`                  | `local model loading; cpt_4000.pth is the user-fine-tuned checkpoint`                                  |
-| Feature flags       | `MODEL_LOAD_LLM` env var                    | `0 = MockLLMBackbone (offline CI); 1 = real gemma-4-E2B-it-qat-GGUF`                                   |
+| Model runtime       | `HuggingFace Transformers`                  | CUDA-only local ViT5 + BARTpho; no network downloads or fallback                                      |
 | Streaming transport | `sse-starlette` for HTTP / `ndjson` for CLI | `event contract in docs/superpowers/specs/2026-07-05-streaming-hierarchical-recap-design.md Section 6` |
 
 ## Current Hot Spots
@@ -57,7 +56,7 @@ boundaries instead of reaching across layers directly.
 | ---------------------------------- | ------------------------------------------- | ------- | -------------------------------------------------------- | ------------------------------------------------------ |
 | `SlidingTextTilingService`         | `src/service/text_tiling.py`                | Service | `SlidingTextTilingConfig` (Config)                       | yes — sliding depth-score array                        |
 | `ChunkingService`                  | `src/service/chunking_service.py`           | Service | (none)                                                   | yes — 8-utt chunk accumulator                          |
-| `HierarchicalSummarizationService` | `src/service/hierarchical_summarization.py` | Service | `ModelLoader` (Repo), `MockLLMBackbone` (Repo)           | yes — title deferred, chunk summary synchronous at MVP |
+| `HierarchicalSummarizationService` | `src/service/hierarchical_summarization.py` | Service | task-specific ViT5/BARTpho adapters (Repo)               | yes — summaries complete before summary-only title inference |
 | `StreamingOrchestrator`            | `src/service/meeting_recap_orchestrator.py` | Service | All above + `ModelLoader` (Repo)                         | yes — main entry point (6 event types)                 |
 
 ## Change Checklist
