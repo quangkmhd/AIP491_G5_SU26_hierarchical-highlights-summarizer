@@ -157,11 +157,11 @@ class CliStreamTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             stdout = result.stdout
-            self.assertIn("Topic 1 - Chunk 1", stdout)
-            self.assertIn("Topic 1 Title", stdout)
+            self.assertIn("Tóm tắt chunk:", stdout)
+            self.assertIn("Chủ đề:", stdout)
             # Ensure it is not NDJSON
             for line in stdout.splitlines():
-                if line.strip() and not line.startswith("===") and not line.startswith("[Topic"):
+                if line.strip() and not line.startswith("Tóm tắt chunk:") and not line.startswith("Chủ đề:"):
                     try:
                         obj = json.loads(line)
                         self.assertNotIn("type", obj)

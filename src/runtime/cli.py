@@ -67,6 +67,12 @@ def cmd_process(args: argparse.Namespace) -> int:
 
 
 def cmd_stream(args: argparse.Namespace) -> int:
+    if getattr(args, "pretty", False):
+        import logging
+        logging.getLogger().setLevel(logging.ERROR)
+        for handler in logging.getLogger().handlers:
+            handler.setLevel(logging.ERROR)
+
     logger.info("cli stream start file=%s output=%s", args.file.name, args.output or "-")
     transcript = _load_transcript(args.file)
     orchestrator = StreamingOrchestrator()
@@ -91,20 +97,12 @@ def cmd_stream(args: argparse.Namespace) -> int:
                     if seg_id not in segment_id_to_num:
                         segment_id_to_num[seg_id] = len(segment_id_to_num) + 1
                     segment_chunk_counts[seg_id] = segment_chunk_counts.get(seg_id, 0) + 1
-                    topic_num = segment_id_to_num[seg_id]
-                    chunk_num = segment_chunk_counts[seg_id]
                     summary = event.data.get("rolling_summary")
-                    start = event.data.get("utterances_start")
-                    end = event.data.get("utterances_end")
-                    print(f"\n[Topic {topic_num} - Chunk {chunk_num} (Utterances {start}..{end})]")
-                    print(f"{summary}")
+                    print(f"Tóm tắt chunk: {summary}")
                     sys.stdout.flush()
             elif event.type.value == "title-emitted":
-                seg_id = event.data.get("segment_id")
                 title = event.data.get("title")
-                topic_num = segment_id_to_num.get(seg_id, len(segment_id_to_num))
-                print(f"\n=== Topic {topic_num} Title: {title} ===")
-                print("=" * 60)
+                print(f"Chủ đề: {title}\n" + "-" * 40)
                 sys.stdout.flush()
         else:
             # NDJSON output: one event per line
