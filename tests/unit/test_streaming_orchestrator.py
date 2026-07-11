@@ -24,6 +24,7 @@ from src.service import (
 )
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
+from src.service.text_tiling import SegmentEvent
 
 
 def _t(texts: list[str]) -> DialogueTranscript:
@@ -48,6 +49,14 @@ class FakeSummarizer:
         return f"title-{chapter_number}"
 
 
+class TwoSegmentTiler:
+    def process(self, utterances):
+        return [
+            SegmentEvent("seg-0", 0, 7, 1.0, 7),
+            SegmentEvent("seg-1", 8, 9, 0.0, 9),
+        ]
+
+
 class StreamingOrchestratorEventTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -63,6 +72,17 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
             self.assertTrue(all(summary.startswith("summary-") for summary in summaries))
         types = [event.type for event in events]
         self.assertEqual(types[-1], RecapEventType.MEETING_COMPLETED)
+
+    def test_titles_are_isolated_to_their_topic_summaries(self) -> None:
+        recorder = FakeSummarizer()
+        orchestrator = StreamingOrchestrator(
+            tiler=TwoSegmentTiler(), summarizer=recorder
+        )
+        list(orchestrator.process_stream(_t([f"u{i}" for i in range(10)])))
+        self.assertEqual(
+            [call for call in recorder.calls if call[0] == "title"],
+            [("title", ("summary-0",)), ("title", ("summary-8",))],
+        )
 
     def test_event_order_for_tiny_transcript(self) -> None:
         # 6 utterances, one likely topic shift at index 2

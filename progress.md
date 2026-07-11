@@ -39,6 +39,10 @@
 
 **Status:** passing
 
+> **Superseded 2026-07-11:** Recap inference now uses the CUDA-only local
+> ViT5 chunk summarizer and BARTpho topic titler. Fast tests inject
+> task-specific adapters; there is no mock/Gemma environment switch.
+
 > **Note (2026-07-10):** Topic segmentation was rewritten to use
 > lexical Sliding TextTiling. `CoherenceNet` and the NSP checkpoint
 > are no longer called by the orchestrator. The repo layer code
@@ -46,14 +50,14 @@
 
 - Implemented `src/repo/{coherence_net,model_loader,transcript_repo,recap_repo,smoke_loader}.py` + `prompts_vi.py`.
 - CoherenceNet loads from `vibert_checkpoints_vi/cpt_4000.pth` (paper-1 architecture, BERT-base multilingual base, embeddings resized to ckpt vocab 38168, strict=False for shape-mismatched MLM-head keys).
-- ModelLoader is a per-process singleton; `MODEL_LOAD_LLM=0` env var returns a `MockLLMBackbone` for offline CI.
-- gemma-4-E2B-it-qat-GGUF selected as the single Vietnamese LLM backbone (4-bit via `bitsandbytes`, deferred behind env var).
-- 4 Vietnamese prompt templates cover the collapsed paper-2 task list (segment / abstractive / title / highlights).
+- ModelLoader is a per-process singleton with independent local ViT5 and BARTpho caches.
+- Fast tests inject task adapters; production loading is CUDA-only and local-files-only.
+- Exact fine-tuning prefixes replace the former long prompt registry.
 - TranscriptRepo reads all 6 `data/eval_vi/*.json` files into `DialogueTranscript` with synthesised speaker labels and drops empty/placeholder utterances (e.g. AMI `{vocalsound}` artefacts).
 - RecapRepo round-trips `HierarchicalRecap` via Pydantic v2 `model_dump_json`.
 - AST-based layer-rule test enforces zero imports from `config`/`service`/`runtime`/`ui` in `src/repo/`.
 - 35 new unit tests; full suite green (74/74).
-- Verification: `MODEL_LOAD_LLM=0 python3 -m unittest discover -s tests` and `python3 -m src.repo.smoke_loader` both green.
+- Current verification: default pytest excludes the opt-in `real_model` marker; the explicit CUDA smoke loads both checkpoints.
 
 ## model-002 — Code Review & Fixes (2026-07-05)
 
@@ -226,8 +230,12 @@ I3 directly).
 
 **Status:** passing
 
+> **Updated 2026-07-11:** `abstractive()` uses local ViT5 without arbitrary
+> character clipping. `title()` uses local BARTpho and receives only ordered
+> completed summaries from its topic.
+
 - Created `src/service/hierarchical_summarization.py` with `title(segment)` and `abstractive(chunk)`.
-- Uses `ModelLoader.load_llm_backbone()` → MockLLMBackbone at MVP via `MODEL_LOAD_LLM=0`.
+- Uses task-specific ViT5 and BARTpho adapters loaded through `ModelLoader`.
 - 8 unit tests covering nonempty output, truncation at TITLE_MAX_CHARS=64 / ABSTRACTIVE_MAX_CHARS=256, empty segment, 3rd-person marker ("Nhóm"), helper method.
 - Verification: 191/191 tests pass (was 183; +8 new).
 

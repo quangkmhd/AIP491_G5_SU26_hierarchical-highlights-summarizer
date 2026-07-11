@@ -6,36 +6,31 @@ Loads the second Vietnamese committee dialogue (dial_id=1) from
 `data/eval_vi/meeting_committee.json`, treats the ground-truth
 `segments` list `[16, 65, 12, 27, 10]` as the topic boundaries
 (SKIP TextTiling / skip the segment-topic step), then runs the
-REAL LLM backbone (gemma-4-E2B-it-qat-GGUF/Gemma GGUF, set by MODEL_LOAD_LLM=1)
+local CUDA ViT5 chunk summarizer and BARTpho topic titler
 through:
 
   1. For each segment: build 8-utterance chunks.
   2. For each chunk: HierarchicalSummarizationService.abstractive
-     (calls real LLM, parses JSON, returns rolling summary).
+     (calls local ViT5 and returns a rolling summary).
   3. After all chunks in a segment: HierarchicalSummarizationService.title
-     (calls real LLM, parses JSON, returns chapter title).
+     (calls local BARTpho using only completed chunk summaries).
   4. Collect HierarchicalRecap and write it to
      `docs/generated/eval_summary_dial1.json` and a readable
      Markdown report at `docs/generated/eval_summary_dial1.md`.
 
 The script tail-logs to stdout (and `src.logging` writes to
 `logs/run.log` automatically). We will tail the log while it runs
-to confirm the real LLM is invoked per chunk and per segment, not
-the mock.
+to confirm both local fine-tuned models are invoked.
 
 USAGE
 -----
-    # Real LLM (default; uses cached GGUF):
+    # Requires local inference artifacts and CUDA:
     python scripts/eval_summary_dial1.py
-
-    # Force mock backbone (offline CI / no GPU):
-    MODEL_LOAD_LLM=0 python scripts/eval_summary_dial1.py
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -43,9 +38,6 @@ from pathlib import Path
 # ---- Path bootstrap so we can import src.* regardless of CWD -------------
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
-
-# Force real LLM unless explicitly opted-out via env var.
-os.environ.setdefault("MODEL_LOAD_LLM", "1")
 
 from src.logging import get_logger  # noqa: E402
 from src.service.hierarchical_summarization import (  # noqa: E402
@@ -163,9 +155,9 @@ def main() -> int:
         len(segments), sum(len(s.chunks) for s in segments),
     )
 
-    # ---- Real LLM backbone -------------------------------------------------
+    # ---- Local fine-tuned recap models ------------------------------------
     t0 = time.perf_counter()
-    logger.info("loading HierarchicalSummarizationService (real LLM unless MODEL_LOAD_LLM=0)")
+    logger.info("loading local ViT5 and BARTpho recap models on CUDA")
     summarizer = HierarchicalSummarizationService()
     load_time = time.perf_counter() - t0
     logger.info("summarization service ready in %.2fs", load_time)
@@ -178,7 +170,7 @@ def main() -> int:
         for cidx, chunk in enumerate(seg.chunks, start=1):
             utt_range = (chunk.utterances[0].index, chunk.utterances[-1].index)
             logger.info(
-                "[seg %d/%d chunk %d/%d] utt[%d..%d] calling LLM (abstractive)...",
+                "[seg %d/%d chunk %d/%d] utt[%d..%d] calling ViT5 summarizer...",
                 seg_idx, len(segments), cidx, len(seg.chunks),
                 utt_range[0], utt_range[1],
             )
@@ -196,7 +188,7 @@ def main() -> int:
 
         seg_utts_range = (seg.utterances_start, seg.utterances_end)
         logger.info(
-            "[seg %d/%d] utt[%d..%d] calling LLM (title)...",
+            "[seg %d/%d] utt[%d..%d] calling BARTpho titler...",
             seg_idx, len(segments), seg_utts_range[0], seg_utts_range[1],
         )
         t_title = time.perf_counter()

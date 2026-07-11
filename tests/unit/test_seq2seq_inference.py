@@ -41,6 +41,11 @@ class ModelDouble:
         return torch.tensor([[2]])
 
 
+class OOMModel(ModelDouble):
+    def generate(self, **kwargs):
+        raise torch.cuda.OutOfMemoryError("allocation failed")
+
+
 def handle(kind, output="  kết quả  "):
     return ModelHandle(kind, ModelDouble(), TokenizerDouble(output), "cuda", "/model")
 
@@ -75,6 +80,18 @@ class Seq2SeqAdapterTests(unittest.TestCase):
     def test_adapter_rejects_wrong_handle_kind(self):
         with self.assertRaises(ValueError):
             ViT5ChunkSummarizer(handle(ModelKind.TOPIC_TITLER))
+
+    def test_cuda_oom_is_actionable_and_chained(self):
+        h = ModelHandle(
+            ModelKind.CHUNK_SUMMARIZER,
+            OOMModel(),
+            TokenizerDouble(),
+            "cuda",
+            "/model",
+        )
+        with self.assertRaisesRegex(GenerationError, r"VRAM.*fix") as raised:
+            ViT5ChunkSummarizer(h).summarize("S1: Nội dung")
+        self.assertIsInstance(raised.exception.__cause__, torch.cuda.OutOfMemoryError)
 
 
 if __name__ == "__main__":

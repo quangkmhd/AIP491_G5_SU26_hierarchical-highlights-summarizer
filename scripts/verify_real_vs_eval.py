@@ -1,18 +1,12 @@
-import os
 import json
 import sys
-
-# Set env to mock LLM loading so we don't load/download Gemma weights
-os.environ["MODEL_LOAD_LLM"] = "0"
+import os
 
 # Add current path to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.service.meeting_recap_orchestrator import StreamingOrchestrator, RecapEventType
 from src.service.text_tiling import SlidingTextTilingService
 from src.config.text_tiling import SlidingTextTilingConfig
-from src.types.transcript import DialogueTranscript
-from src.types.utterance import Utterance
 
 # Define paths
 EVAL_FILE = "/home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/data/eval_vi/dialseg_711.json"
@@ -31,10 +25,9 @@ def main():
     with open(EVAL_OUTPUT_FILE, 'r', encoding='utf-8') as f:
         eval_outputs = json.load(f)
 
-    # We instantiate the StreamingOrchestrator with the chosen alpha (1.0 default)
+    # This verification is segmentation-only; recap models are intentionally not loaded.
     config = SlidingTextTilingConfig(alpha=1.0)
     tiler = SlidingTextTilingService(config=config)
-    orchestrator = StreamingOrchestrator(tiler=tiler)
 
     print("\nStarting 'real' production runs for dial_id 1 to 10...")
     all_matched = True
@@ -43,26 +36,12 @@ def main():
         dial_id = str(dialogue['dial_id'])
         utterances_raw = dialogue['utterances']
 
-        # 1. Convert to DialogueTranscript format
-        utterances_obj = []
-        for idx, text in enumerate(utterances_raw):
-            utterances_obj.append(Utterance(
-                speaker=f"Speaker_{idx % 2}",
-                text=text,
-                index=idx
-            ))
-        transcript = DialogueTranscript(utterances=utterances_obj)
-
-        # 2. Run real production orchestrator stream
-        # Collect SEGMENT_CLOSED events to get the predicted segments
-        segment_events = []
-        for event in orchestrator.process_stream(transcript):
-            if event.type == RecapEventType.SEGMENT_CLOSED:
-                segment_events.append(event)
+        # Run the production lexical segmenter directly.
+        segment_events = tiler.process(utterances_raw)
 
         # 3. Reconstruct segment sizes and ranges
-        real_segments = [e.data['utterances_end'] - e.data['utterances_start'] + 1 for e in segment_events]
-        real_ranges = [{"start": e.data['utterances_start'], "end": e.data['utterances_end']} for e in segment_events]
+        real_segments = [e.utterances_end - e.utterances_start + 1 for e in segment_events]
+        real_ranges = [{"start": e.utterances_start, "end": e.utterances_end} for e in segment_events]
 
         # 4. Fetch the eval-run outputs for comparison
         eval_dialogue = eval_outputs[dial_id]

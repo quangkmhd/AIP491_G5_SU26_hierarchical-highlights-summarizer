@@ -35,22 +35,27 @@ class _Seq2SeqGenerator:
         self._device = handle.device
 
     def _generate(self, body: str, task_name: str) -> str:
-        encoded = self._tokenizer(
-            self.prefix + body,
-            max_length=self.max_input_tokens,
-            truncation=True,
-            return_tensors="pt",
-        ).to(self._device)
-        with torch.inference_mode():
-            token_ids = self._model.generate(
-                **encoded,
-                num_beams=4,
-                max_new_tokens=self.max_new_tokens,
-                no_repeat_ngram_size=3,
-                length_penalty=1.0,
-                early_stopping=True,
-                do_sample=False,
-            )
+        try:
+            encoded = self._tokenizer(
+                self.prefix + body,
+                max_length=self.max_input_tokens,
+                truncation=True,
+                return_tensors="pt",
+            ).to(self._device)
+            with torch.inference_mode():
+                token_ids = self._model.generate(
+                    **encoded,
+                    num_beams=4,
+                    max_new_tokens=self.max_new_tokens,
+                    no_repeat_ngram_size=3,
+                    length_penalty=1.0,
+                    early_stopping=True,
+                    do_sample=False,
+                )
+        except torch.cuda.OutOfMemoryError as exc:
+            raise GenerationError(
+                f"{task_name} exhausted CUDA VRAM; fix: free GPU memory and retry"
+            ) from exc
         output = self._tokenizer.batch_decode(token_ids, skip_special_tokens=True)[0].strip()
         if not output:
             raise GenerationError(

@@ -46,7 +46,7 @@ None.
 
 ## Verification at archive time
 
-- Fast suite: `uv run pytest tests/ -q -m 'not real_model'` — 266 passed,
+- Fast suite: `uv run pytest tests/ -q` — 268 passed,
   3 skipped, 1 deselected, 12 subtests passed.
 - CUDA smoke: `uv run pytest tests/manual/test_local_recap_models_smoke.py
   -q -m real_model` — 1 passed on NVIDIA GeForce RTX 4060 8 GB.
@@ -56,3 +56,7 @@ None.
 - Production lint: `uv run ruff check` on changed production modules — green.
 - Legacy runtime search: zero matches for mock/GGUF/`MODEL_LOAD_LLM` symbols
   in `src`, `tests`, and `pyproject.toml`.
+- Pre-merge review fixes: default suite excludes `real_model`; CUDA OOM is
+  raised as a chained actionable `GenerationError`; operational scripts and
+  current trackers no longer select the removed Gemma/mock path; deterministic
+  two-topic test proves title-summary isolation.
