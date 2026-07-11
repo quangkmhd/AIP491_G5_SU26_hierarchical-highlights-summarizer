@@ -5,12 +5,8 @@ Use this index as the discoverable map of design history.
 ## Accepted
 
 - `core-beliefs.md`: agent-first operating beliefs and durable project norms
-- `system-architecture.md`: definitive architecture for the Hierarchical Meeting
-  Recap system (container diagram, sequence diagram, API contracts, NFRs)
-- `models-and-roadmap.md`: data models (Types layer inventory) and the
-  layered implementation roadmap
-- `paper-integration.md`: how the two source papers combine into a single
-  pipeline (NSP BERT TextTiling -> deBERTa/BART recap)
+- `../../superpowers/specs/2026-07-11-local-finetuned-recap-models-design.md`:
+  current ViT5/BARTpho recap-model architecture
 
 ## Proposed
 
@@ -18,7 +14,9 @@ Use this index as the discoverable map of design history.
 
 ## Deprecated
 
-- `[move old or superseded design docs here with replacement links]`
+- `system-architecture.md`: superseded system map with removed surfaces
+- `models-and-roadmap.md`: superseded early implementation roadmap
+- `paper-integration.md`: historical paper/MVP mapping
 
 ## Maintenance Rules
 

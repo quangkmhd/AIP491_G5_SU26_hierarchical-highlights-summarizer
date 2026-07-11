@@ -1,7 +1,7 @@
 """ChunkingService -- 8-utterance hierarchical chunking (paper-2 §3.2).
 
 Splits a segment's utterances into Chunks of <= MAX_CHUNK_SIZE = 8 utterances
-each. This is the input size for hierarchical_abstractive (deBERTa) which has
+each. This is the trained input unit for the local ViT5 chunk summarizer, which has
 a strict 512-token context window.
 
 No overlap in MVP -- paper-2 does not specify an overlap, and the 512-token

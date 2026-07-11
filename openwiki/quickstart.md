@@ -69,6 +69,6 @@ If you are an AI assistant or software agent making code modifications in this r
 
 1.  **Do Not Violate Layer Boundaries**: The layer map is unidirectional. `src/types` must never import from config, repo, services, or runtime. This is mechanically checked on test runs via AST scanners.
 2.  **No Extraneous Imports**: Centralize packages through standard libraries where possible. Do not import `time` or heavy wrappers in streaming modules where it is not used.
-3.  **Local Execution Rules**: Keep testing paths network-free. By default, `MODEL_LOAD_LLM=0` switches the system to the local `MockLLMBackbone` so unit tests execute instantaneously and offline.
+3.  **Local Execution Rules**: Runtime uses the CUDA-only checkpoints in `models/`; fast tests inject task doubles and never load weights or access the network.
 4.  **Actionable Error Paths**: Never drop errors or silent OOM boundaries. When throwing exceptions or returning API failures, include the `fix` keyword pointing to a meaningful resolution. See **[Operations](operations.md)** for more details.
 5.  **Clean Weight Storage**: The Vietnamese BERT weights are stored locally in the folder `vibert_checkpoints_vi/`. Never remove or rename this folder, and ensure it remains git-ignored.

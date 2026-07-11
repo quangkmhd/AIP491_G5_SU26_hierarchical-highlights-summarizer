@@ -1,5 +1,10 @@
 # Integration of Core Papers
 
+> **Deprecated 2026-07-11.** This document preserves the original paper/MVP
+> mapping. The implemented recap path is now lexical Sliding TextTiling,
+> local ViT5 chunk summaries, then local BARTpho titles generated only from
+> completed summaries. See `ARCHITECTURE.md` and the 2026-07-11 model spec.
+
 This project is built upon the synergy of two distinct research papers to
 create a streaming, hierarchical meeting recap system. This document
 explains how their methodologies are combined into a single, cohesive

@@ -1,5 +1,10 @@
 # Đặc Tả Kiến Trúc Hệ Thống: LLM-Powered Hierarchical Meeting Recap System
 
+> **Deprecated 2026-07-11.** This historical architecture contains removed
+> highlights and mock-LLM surfaces. Use `ARCHITECTURE.md` and
+> `docs/superpowers/specs/2026-07-11-local-finetuned-recap-models-design.md`
+> for the current lexical TextTiling → ViT5 summaries → BARTpho titles system.
+
 *(System Architecture Specification for AI & Human Consumability)*
 
 Tài liệu này đặc tả chi tiết kiến trúc, cấu trúc dữ liệu, giao tiếp API và mô hình hoạt động của **Hệ thống tóm tắt họp phân cấp sử dụng Neural TextTiling**. Tài liệu được cấu trúc hóa giúp các mô hình AI (LLM, Code Gen, AI Agent) có thể dễ dàng phân tích, hiểu đúng đắn và sinh mã nguồn chính xác.

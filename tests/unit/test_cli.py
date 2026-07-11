@@ -29,7 +29,8 @@ class FakeSummarizer:
 
 def run_cli(argv):
     stdout, stderr = io.StringIO(), io.StringIO()
-    factory = lambda: StreamingOrchestrator(summarizer=FakeSummarizer())
+    def factory():
+        return StreamingOrchestrator(summarizer=FakeSummarizer())
     root = logging.getLogger()
     root_level = root.level
     handler_levels = [handler.level for handler in root.handlers]

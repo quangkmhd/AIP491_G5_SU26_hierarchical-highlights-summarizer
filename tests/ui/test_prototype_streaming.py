@@ -7,15 +7,12 @@ End-to-end streaming is verified at the API integration level
 
 from __future__ import annotations
 
-import os
 import socket
 import sys
 import threading
 import time
 import unittest
 from pathlib import Path
-
-os.environ.setdefault("MODEL_LOAD_LLM", "0")
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -24,6 +21,14 @@ import uvicorn
 from playwright.sync_api import sync_playwright
 
 from src.runtime.api import create_app
+from src.service import StreamingOrchestrator
+
+
+class _FakeSummarizer:
+    def abstractive(self, chunk, chapter_number=1, chunk_index=0):
+        return "Tóm tắt test"
+    def title(self, segment, chapter_number=1):
+        return "Chủ đề test"
 
 
 def _find_free_port() -> int:
@@ -36,7 +41,7 @@ class _BackgroundServer:
     def __init__(self) -> None:
         self.port = _find_free_port()
         self.config = uvicorn.Config(
-            create_app(),
+            create_app(StreamingOrchestrator(summarizer=_FakeSummarizer())),
             host="127.0.0.1",
             port=self.port,
             log_level="warning",

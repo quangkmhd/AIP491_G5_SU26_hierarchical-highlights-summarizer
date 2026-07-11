@@ -18,7 +18,6 @@ sys.path.insert(0, str(ROOT))
 
 from src.service import (
     ChunkingService,
-    HierarchicalSummarizationService,
     RecapEventType,
     SlidingTextTilingService,
     StreamingOrchestrator,

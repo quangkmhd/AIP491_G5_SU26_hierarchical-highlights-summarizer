@@ -13,8 +13,8 @@ enough to act on.
   sequence of utterances with speaker labels.
 - The user is using the Web App (`ui-001`, not yet implemented) **or**
   the Python CLI / `uv run src/runtime/cli.py` (depends on `api-001`).
-- The system requires an LLM backbone (or `MockLLMBackbone` via
-  `MODEL_LOAD_LLM=0`). Topic segmentation uses lexical Sliding
+- The system requires the local ViT5 chunk summarizer and BARTpho topic
+  titler on CUDA. Topic segmentation uses lexical Sliding
   TextTiling — no neural checkpoint required for segmentation.
 
 ## User Flow
@@ -32,8 +32,8 @@ enough to act on.
      `MAX_UTTERANCES = 5000` are rejected here with a clear error.
    - Runs `SlidingTextTilingService` to split the transcript into `SegmentResult`s.
    - Chunks each segment into <= 8-utterance `Chunk`s.
-   - Runs `hierarchical_title` on each segment and
-     `hierarchical_abstractive` on each chunk (via `MockLLMBackbone` or LLM).
+   - Summarizes each chunk with ViT5, then gives only the ordered completed
+     summaries in that topic to BARTpho to generate its title.
    - Returns a `HierarchicalRecap` in the response body.
 6. The client renders the recap. The hierarchical view shows chapters in
    chronological order.
