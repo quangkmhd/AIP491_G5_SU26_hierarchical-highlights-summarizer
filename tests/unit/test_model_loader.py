@@ -1,163 +1,71 @@
-"""Unit tests for ModelLoader singleton + cache + offline mock."""
+"""Unit tests for the dual local seq2seq model loader."""
 
-import os
+import tempfile
 import threading
 import unittest
+from pathlib import Path
 from unittest import mock
 
-from src.repo.model_loader import (
-    LLM_BACKBONE_ID,
-    MockLLMBackbone,
-    ModelKind,
-    ModelLoader,
-)
-from src.repo.prompts_vi import LLMTask
+from src.repo.model_loader import ModelHandle, ModelKind, ModelLoadError, ModelLoader
 
 
-class TestModelLoaderSingleton(unittest.TestCase):
-    def setUp(self) -> None:
-        # Reset the singleton between tests.
-        ModelLoader.reset_instance()
-
-    def tearDown(self) -> None:
-        ModelLoader.reset_instance()
-
-    def test_instance_returns_same_object(self) -> None:
-        a = ModelLoader.instance()
-        b = ModelLoader.instance()
-        self.assertIs(a, b)
-
-    def test_reset_instance_clears_cache(self) -> None:
-        a = ModelLoader.instance()
-        ModelLoader.reset_instance()
-        b = ModelLoader.instance()
-        self.assertIsNot(a, b)
-
-    def test_llm_backbone_id(self) -> None:
-        self.assertEqual(LLM_BACKBONE_ID, "unsloth/gemma-4-E2B-it-qat-GGUF")
-
-    def test_model_kind_enum_has_only_llm_backbone(self) -> None:
-        self.assertEqual({k.name for k in ModelKind}, {"LLM_BACKBONE"})
+def _handle(kind: ModelKind) -> ModelHandle:
+    return ModelHandle(kind, object(), object(), "cuda", f"/models/{kind.value}")
 
 
-class TestMockLLMBackbone(unittest.TestCase):
-    def test_mock_records_calls(self) -> None:
-        mock_llm = MockLLMBackbone()
-        out = mock_llm.generate(prompt="Xin chào", task="segment")
-        self.assertIsInstance(out, str)
-        self.assertEqual(mock_llm.call_count, 1)
-        self.assertEqual(mock_llm.last_prompt, "Xin chào")
-
-    def test_mock_handles_all_hierarchical_tasks(self) -> None:
-        mock_llm = MockLLMBackbone()
-        for task in LLMTask:
-            mock_llm.generate(prompt="x", task=task.value)
-        self.assertEqual(mock_llm.call_count, 2)
-
-
-class TestOfflineMode(unittest.TestCase):
+class ModelLoaderTests(unittest.TestCase):
     def setUp(self) -> None:
         ModelLoader.reset_instance()
 
     def tearDown(self) -> None:
         ModelLoader.reset_instance()
 
-    def test_offline_env_returns_mock_llm(self) -> None:
-        with mock.patch.dict(os.environ, {"MODEL_LOAD_LLM": "0"}):
-            loader = ModelLoader.instance()
-            handle = loader.load_llm_backbone()
-        self.assertIsInstance(handle.model, MockLLMBackbone)
-        self.assertEqual(handle.kind, ModelKind.LLM_BACKBONE)
-
-    def test_offline_llm_load_logs_mode_and_device(self) -> None:
-        with mock.patch.dict(os.environ, {"MODEL_LOAD_LLM": "0"}):
-            loader = ModelLoader.instance()
-            with self.assertLogs("src.repo.model_loader", level="INFO") as logs:
-                loader.load_llm_backbone()
-        text = "\n".join(logs.output)
-        self.assertIn("loading LLM backbone", text)
-        self.assertIn("MODEL_LOAD_LLM=0", text)
-
-
-def _mock_handle() -> "ModelHandle":
-    """Build a ModelHandle carrying a MockLLMBackbone."""
-    from src.repo.model_loader import ModelHandle
-    return ModelHandle(
-        kind=ModelKind.LLM_BACKBONE,
-        model=MockLLMBackbone(),
-        device="cpu",
-        checkpoint_path="mock",
-    )
-
-
-class TestCaching(unittest.TestCase):
-    def setUp(self) -> None:
+    def test_singleton_can_be_reset(self) -> None:
+        first = ModelLoader.instance()
+        self.assertIs(first, ModelLoader.instance())
         ModelLoader.reset_instance()
+        self.assertIsNot(first, ModelLoader.instance())
 
-    def tearDown(self) -> None:
-        ModelLoader.reset_instance()
+    def test_model_kinds_are_task_specific(self) -> None:
+        self.assertEqual(
+            {kind.name for kind in ModelKind},
+            {"CHUNK_SUMMARIZER", "TOPIC_TITLER"},
+        )
 
-    def test_llm_handle_cached_on_second_access(self) -> None:
-        loader = ModelLoader.instance()
-        with mock.patch(
-            "src.repo.model_loader._load_llm_backbone",
-            return_value=_mock_handle(),
-        ) as fresh:
-            a = loader.load_llm_backbone()
-            b = loader.load_llm_backbone()
-        self.assertIs(a, b)
-        # Only one underlying load call.
-        self.assertEqual(fresh.call_count, 1)
+    @mock.patch("src.repo.model_loader._load_seq2seq_handle")
+    def test_handles_cache_independently(self, load: mock.Mock) -> None:
+        load.side_effect = lambda kind, path: _handle(kind)
+        loader = ModelLoader()
+        self.assertIs(loader.load_chunk_summarizer(), loader.load_chunk_summarizer())
+        self.assertIs(loader.load_topic_titler(), loader.load_topic_titler())
+        self.assertEqual(load.call_count, 2)
 
-    def test_llm_cache_hit_logs_debug_only(self) -> None:
-        loader = ModelLoader.instance()
-        with mock.patch(
-            "src.repo.model_loader._load_llm_backbone",
-            return_value=_mock_handle(),
-        ):
-            loader.load_llm_backbone()
-            with self.assertLogs("src.repo.model_loader", level="DEBUG") as logs:
-                loader.load_llm_backbone()
-        self.assertIn("model cache hit kind=llm_backbone", "\n".join(logs.output))
+    @mock.patch("src.repo.model_loader._load_seq2seq_handle")
+    def test_concurrent_first_call_loads_once(self, load: mock.Mock) -> None:
+        load.return_value = _handle(ModelKind.CHUNK_SUMMARIZER)
+        loader = ModelLoader()
+        handles: list[ModelHandle] = []
+        threads = [threading.Thread(target=lambda: handles.append(loader.load_chunk_summarizer())) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(load.call_count, 1)
+        self.assertTrue(all(handle is handles[0] for handle in handles))
 
+    @mock.patch("torch.cuda.is_available", return_value=False)
+    def test_cuda_is_required(self, _: mock.Mock) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ModelLoadError, r"CUDA.*fix"):
+                from src.repo.model_loader import _load_seq2seq_handle
+                _load_seq2seq_handle(ModelKind.CHUNK_SUMMARIZER, Path(directory))
 
-class TestModelLoaderConcurrency(unittest.TestCase):
-    """C3: concurrent first-call must not load the model twice."""
-
-    def setUp(self) -> None:
-        ModelLoader.reset_instance()
-
-    def tearDown(self) -> None:
-        ModelLoader.reset_instance()
-
-    def test_concurrent_first_call_loads_llm_once(self) -> None:
-        loader = ModelLoader.instance()
-        with mock.patch(
-            "src.repo.model_loader._load_llm_backbone",
-            return_value=_mock_handle(),
-        ) as fresh:
-            handles: list = []
-            errors: list = []
-
-            def worker() -> None:
-                try:
-                    handles.append(loader.load_llm_backbone())
-                except Exception as exc:  # pragma: no cover -- we assert no error
-                    errors.append(exc)
-
-            threads = [threading.Thread(target=worker) for _ in range(8)]
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join()
-
-            self.assertEqual(errors, [], f"workers raised: {errors}")
-            # All threads received the same handle (identity, not equality).
-            first = handles[0]
-            for h in handles[1:]:
-                self.assertIs(h, first)
-            # The expensive load ran exactly once.
-            self.assertEqual(fresh.call_count, 1)
+    @mock.patch("torch.cuda.is_available", return_value=True)
+    def test_missing_files_are_actionable(self, _: mock.Mock) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ModelLoadError, r"missing=.*fix"):
+                from src.repo.model_loader import _load_seq2seq_handle
+                _load_seq2seq_handle(ModelKind.TOPIC_TITLER, Path(directory))
 
 
 if __name__ == "__main__":
