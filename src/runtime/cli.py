@@ -72,20 +72,51 @@ def cmd_stream(args: argparse.Namespace) -> int:
     orchestrator = StreamingOrchestrator()
     seg_count = 0
     final_recap: dict | None = None
+    
+    # State tracking for pretty print
+    segment_id_to_num: dict[str, int] = {}
+    segment_chunk_counts: dict[str, int] = {}
+
     for event in orchestrator.process_stream(transcript):
         if event.type.value == "segment-closed":
             seg_count += 1
         # Capture the final recap from the meeting-completed event
         if event.type.value == "meeting-completed":
             final_recap = event.data["hierarchical_recap"]
-        # NDJSON output: one event per line
-        print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
+        
+        if getattr(args, "pretty", False):
+            if event.type.value == "chunk-closed":
+                seg_id = event.data.get("segment_id")
+                if seg_id:
+                    if seg_id not in segment_id_to_num:
+                        segment_id_to_num[seg_id] = len(segment_id_to_num) + 1
+                    segment_chunk_counts[seg_id] = segment_chunk_counts.get(seg_id, 0) + 1
+                    topic_num = segment_id_to_num[seg_id]
+                    chunk_num = segment_chunk_counts[seg_id]
+                    summary = event.data.get("rolling_summary")
+                    start = event.data.get("utterances_start")
+                    end = event.data.get("utterances_end")
+                    print(f"\n[Topic {topic_num} - Chunk {chunk_num} (Utterances {start}..{end})]")
+                    print(f"{summary}")
+                    sys.stdout.flush()
+            elif event.type.value == "title-emitted":
+                seg_id = event.data.get("segment_id")
+                title = event.data.get("title")
+                topic_num = segment_id_to_num.get(seg_id, len(segment_id_to_num))
+                print(f"\n=== Topic {topic_num} Title: {title} ===")
+                print("=" * 60)
+                sys.stdout.flush()
+        else:
+            # NDJSON output: one event per line
+            print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
+
     if args.output and final_recap is not None:
         Path(args.output).write_text(
             json.dumps(final_recap, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
-    print(f"# stream finished: {seg_count} segments", file=sys.stderr)
+    if not getattr(args, "pretty", False):
+        print(f"# stream finished: {seg_count} segments", file=sys.stderr)
     logger.info("cli stream done segments=%d output=%s", seg_count, args.output or "-")
     return 0
 
@@ -102,6 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_stream = sub.add_parser("stream", help="Stream recap events as NDJSON")
     p_stream.add_argument("file", type=argparse.FileType("r"), help="Path to transcript JSON")
     p_stream.add_argument("--output", "-o", type=str, help="Path to write final recap JSON")
+    p_stream.add_argument("--pretty", action="store_true", help="Print pretty human-readable stream directly to terminal")
     p_stream.set_defaults(func=cmd_stream)
 
     return parser

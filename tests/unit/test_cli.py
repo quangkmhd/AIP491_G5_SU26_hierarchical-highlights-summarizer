@@ -139,3 +139,31 @@ class CliStreamTests(unittest.TestCase):
             self.assertTrue(of.exists())
             recap = json.loads(of.read_text(encoding="utf-8"))
             self.assertIn("segments", recap)
+
+    def test_stream_pretty(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tf = Path(tmp) / "transcript.json"
+            _make_transcript_file(tf, n_utterances=8)
+            env = os.environ.copy()
+            env["MODEL_LOAD_LLM"] = "0"
+            result = subprocess.run(
+                [sys.executable, "-m", "src.runtime.cli", "stream", str(tf), "--pretty"],
+                capture_output=True,
+                text=True,
+                env=env,
+                cwd=ROOT,
+                timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            stdout = result.stdout
+            self.assertIn("Topic 1 - Chunk 1", stdout)
+            self.assertIn("Topic 1 Title", stdout)
+            # Ensure it is not NDJSON
+            for line in stdout.splitlines():
+                if line.strip() and not line.startswith("===") and not line.startswith("[Topic"):
+                    try:
+                        obj = json.loads(line)
+                        self.assertNotIn("type", obj)
+                    except json.JSONDecodeError:
+                        pass
