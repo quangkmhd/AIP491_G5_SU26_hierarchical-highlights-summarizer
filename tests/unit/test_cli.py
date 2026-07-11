@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import io
+import logging
 import subprocess
 import sys
 import unittest
@@ -29,9 +30,17 @@ class FakeSummarizer:
 def run_cli(argv):
     stdout, stderr = io.StringIO(), io.StringIO()
     factory = lambda: StreamingOrchestrator(summarizer=FakeSummarizer())
-    with mock.patch("src.runtime.cli.StreamingOrchestrator", side_effect=factory):
-        with redirect_stdout(stdout), redirect_stderr(stderr):
-            code = cli_main(argv)
+    root = logging.getLogger()
+    root_level = root.level
+    handler_levels = [handler.level for handler in root.handlers]
+    try:
+        with mock.patch("src.runtime.cli.StreamingOrchestrator", side_effect=factory):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = cli_main(argv)
+    finally:
+        root.setLevel(root_level)
+        for handler, level in zip(root.handlers, handler_levels):
+            handler.setLevel(level)
     return code, stdout.getvalue(), stderr.getvalue()
 
 
