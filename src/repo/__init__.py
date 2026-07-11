@@ -20,6 +20,7 @@ from .model_loader import (
     ModelLoadError, ModelLoader,
 )
 from .recap_repo import RecapRepo, RecapRepoError
+from .prompts_vi import SUMMARY_PREFIX_VI, TITLE_PREFIX_VI
 from .seq2seq_inference import (
     BARTphoTopicTitler,
     ChunkSummarizer,
@@ -41,6 +42,8 @@ __all__ = [
     "ViT5ChunkSummarizer",
     "BARTphoTopicTitler",
     "GenerationError",
+    "SUMMARY_PREFIX_VI",
+    "TITLE_PREFIX_VI",
     "TranscriptRepo",
     "TranscriptRepoError",
     "RecapRepo",
