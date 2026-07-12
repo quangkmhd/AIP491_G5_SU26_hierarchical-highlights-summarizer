@@ -63,25 +63,17 @@ test pass (xem `tests/unit/test_types.py`).
 
 ### 2.2. Các Mô Hình Trí Tuệ Nhân Tạo (AI Models - Tầng Repo & Service)
 
-Các AI Models này được tải từ bộ trọng số checkpoint thông qua thư viện
-`transformers` của Hugging Face. Chưa có code thật (chờ `model-002`).
+Các AI Models này được tải cục bộ từ thư mục `models/` thông qua thư viện `transformers` của Hugging Face. Không có kết nối mạng hay tải lại từ Hugging Face Hub tại thời điểm chạy.
 
-1. ~~**NSP BERT / CoherenceNet**~~ — *Không còn dùng cho segmentation*
-   - Topic segmentation đã chuyển sang lexical Sliding TextTiling (BoW + cosine + multi-scale depth).
-   - `CoherenceNet` và checkpoint `vibert_checkpoints_vi/cpt_4000.pth` không còn được orchestrator gọi tới.
-   - Mã nguồn `CoherenceNet` vẫn tồn tại trong repo layer để tương thích ngược.
+1. **vit5-chunk-summarizer-v1 (Chunk Summarizer)**
+   - Mô tả: Tóm tắt các khối (Chunk) chứa tối đa 8 câu thoại dưới dạng ngôi thứ ba.
+   - Vị trí dùng: `HierarchicalSummarizationService` trong `src/service/hierarchical_summarization.py`.
+   - Đầu vào: Dạng chuỗi gồm nhiều dòng `speaker: text`.
 
-2. **deBERTa (hierarchical_title_model)** — *Chưa tải*
-   - Sinh Chapter Title ngắn gọn từ full `Segment`.
-   - Vị trí dùng: `MeetingRecapOrchestrator` trong `svc-002`.
-
-3. **deBERTa (hierarchical_abstractive_model)** — *Chưa tải*
-   - Sinh rolling summary 3rd-person từ mỗi `Chunk`.
-   - Vị trí dùng: `MeetingRecapOrchestrator` trong `svc-002`.
-
-4. **BART (highlights_extractive & highlights_abstractive)** — *Chưa tải*
-   - Trích xuất và paraphrase Key-Points / Action Items.
-   - Vị trí dùng: `MeetingRecapOrchestrator` trong `svc-002`.
+2. **bartpho-topic-titler-v2 (Topic Titler)**
+   - Mô tả: Tạo tiêu đề chương từ chuỗi các tóm tắt chunk trong chương đó, được ghép bởi dấu ` / `.
+   - Vị trí dùng: `HierarchicalSummarizationService` trong `src/service/hierarchical_summarization.py`.
+   - Đầu vào: Chỉ nhận danh sách các tóm tắt chunk của topic (không nhận hội thoại thô).
 
 ---
 

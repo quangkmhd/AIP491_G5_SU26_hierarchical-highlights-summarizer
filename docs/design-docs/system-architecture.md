@@ -157,9 +157,9 @@ Các Endpoint RESTful API tương tác được mô tả chi tiết bằng đị
 
 ### Giới Hạn Hệ Thống (System Constraints)
 
-* **Context Window Limit:** Các mô hình abstractive (như deBERTa/BART) có giới hạn đầu vào nghiêm ngặt là **512 tokens**. Do đó, các đoạn hội thoại bắt buộc phải được chia nhỏ thành các Chunk nhỏ hơn hoặc bằng 8 câu thoại (khoảng 106 tokens ngữ cảnh xung quanh) trước khi gửi đi tóm tắt.
-* **Sliding Window Constraints:** Độ dài tối đa của một cuộc hội thoại đầu vào khuyến nghị là **5000 câu thoại** để đảm bảo thời gian chạy của thuật toán TextTiling không vượt quá giới hạn hàng đợi xử lý trực tiếp (3 phút). Các cuộc họp dài hơn phải được xử lý bất đồng bộ (Asynchronous Processing).
-* **Vòng đời Model Checkpoints:** Hệ thống sử dụng checkpoints cục bộ để suy luận (inference) offline, yêu cầu phần cứng tối thiểu là **8GB VRAM (GPU)** hoặc RAM hệ thống **16GB** để nạp đồng thời cả 5 checkpoints mô hình học máy.
+* **Context Window Limit:** Các mô hình abstractive (như ViT5/BARTpho) có giới hạn đầu vào nghiêm ngặt là **512 tokens** (cho ViT5) và **1024 tokens** (cho BARTpho). Do đó, các đoạn hội thoại bắt buộc phải được chia nhỏ thành các Chunk nhỏ hơn hoặc bằng 8 câu thoại trước khi gửi đi tóm tắt.
+* **Sliding Window Constraints:** Độ dài tối đa của một cuộc hội thoại đầu vào khuyến nghị là **5000 câu thoại** để đảm bảo thời gian chạy của thuật toán TextTiling không vượt quá giới hạn hàng đợi xử lý trực tiếp (3 phút).
+* **Vòng đời Model Checkpoints:** Hệ thống sử dụng checkpoints cục bộ để suy luận (inference) offline, yêu cầu phần cứng tối thiểu có hỗ trợ CUDA (GPU RTX) để nạp đồng thời cả 2 checkpoints mô hình học máy.
 
 ### Yêu Cầu Phi Chức Năng (Non-functional Requirements)
 
