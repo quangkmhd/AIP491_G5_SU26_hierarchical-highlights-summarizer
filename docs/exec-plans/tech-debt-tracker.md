@@ -183,12 +183,11 @@ bug-fix branch with a failing reproducer test before fixing.
   - Resolution: The NSP-BERT CoherenceScorer was removed when topic segmentation was rewritten to lexical Sliding TextTiling. The `_coerce_token_ids` helper in `model_loader.py` is still present but no longer called by the orchestrator.
   - Owner: resolved.
 
-- **C2: WinDiff summation cancels disagreements before `abs()` — metric mathematically invalid**
+- ~~**C2: WinDiff summation cancels disagreements before `abs()` — metric mathematically invalid**~~ — **RESOLVED (2026-07-12)**
   - File: `src/eval/segmentation_metrics.py:49-55`
-  - Issue: The implementation adds `+1` for predicted boundary changes and `-1` for true boundary changes BEFORE taking `abs()`. Positive and negative contributions cancel. Correct WinDiff counts disagreements: increment when `pred_change XOR true_change` is 1.
-  - Concrete failure: 5 pred boundaries + 5 true boundaries at different positions → sum=0, `abs(0)=0`, but true WinDiff=10.
-  - Fix: Replace summation logic with XOR-based disagreement counting.
-  - Owner: next agent running quantitative evaluation.
+  - Issue: The implementation had incorrect summation logic where positive and negative boundary differences cancelled out.
+  - Resolution: Replaced the summation logic with a proper slice summation of boundaries within the sliding window, and added tests confirming correct behavior.
+  - Owner: resolved.
 
 - **H3: `_segments_from_ends` lacks `n` parameter — final segment truncated**
   - File: `src/eval/segmentation_metrics.py:90-99`
