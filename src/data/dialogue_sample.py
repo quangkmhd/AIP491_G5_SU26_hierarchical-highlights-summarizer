@@ -12,13 +12,15 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from src.types._base import BaseSchema
 
 
 class DialogueSample(BaseSchema):
     """A single dialogue loaded from an evaluation corpus file."""
+
+    model_config = ConfigDict(extra="ignore")
 
     dial_id: int = Field(ge=0, description="Dialogue identifier (non-negative).")
     utterances: list[str] = Field(
