@@ -38,6 +38,16 @@ class WinDiffTests(unittest.TestCase):
         score = win_diff([12, 20, 22], [13, 18, 22], window=2)
         self.assertGreater(score, 0.0)
 
+    def test_windiff_differs_from_pk(self) -> None:
+        # A case where the number of boundaries in window differs but endpoints agree or vice-versa
+        # Let true segment ends be [2, 5, 8] (total length 9)
+        # Let predicted segment ends be [2, 8] (missing boundary at 5)
+        true_ends = [2, 5, 8]
+        pred_ends = [2, 8]
+        pk_score = pk(pred_ends, true_ends, window=3)
+        wd_score = win_diff(pred_ends, true_ends, window=3)
+        self.assertNotEqual(pk_score, wd_score)
+
 
 class F1Tests(unittest.TestCase):
     def test_perfect(self) -> None:

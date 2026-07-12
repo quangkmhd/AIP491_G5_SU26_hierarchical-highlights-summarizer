@@ -48,9 +48,9 @@ def win_diff(predicted: list[int], true: list[int], window: int | None = None) -
     true_set = _to_boundary_set(true, n)
     mismatches = 0
     for i in range(n - window):
-        pred_diff = pred_set[i] != pred_set[i + window]
-        true_diff = true_set[i] != true_set[i + window]
-        if pred_diff != true_diff:
+        pred_boundaries = sum(pred_set[i : i + window])
+        true_boundaries = sum(true_set[i : i + window])
+        if pred_boundaries != true_boundaries:
             mismatches += 1
     return mismatches / (n - window)
 
