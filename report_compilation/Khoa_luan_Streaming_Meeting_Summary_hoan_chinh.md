@@ -451,18 +451,44 @@ Types ──► Config ──► Repo ──► Service ──► Runtime ──
 
 Kiểm tra AST tự động trên mã nguồn giúp ngăn chặn các phụ thuộc chéo. Ràng buộc `MAX_UTTERANCES = 5000` được áp dụng để bảo vệ bộ nhớ.
 
-### Xử lý Streaming và vòng đời sự kiện (Streaming Processing and Event Lifecycle)
-Hai chế độ dùng chung một lõi điều phối: chế độ streaming phát ra các Server-Sent Events (SSE) để cập nhật kết quả dần, còn batch tiêu thụ cùng luồng sự kiện và trả về cấu trúc `HierarchicalRecap` cuối cùng.
+### Xử lý Streaming và vòng đời dữ liệu theo sự kiện (Streaming Processing and Event-driven Data Lifecycle)
+Để đáp ứng yêu cầu xử lý dữ liệu động, hệ thống sử dụng cơ chế xử lý theo sự kiện (event-driven). Thay vì xử lý tĩnh sau khi cuộc họp kết thúc (chế độ Batch), hệ thống trực tuyến (chế độ Streaming) phân tách tiến trình xử lý thành 5 cột mốc logic để cập nhật dần kết quả lên giao diện người dùng thông qua Server-Sent Events (SSE). 
+
+Cả hai chế độ Streaming và Batch đều dùng chung một bộ điều phối lõi. Bộ điều phối này phát ra chuỗi sự kiện tuần tự đại diện cho vòng đời của dữ liệu cuộc họp:
+
+1. **Tiếp nhận lượt thoại thô (`utterance-accepted`)**: 
+   * *Ý nghĩa*: Server xác nhận đã nhận thành công câu thoại mới từ người nói.
+   * *Phản hồi trên giao diện*: Câu nói thô được hiển thị ngay lập tức lên màn hình để người dùng theo dõi nội dung hội thoại đang diễn ra theo thời gian thực (phản hồi tức thời).
+
+2. **Xác định ranh giới chủ đề (`segment-closed`)**: 
+   * *Ý nghĩa*: Thuật toán Sliding TextTiling phát hiện một điểm chuyển đổi chủ đề logic và chốt chặn ranh giới của phân đoạn cũ.
+   * *Phản hồi trên giao diện*: UI nhận diện ranh giới này để đóng phân vùng cũ và tự động vẽ một "Thẻ chủ đề" (Card) mới trống trên màn hình, chuẩn bị nhận dữ liệu cho chủ đề mới.
+
+3. **Hoàn thành tóm tắt khối thoại (`chunk-closed`)**: 
+   * *Ý nghĩa*: Hệ thống gom đủ một khối (tối đa 8 lượt thoại) trong chủ đề hiện tại và mô hình ViT5 hoàn thành việc sinh câu tóm tắt ngắn cho khối thoại đó.
+   * *Phản hồi trên giao diện*: Câu tóm tắt này lập tức được đẩy vào bên trong Thẻ chủ đề đang hoạt động, giúp người dùng nắm bắt nhanh ý chính của đoạn hội thoại vừa diễn ra.
+
+4. **Định danh chủ đề trì hoãn (`title-emitted`)**: 
+   * *Ý nghĩa*: Khi một chủ đề kết thúc (cuộc họp chuyển sang chủ đề khác), mô hình BARTpho sẽ tổng hợp toàn bộ các câu tóm tắt khối trong phân đoạn đó để đặt tiêu đề đại diện cho chủ đề.
+   * *Phản hồi trên giao diện*: Tiêu đề sinh ra sẽ tự động được gắn lên đầu Thẻ chủ đề (thay thế cho thẻ trống hoặc tiêu đề tạm thời), giúp người dùng dễ dàng phân loại và tra cứu nội dung lớn.
+
+5. **Kết thúc và đồng bộ cuộc họp (`meeting-completed`)**: 
+   * *Ý nghĩa*: Cuộc họp chính thức kết thúc hoàn toàn.
+   * *Phản hồi trên giao diện*: Đóng kết nối streaming, hoàn thiện cấu trúc dữ liệu phân cấp `HierarchicalRecap` cuối cùng phục vụ việc lưu trữ lâu dài.
+
+Bảng dưới đây đặc tả chi tiết cấu trúc dữ liệu tương ứng với từng cột mốc sự kiện phát ra từ bộ điều phối:
 
 **Các sự kiện trong chu kỳ phát sê-ri của bộ điều phối**
 
-| Sự kiện (`type`) | Ý nghĩa hoạt động | Dữ liệu kèm theo (`data`) |
+| Tên sự kiện kỹ thuật (`type`) | Cột mốc hoạt động thực tế | Cấu trúc dữ liệu đính kèm (`data`) |
 |---|---|---|
-| `utterance-accepted` | Xác nhận lượt thoại mới đã được tiếp nhận. | `{"index": int, "speaker": str, "text": str}` |
-| `segment-closed` | Ranh giới chủ đề được xác nhận, UI vẽ khung Card. | `{"segment_id": str, "utterances_start": int, "utterances_end": int}` |
-| `chunk-closed` | Chunk đã được ViT5 tóm tắt thành công. | `{"chunk_id": str, "segment_id": str, "rolling_summary": str}` |
-| `title-emitted` | BARTpho viết xong tiêu đề cho Segment, cập nhật Card. | `{"segment_id": str, "title": str}` |
-| `meeting-completed` | Tiến trình kết thúc, trả về `HierarchicalRecap` đầy đủ. | `{"hierarchical_recap": HierarchicalRecap}` |
+| `utterance-accepted` | Tiếp nhận lượt thoại thô thành công. | `{"index": int, "speaker": str, "text": str}` |
+| `segment-closed` | Xác nhận và khóa ranh giới phân đoạn chủ đề. | `{"segment_id": str, "utterances_start": int, "utterances_end": int}` |
+| `chunk-closed` | ViT5 hoàn thành tóm tắt khối thoại ≤ 8 câu. | `{"chunk_id": str, "segment_id": str, "rolling_summary": str}` |
+| `title-emitted` | BARTpho viết xong tiêu đề cho chủ đề. | `{"segment_id": str, "title": str}` |
+| `meeting-completed` | Toàn bộ cuộc họp kết thúc. | `{"hierarchical_recap": HierarchicalRecap}` |
+
+Sự nhất quán này giúp hệ thống đạt độ tin cậy cao: chế độ Batch thực chất là việc hệ thống tự tiêu thụ luồng sự kiện này trong bộ nhớ và xuất ra kết quả cuối cùng, đảm bảo dữ liệu hiển thị trực tuyến và dữ liệu lưu file hàng loạt luôn trùng khớp hoàn toàn.
 
 ### Quản lý tính hợp lệ và biên hiệu năng (Validity Management and Performance Boundaries)
 Pydantic xác thực tính liên tục của chỉ số lượt thoại và quan hệ chứa giữa segment và chunk trước khi xuất payload. Hai checkpoint sinh yêu cầu CUDA, sử dụng tham số `local_files_only=True` để ngăn chặn tải từ mạng.
