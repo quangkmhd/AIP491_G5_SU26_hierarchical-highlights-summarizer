@@ -11,6 +11,7 @@ This project delivers a streaming, unsupervised topic-segmentation and meeting-r
 ```
 openwiki/
 ├── quickstart.md             # This document (central navigation & overview)
+├── methodology_and_pipeline.md # Phương pháp luận Sliding TextTiling & quy trình tóm tắt phân cấp chi tiết
 ├── architecture.md           # The strict 6-layer architecture and boundaries
 ├── workflows.md              # The 6-event end-to-end streaming and batch timelines
 ├── models_and_data.md        # Sliding TextTiling math, prompts, and schemas
@@ -19,6 +20,7 @@ openwiki/
 
 Start with the core sections to understand how the system is put together:
 
+*   **[Methodology & Pipelines](methodology_and_pipeline.md)**: Explore the detailed algorithms (Sliding TextTiling, Multi-scale depth, dynamic alpha threshold) and hierarchal summarization strategies (ViT5, BARTpho & async streaming 5-lifecycle events).
 *   **[System Architecture](architecture.md)**: Explore the strict directional model (`Types -> Config -> Repo -> Service -> Runtime -> UI`) and hard dependency enforcement.
 *   **[Core Workflows](workflows.md)**: Understand the async streaming pipeline, how utterance streams yield events, and when rolling summaries & titles are calculated.
 *   **[Models, Prompts & Data Validation](models_and_data.md)**: Deep dive into the Sliding TextTiling algorithm, Pydantic structural bounds, and prompt schemas.
