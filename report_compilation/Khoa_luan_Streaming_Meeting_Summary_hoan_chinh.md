@@ -451,10 +451,10 @@ Types ──► Config ──► Repo ──► Service ──► Runtime ──
 
 Kiểm tra AST tự động trên mã nguồn giúp ngăn chặn các phụ thuộc chéo. Ràng buộc `MAX_UTTERANCES = 5000` được áp dụng để bảo vệ bộ nhớ.
 
-### Xử lý Streaming và vòng đời dữ liệu theo sự kiện (Streaming Processing and Event-driven Data Lifecycle)
-Để đáp ứng yêu cầu xử lý dữ liệu động, hệ thống sử dụng cơ chế xử lý theo sự kiện (event-driven). Thay vì xử lý tĩnh sau khi cuộc họp kết thúc (chế độ Batch), hệ thống trực tuyến (chế độ Streaming) phân tách tiến trình xử lý thành 5 cột mốc logic để cập nhật dần kết quả lên giao diện người dùng thông qua Server-Sent Events (SSE). 
+### Tiến trình truyền nhận và cập nhật dữ liệu tăng dần trong thời gian thực (Real-time Incremental Data Update Process)
+Để đáp ứng yêu cầu xử lý dữ liệu động, hệ thống sử dụng cơ chế cập nhật tăng dần theo trạng thái tiến trình (progressive update). Thay vì xử lý tĩnh sau khi cuộc họp kết thúc (chế độ Batch), hệ thống trực tuyến (chế độ Streaming) phân tách tiến trình xử lý thành 5 cột mốc truyền nhận dữ liệu để cập nhật dần kết quả lên giao diện người dùng thông qua Server-Sent Events (SSE). 
 
-Cả hai chế độ Streaming và Batch đều dùng chung một bộ điều phối lõi. Bộ điều phối này phát ra chuỗi sự kiện tuần tự đại diện cho vòng đời của dữ liệu cuộc họp:
+Cả hai chế độ Streaming và Batch đều dùng chung một bộ điều phối lõi. Bộ điều phối này định nghĩa chuỗi truyền nhận dữ liệu qua 5 cột mốc tương đương với các trạng thái xử lý hội thoại:
 
 1. **Tiếp nhận lượt thoại thô (`utterance-accepted`)**: 
    * *Ý nghĩa*: Server xác nhận đã nhận thành công câu thoại mới từ người nói.
@@ -476,11 +476,11 @@ Cả hai chế độ Streaming và Batch đều dùng chung một bộ điều p
    * *Ý nghĩa*: Cuộc họp chính thức kết thúc hoàn toàn.
    * *Phản hồi trên giao diện*: Đóng kết nối streaming, hoàn thiện cấu trúc dữ liệu phân cấp `HierarchicalRecap` cuối cùng phục vụ việc lưu trữ lâu dài.
 
-Bảng dưới đây đặc tả chi tiết cấu trúc dữ liệu tương ứng với từng cột mốc sự kiện phát ra từ bộ điều phối:
+Bảng dưới đây đặc tả chi tiết cấu trúc gói tin (payload) tương ứng với từng cột mốc cập nhật dữ liệu:
 
-**Các sự kiện trong chu kỳ phát sê-ri của bộ điều phối**
+**Các trạng thái cập nhật dữ liệu trong tiến trình điều phối**
 
-| Tên sự kiện kỹ thuật (`type`) | Cột mốc hoạt động thực tế | Cấu trúc dữ liệu đính kèm (`data`) |
+| Mã định danh trạng thái (`type`) | Mô tả cột mốc hoạt động thực tế | Cấu trúc dữ liệu đính kèm (`data`) |
 |---|---|---|
 | `utterance-accepted` | Tiếp nhận lượt thoại thô thành công. | `{"index": int, "speaker": str, "text": str}` |
 | `segment-closed` | Xác nhận và khóa ranh giới phân đoạn chủ đề. | `{"segment_id": str, "utterances_start": int, "utterances_end": int}` |
@@ -488,7 +488,7 @@ Bảng dưới đây đặc tả chi tiết cấu trúc dữ liệu tương ứn
 | `title-emitted` | BARTpho viết xong tiêu đề cho chủ đề. | `{"segment_id": str, "title": str}` |
 | `meeting-completed` | Toàn bộ cuộc họp kết thúc. | `{"hierarchical_recap": HierarchicalRecap}` |
 
-Sự nhất quán này giúp hệ thống đạt độ tin cậy cao: chế độ Batch thực chất là việc hệ thống tự tiêu thụ luồng sự kiện này trong bộ nhớ và xuất ra kết quả cuối cùng, đảm bảo dữ liệu hiển thị trực tuyến và dữ liệu lưu file hàng loạt luôn trùng khớp hoàn toàn.
+Sự nhất quán này giúp hệ thống đạt độ tin cậy cao: chế độ Batch thực chất là việc hệ thống tự tiêu thụ luồng truyền nhận này trong bộ nhớ và xuất ra kết quả cuối cùng, đảm bảo dữ liệu hiển thị trực tuyến và dữ liệu lưu file hàng loạt luôn trùng khớp hoàn toàn.
 
 ### Quản lý tính hợp lệ và biên hiệu năng (Validity Management and Performance Boundaries)
 Pydantic xác thực tính liên tục của chỉ số lượt thoại và quan hệ chứa giữa segment và chunk trước khi xuất payload. Hai checkpoint sinh yêu cầu CUDA, sử dụng tham số `local_files_only=True` để ngăn chặn tải từ mạng.
