@@ -9,6 +9,7 @@ giant instruction dump.
 This repository has documentation located in the /openwiki directory.
 
 Start here:
+
 - [OpenWiki quickstart](openwiki/quickstart.md)
 
 OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
@@ -74,3 +75,7 @@ Before ending a session:
 3. Record new debt in `docs/exec-plans/tech-debt-tracker.md` if you deferred it.
 4. Move finished plans to `docs/exec-plans/completed/` when appropriate.
 5. Leave the repo in a restartable state with a clear next action.
+
+## Rules
+
+- **Bắt buộc tuân thủ tài liệu mẫu:** Mọi chỉnh sửa, cấu trúc, định dạng và phong cách viết (bao gồm văn phong học thuật chuyên nghiệp, cách đối chiếu thuật ngữ Anh-Việt trong ngoặc đơn, cách trích dẫn tài liệu học thuật và phong cách bôi đậm/nhấn mạnh kết quả) của các bài báo/báo cáo khoa học (ví dụ: `paper-template-meeting-recap.md`) phải dựa hoàn toàn vào mẫu `/home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/report_compilation/templates/paper_mau.md`. Không tự ý sáng tạo hay thay đổi cấu trúc, định dạng, hoặc phong cách/văn phong viết khác biệt so với tài liệu mẫu này.

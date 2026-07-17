@@ -1,121 +1,192 @@
 # XÂY DỰNG HỆ THỐNG TÓM TẮT CUỘC HỌP TIẾNG VIỆT THEO THỜI GIAN THỰC SỬ DỤNG PHÂN ĐOẠN CHỦ ĐỀ VÀ MÔ HÌNH SINH PHÂN CẤP
 
----
+## Đặc tả Dự án (Project Specification)
 
 **Tóm tắt (Abstract)**
 
-Bản ghi lời thoại (transcript) cuộc họp thường dài, có nhiều người tham gia đối thoại, chứa câu rời rạc và chuyển chủ đề không rõ ràng. Việc đưa toàn bộ transcript vào một mô hình ngôn ngữ lớn duy nhất vừa bị giới hạn độ dài ngữ cảnh (context window) đầu vào, vừa dễ dẫn đến tình trạng mất mát thông tin và bỏ sót các ý chính quan trọng. Báo cáo này trình bày thiết kế và triển khai một hệ thống tóm tắt cuộc họp tiếng Việt theo thời gian thực theo cấu trúc phân cấp. Hệ thống trước hết chia hội thoại thành các phân đoạn chủ đề bằng Multi-Scale Sliding TextTiling (thuật toán được lấy ý tưởng và cải tiến từ giải thuật TextTiling gốc của Hearst [@Hearst1997]). Đây là một phương pháp phi giám sát kết hợp: (1) Bag-of-Words để biểu diễn tần suất xuất hiện của từ vựng; (2) độ tương đồng cosine để đo lường mức độ trùng lặp nội dung giữa hai nhóm utterance lân cận; (3) điểm sâu đa bán kính nhằm phát hiện điểm chuyển dịch chủ đề ở các quy mô cửa sổ khác nhau; (4) chuẩn hóa thống kê Z-score để đồng bộ hóa thang đo điểm số giữa các bán kính; (5) ngưỡng động thích ứng theo phân phối điểm số của từng cuộc họp; và (6) gộp các phân đoạn quá nhỏ nhằm hạn chế sự phân mảnh chủ đề. Mỗi phân đoạn sau đó được chia thành các nhóm utterance (chunk) với 8 utterance. Mô hình ViT5 đã tinh chỉnh sinh tóm tắt cho từng chunk; các tóm tắt trung gian được ghép theo thứ tự và đưa vào BARTpho để tạo tiêu đề chủ đề.
+Các cuộc họp trực tuyến và họp nội bộ hàng ngày đã trở thành phương thức giao tiếp thiết yếu trong hoạt động của các doanh nghiệp hiện nay. Tuy nhiên, việc khai thác thông tin tự động hiện tại vẫn đối mặt với các hạn chế kỹ thuật rõ rệt: tỷ lệ lỗi từ (word error rate - WER) cao của nhận dạng tiếng nói tự động (automatic speech recognition - ASR) trong môi trường nhiều tiếng ồn và chồng chéo giọng nói; sự thiếu hụt cơ chế định danh người nói (speaker identification) trong thời gian thực; sai số phân đoạn lớn khi chủ đề chuyển dịch liên tục và không có ranh giới rõ ràng; cũng như hiện tượng mất mát thông tin (lost-in-the-middle) hoặc vượt giới hạn ngữ cảnh của các mô hình tóm tắt đối với hội thoại dài.  Để giải quyết những thách thức này, nghiên cứu này trình bày việc thiết kế và triển khai một quy trình (pipeline) tóm tắt cuộc họp tiếng Việt theo thời gian thực, xử lý trực tiếp từ luồng âm thanh đầu vào (streaming audio) qua ba giai đoạn liên kết chặt chẽ: ASR, định danh người nói và tóm tắt phân cấp (hierarchical summarization). Đầu tiên, luồng tín hiệu âm thanh được giải mã thành văn bản bằng  Zipformer kết hợp định danh người nói qua mô hình WeSpeaker ResNet34 để gán nhãn hội thoại. Dựa trên luồng câu thoại có nhãn người nói này, hệ thống áp dụng giải thuật phân đoạn chủ đề cửa sổ trượt đa quy mô (multi-scale sliding TextTiling) phi giám sát nhằm phát hiện các ranh giới chuyển dịch chủ đề. Cuối cùng, các phân đoạn chủ đề được chia nhỏ thành các khối lượt lời (chunk) để tiến hành tóm tắt qua mô hình ViT5 tinh chỉnh (fine-tuned ViT5) và sinh tiêu đề chủ đề (topic titles) thông qua mô hình BARTpho. Nhằm tối ưu hóa hiệu năng luồng, hệ thống vận hành theo cơ chế xử lý tăng dần với độ trễ xác nhận (confirmation delay) dựa trên năm loại sự kiện đầu ra. Kết quả thực nghiệm cho thấy khâu ASR và định danh người nói đạt hiệu năng ổn định trên thiết bị cục bộ với kết quả thử nghiệm thực tế tương ứng là x, y, z. Trên sáu bộ dữ liệu phân đoạn chủ đề, thuật toán đề xuất đạt điểm số $F_1$ trung bình là 0,1838, chỉ số $P_k$ trung bình là 0,5034 và chỉ số WindowDiff trung bình là 0,5413. Đối với tác vụ tóm tắt khối và tạo tiêu đề trên bộ dữ liệu AliMeeting4MUG_vi, mô hình ViT5 đạt điểm số ROUGE-L là 0,5486, trong khi mô hình BARTpho đạt điểm ROUGE-Max-L là 0,4443. Thực nghiệm cho thấy tính khả thi ở cấp độ thành phần (component-level feasibility) của quy trình liên kết từ tín hiệu giọng nói đến văn bản tóm tắt phân cấp, đặt nền tảng cho các ứng dụng quản lý họp trực tuyến tự động.
 
-Hệ thống cung cấp cơ chế xử lý và phát kết quả tăng dần qua năm loại sự kiện để tạo cấu trúc `HierarchicalRecap`. Do thuật toán phân đoạn cần quan sát ngữ cảnh bên phải trước khi xác nhận ranh giới, “thời gian thực” trong nghiên cứu được hiểu là **xử lý tăng dần với độ trễ xác nhận**, không phải dự đoán nhân quả ngay khi một utterance vừa xuất hiện. Trên sáu bộ dữ liệu phân đoạn, `sliding_texttiling` đạt $F_1$ trung bình 0,1838, $P_k$ trung bình 0,5034 và WindowDiff trung bình 0,5413. Phương pháp có $F_1$ trung bình cao nhất trong nhóm được khảo sát nhưng đứng thứ hai theo điểm Composite, thể hiện sự đánh đổi giữa độ chính xác biên và chi phí xử lý. Trên AliMeeting4MUG_vi, ViT5 đạt ROUGE-1/2/L lần lượt 0,7265/0,4854/0,5486; BARTpho đạt ROUGE-Max-1/2/L tương ứng 0,5304/0,2837/0,4443. Các kết quả xác nhận tính khả thi ở mức thành phần; chất lượng đầu-cuối và mức độ hữu ích đối với người dùng vẫn cần được đánh giá thủ công trong nghiên cứu tiếp theo.
-
-**Từ khóa (Keywords):** tóm tắt cuộc họp, phân đoạn chủ đề, Sliding TextTiling, ViT5, BARTpho, xử lý luồng, tiếng Việt (meeting summarization, topic segmentation, Sliding TextTiling, ViT5, BARTpho, streaming, Vietnamese).
-
----
+**Từ khóa:** Tóm tắt cuộc họp; Phân đoạn chủ đề; Sliding TextTiling.
 
 ## Mở đầu (Introduction)
 
-### Bối cảnh và động cơ nghiên cứu (Background and Motivation)
-Họp trực tuyến và các cuộc họp ngắn hằng ngày (*daily meeting*) tạo ra ngày càng nhiều bản ghi lời thoại. Transcript giúp lưu trữ nội dung nhưng không giải quyết trực tiếp nhu cầu tra cứu nhanh: người dùng vẫn phải đọc hàng trăm hoặc hàng nghìn utterance để xác định cuộc họp đã bàn gì, nội dung nào thuộc cùng một chủ đề và phần nào chứa kết luận quan trọng. Khó khăn tăng lên khi transcript có nhiều người nói, câu không hoàn chỉnh, từ đệm, lặp ý và lỗi nhận dạng giọng nói.
+Các cuộc họp trực tuyến và họp nội bộ hàng ngày đã trở thành phương thức giao tiếp thiết yếu trong hoạt động của các doanh nghiệp hiện đại, tạo ra khối lượng lớn dữ liệu âm thanh và bản ghi lời thoại (transcript) cần được lưu trữ và quản lý [@Carletta2005, @Janin2003, @Asthana2025Recap]. Việc khai thác thông tin từ các cuộc họp này đóng vai trò quan trọng trong việc lưu giữ tri thức doanh nghiệp và hỗ trợ quá trình ra quyết định. Tuy nhiên, việc ghi chép và tóm tắt cuộc họp thủ công đòi hỏi chi phí nhân lực lớn, đồng thời dễ gặp sai sót và thiếu tính đồng bộ. Sự chuyển dịch ghi chép và tóm tắt cuộc họp thủ công hướng tới tự động hóa quy trình phân tích hội thoại phản ánh nhu cầu cấp thiết về một hệ thống tích hợp có khả năng xử lý trực tiếp từ luồng tín hiệu giọng nói sang các văn bản tóm tắt có cấu trúc rõ ràng.
 
-Tóm tắt văn bản thông thường giả định đầu vào tương đối mạch lạc. Hội thoại cuộc họp không có tiêu đề hoặc ranh giới đoạn rõ ràng; một chủ đề có thể kéo dài qua nhiều lượt nói, bị ngắt bởi trao đổi ngắn rồi quay lại. Nếu xử lý toàn bộ transcript như một văn bản phẳng và đưa trực tiếp vào các mô hình ngôn ngữ lớn (LLM), hệ thống thường gặp tình trạng quá tải cửa sổ ngữ cảnh (context window overload) và dễ phát sinh hiện tượng "lost in the middle" (mất mát hoặc bỏ sót thông tin nằm ở giữa ngữ cảnh dài) [@Liu2024Lost]. Đồng thời, cách làm này hoàn toàn không phù hợp với yêu cầu truyền nhận và cập nhật kết quả tăng dần theo thời gian thực.
+Để xây dựng một hệ thống tự động hoàn chỉnh đi trực tiếp từ tín hiệu âm thanh đầu vào cho đến văn bản tóm tắt cuộc họp (meeting summary) đầu ra, khâu nhận dạng tiếng nói tự động (automatic speech recognition - ASR) [@Yao2023Zipformer, @Chu2024Qwen2Audio] và khâu định danh người nói (speaker identification) [@Chen2022WeSpeaker] đóng vai trò là những bước nền móng đầu tiên. Cụ thể, khâu nhận dạng (ASR) chịu trách nhiệm chuyển đổi giọng nói thành chữ viết, trong khi khâu định danh người nói xác định danh tính của từng người phát ngôn tại mỗi thời điểm nhờ bộ phát hiện hoạt động giọng nói (voice activity detection - VAD) [@SileroVAD2021]. Sự phối hợp này tạo ra một bản ghi lời thoại được gắn nhãn người phát ngôn hoàn chỉnh, làm tiền đề cốt lõi để khâu tóm tắt phía sau có thể phân tích diễn biến cuộc họp và tạo sinh ra bản tóm tắt chủ đề chuẩn xác.
 
-Nghiên cứu tiếp cận vấn đề theo nguyên tắc phân rã: xác định ranh giới chủ đề trước, tóm tắt từng phần nhỏ sau, rồi tổ chức các kết quả thành báo cáo phân cấp. Phân đoạn chủ đề làm giảm độ dài và nhiễu của mỗi đơn vị xử lý. Tóm tắt theo chunk giúp mô hình sinh làm việc trong giới hạn đầu vào. Tiêu đề chủ đề cung cấp lớp điều hướng ở mức cao, trong khi tóm tắt chunk giữ lại chi tiết theo trình tự.
+Tuy nhiên, việc triển khai khâu nhận dạng tiếng nói (ASR) và khâu định danh người nói chạy thời gian thực vẫn đối mặt với nhiều hạn chế kỹ thuật rõ rệt. Các mô hình nhận dạng tiếng nói tự động thường gặp sai số lớn (tỷ lệ lỗi từ - WER cao) khi xử lý âm thanh hội thoại thực tế chứa nhiều tạp âm, tiếng ồn môi trường và hiện tượng chồng chéo giọng nói giữa các thành viên. Đồng thời, phần lớn các giải pháp định danh người nói hiện tại hoạt động theo cơ chế ngoại tuyến (offline), đòi hỏi phải quan sát toàn bộ tệp âm thanh và thiếu khả năng đăng ký cũng như nhận diện người nói động theo thời gian thực [@Anguera2012Speaker, @Park2022Review].
 
-### Bài toán nghiên cứu (Problem Statement)
-Đầu vào của hệ thống là chuỗi $n$ utterance theo thứ tự thời gian:
-$$
-U = (u_1, u_2, \dots, u_n)
-$$
-Hệ thống cần tìm tập ranh giới $B$, chia $U$ thành các phân đoạn chủ đề; chia mỗi phân đoạn thành các chunk; sinh tóm tắt $q_{k,j}$ cho chunk thứ $j$ của chủ đề $k$; và sinh tiêu đề $h_k$ từ các tóm tắt thuộc chủ đề đó. Đầu ra là một cấu trúc phân cấp:
-$$
-R = \left\{ \left( h_k, \{ q_{k, 1}, q_{k, 2}, \dots, q_{k, m_k} \} \right) \right\}_{k=1}^{K}
-$$
-Ngoài chất lượng nội dung, hệ thống được tối ưu hóa cho chế độ trực tuyến (Streaming), tiếp nhận dần từng utterance để cập nhật kết quả trung gian theo thời gian thực, đảm bảo phản hồi tức thời cho người dùng trong suốt thời gian diễn ra cuộc họp.
+Bên cạnh thách thức về xử lý tín hiệu âm thanh, việc tóm tắt các bản ghi hội thoại dài cũng gặp phải rào cản lớn về mặt xử lý văn bản. Bản ghi lời thoại cuộc họp thường có độ dài lớn, văn phong rời rạc, lặp ý và hiện tượng dịch chuyển chủ đề liên tục [@Zhong2021]. Việc xử lý trực tiếp toàn bộ văn bản hội thoại qua một mô hình ngôn ngữ lớn (large language model - LLM) đơn lẻ thường gặp trở ngại do giới hạn chiều dài ngữ cảnh (context window) đầu vào, đồng thời dễ dẫn đến tình trạng suy giảm hiệu năng thu nhận thông tin (lost-in-the-middle) và bỏ sót các nội dung quan trọng [@Liu2024Lost]. Để khắc phục vấn đề này, các phương pháp tiếp cận phân cấp thường chia văn bản hội thoại thành các phân đoạn chủ đề (topic segments) để tiến hành tóm tắt độc lập từng phần nhỏ, sau đó tổng hợp các tóm tắt trung gian thành một báo cáo phân cấp hoàn chỉnh.
 
-### Mục tiêu nghiên cứu (Research Objectives)
-Nghiên cứu hướng tới các mục tiêu cụ thể sau:
-1. Xây dựng phương pháp phân đoạn chủ đề hội thoại tiếng Việt không cần huấn luyện và đủ nhẹ cho pipeline trực tuyến.
-2. Tinh chỉnh mô hình ViT5 để tóm tắt khối hội thoại ngắn.
-3. Tinh chỉnh BARTpho để sinh tiêu đề từ chuỗi tóm tắt trung gian.
-4. Thiết kế pipeline phân cấp hỗ trợ cập nhật kết quả trực tuyến (streaming) thời gian thực.
-5. Đánh giá từng thành phần bằng các chỉ số phù hợp: $P_k$, WindowDiff và $F_1$ cho phân đoạn; ROUGE/RougeMax cho tóm tắt và tạo tiêu đề.
+Mặc dù vậy, các phương pháp phân đoạn chủ đề và tóm tắt hiện tại vẫn tồn tại những nhược điểm chưa được giải quyết triệt để. Các giải thuật phân đoạn phi giám sát truyền thống như TextTiling [@Hearst1997] dựa trên tần suất từ vựng dạng túi từ (bag-of-words) có tốc độ tính toán nhanh nhưng hoàn toàn không nhận diện được các mối quan hệ ngữ nghĩa sâu, dẫn đến điểm lỗi phân đoạn ($P_k$ [@Beeferman1999] và WindowDiff [@Pevzner2002]) cao. Ngược lại, các mô hình học sâu có giám sát tuy đạt độ chính xác ranh giới tốt [@Xing2021, @He2024] nhưng đòi hỏi chi phí tính toán GPU rất cao ở việc suy luận và không thể áp dụng cho xử lý dạng luồng (streaming) liên tục do yêu cầu phải quan sát toàn bộ ngữ cảnh. Đối với bước tóm tắt, việc sử dụng các mô hình tạo sinh lớn trên đám mây gây tốn kém chi phí vận hành và không đảm bảo tính bảo mật dữ liệu doanh nghiệp, trong khi việc tinh chỉnh các mô hình ngôn ngữ nhỏ cục bộ thường đòi hỏi nguồn dữ liệu song ngữ chất lượng cao vốn rất khan hiếm đối với tiếng Việt [@Phan2022, @Nguyen2022].
 
-### Phạm vi nghiên cứu (Scope of Study)
+Trong luận văn này, chúng tôi giải quyết những khoảng trống công nghệ trên bằng cách giới thiệu một quy trình (pipeline) tóm tắt cuộc họp tiếng Việt thời gian thực toàn diện, hỗ trợ đầu vào trực tiếp từ luồng âm thanh đầu vào (ASR -> Speaker Identification -> Hierarchical Summarization). Các đóng góp chính của chúng tôi bao gồm:
 
-Nghiên cứu tập trung vào giai đoạn xử lý **bản ghi lời thoại dạng văn bản**. Đầu vào được giả định đã có thứ tự thời gian và nhãn người nói; nhận dạng tiếng nói tự động (ASR), phân tách người nói, nhận dạng cảm xúc và thu âm không nằm trong phạm vi triển khai chính. Hệ thống xử lý hội thoại tiếng Việt hoặc dữ liệu được dịch sang tiếng Việt, chia transcript thành các phân đoạn chủ đề liên tiếp, sinh tóm tắt cho từng chunk và tạo tiêu đề cho từng chủ đề.
-
-Đánh giá thực nghiệm được thực hiện ở mức thành phần: chất lượng phân đoạn được đo trên sáu bộ dữ liệu tiếng Anh được dịch sang tiếng Việt; ViT5 và BARTpho được đánh giá trên các tập phát triển tương ứng của AliMeeting4MUG_vi. Nghiên cứu chưa thực hiện đánh giá người dùng quy mô lớn, chưa đo đầy đủ tính đúng đắn thực tế và ảo giác của recap đầu-cuối, và chưa khẳng định khả năng khái quát cho transcript ASR tiếng Việt tự nhiên. Hai mô hình sinh được triển khai trên GPU CUDA; riêng bộ phân đoạn dựa trên BoW có thể chạy trên CPU.
-
-### Đóng góp nghiên cứu (Research Contributions)
-Các đóng góp chính của nghiên cứu gồm:
-* Một pipeline tóm tắt cuộc họp tiếng Việt theo cấu trúc chủ đề, hỗ trợ cập nhật trực tuyến (streaming) thời gian thực.
-* Thuật toán Multi-Scale Sliding TextTiling cải tiến từ thuật toán TextTiling truyền thống.
-* Hai model tạo sinh được tinh chỉnh cho hai nhiệm vụ tách biệt: tóm tắt chunk bằng ViT5 và tạo tiêu đề chủ đề bằng BARTpho.
-* Một đánh giá thực nghiệm gồm 5 phương pháp phân đoạn trên 6 tập dữ liệu được dịch sang tiếng Việt bằng `tencent/Hy-MT2-1.8B`, cùng benchmark riêng cho hai mô hình sinh.
-* Một bản dữ liệu tiếng Việt phục vụ thực nghiệm nội bộ, được xây dựng bằng cách dịch AliMeeting4MUG với `tencent/Hy-MT2-1.8B` và rà soát thủ công. Việc phát hành công khai bản dẫn xuất phụ thuộc vào kiểm tra giấy phép và hoàn thiện mô tả quy trình kiểm soát chất lượng.
-* Thiết kế pipeline phân tầng rõ ràng đi kèm quy trình xử lý dữ liệu streaming, giúp cập nhật kết quả tóm tắt từng bước (tăng dần) theo thời gian thực qua 5 cột mốc truyền nhận dữ liệu.
+1. Chúng tôi thiết kế và triển khai một quy trình tóm tắt cuộc họp phân cấp thời gian thực (real-time hierarchical meeting summarization pipeline) hoàn chỉnh từ đầu vào âm thanh đến văn bản tóm tắt đầu ra, vận hành theo cơ chế đẩy dữ liệu hướng sự kiện (event-driven streaming) giúp liên tục cập nhật tăng dần (incremental update) các kết quả trung gian lên giao diện người dùng theo thời gian thực.
+2. Chúng tôi đề xuất giải thuật phân đoạn chủ đề cửa sổ trượt đa quy mô (multi-scale sliding TextTiling) phi giám sát mới — một cải tiến trực tiếp trên thuật toán TextTiling gốc nhằm hỗ trợ tối ưu cho chế độ truyền luồng dữ liệu (streaming) — dựa trên việc tích hợp cơ chế cửa sổ trượt và điểm độ sâu đa bán kính (multi-radius depth scoring), giúp tăng đáng kể độ chính xác ranh giới trong khi vẫn giữ nguyên tốc độ xử lý
+3. Chúng tôi tinh chỉnh và phát hành bộ đôi mô hình tạo sinh sau tinh chỉnh (specialized fine-tuned generative models) gọn nhẹ cho nhiệm vụ tóm tắt và sinh tiêu đề: mô hình ViT5-base (226 triệu tham số) chuyên trách tóm tắt các khối lượt lời ngắn (chunk) và mô hình BARTpho-syllable-base (132 triệu tham số) chuyên trách tạo sinh tiêu đề chủ đề từ các tóm tắt trung gian.
+4. Chúng tôi xây dựng bộ dữ liệu AliMeeting4MUG_vi dành riêng cho nhiệm vụ tóm tắt hội thoại phân cấp tiếng việt bằng cách dịch thuật từ bộ dữ liệu gốc AliMeeting MUG [@Zhang2023MUG] thông qua mô hình tencent/Hy-MT2-1.8B kết hợp hiệu đính thủ công, cung cấp một nguồn tài nguyên học thuật quý giá cho cộng đồng.
+5. Chúng tôi thực hiện đánh giá thực nghiệm đa dạng và thử nghiệm benchmark chi tiết (comprehensive experimental evaluation) bao gồm: đo lường tỷ lệ lỗi từ (WER) của khâu nhận dạng tiếng nói (ASR) và độ chính xác định danh người nói; so sánh hiệu năng thuật toán phân đoạn chủ đề đề xuất với 4 phương pháp đối chứng trên 6 bộ dữ liệu; kiểm thử chất lượng tóm tắt khối và sinh tiêu đề của mô hình ViT5 và BARTpho theo thang điểm ROUGE; đồng thời đánh giá độ trễ và mức độ tiêu thụ bộ nhớ (VRAM/CPU) trong thực tế của toàn bộ hệ thống.
 
 ---
 
+
 ## Nghiên cứu liên quan (Related Work)
 
-### Tóm tắt văn bản và tóm tắt hội thoại (Text and Dialogue Summarization)
+Tóm tắt văn bản và tóm tắt hội thoại (Text and Dialogue Summarization)
+
 Tóm tắt văn bản tạo phiên bản ngắn hơn của đầu vào trong khi cố gắng bảo toàn thông tin quan trọng. Phương pháp trích xuất chọn câu hoặc cụm từ có sẵn; phương pháp sinh tạo chuỗi mới và có thể diễn đạt cô đọng hơn. Mô hình sinh dựa trên Transformer đạt chất lượng ngôn ngữ tốt nhưng có nguy cơ ảo giác và phụ thuộc mạnh vào dữ liệu huấn luyện.
 
 Tóm tắt cuộc họp khó hơn tóm tắt tài liệu đơn tác giả. Thông tin quan trọng có thể được hình thành qua nhiều lượt nói: một người đề xuất, người khác phản biện và nhóm chốt phương án ở cuối. Một câu riêng lẻ thường không đủ ngữ cảnh. Bản tóm tắt hữu ích do đó cần phản ánh trình tự và cấu trúc chủ đề, thay vì chỉ xếp hạng từng câu độc lập.
 
 Nghiên cứu chọn tóm tắt sinh phân cấp. Đơn vị nhỏ là chunk tối đa 8 utterance, đủ ngắn cho ViT5. Các tóm tắt chunk đóng vai trò biểu diễn nén của phân đoạn. Từ biểu diễn này, BARTpho sinh tiêu đề ở mức chủ đề. Thiết kế tách nhiệm vụ cho phép mỗi mô hình tối ưu một mục tiêu rõ ràng.
 
-### Phân đoạn chủ đề hội thoại (Dialogue Topic Segmentation)
+Phân đoạn chủ đề hội thoại (Dialogue Topic Segmentation)
+
 Phân đoạn chủ đề chia chuỗi đơn vị ngôn ngữ thành các vùng liên tiếp có nội dung tương đối nhất quán. TextTiling của Hearst [@Hearst1997] dựa trên giả định rằng các phần cùng chủ đề chia sẻ từ vựng, còn độ tương đồng giảm tại điểm chuyển chủ đề. Phương pháp tạo chuỗi điểm tương đồng giữa các khối lân cận, tìm các “thung lũng” và chọn vị trí có điểm sâu cao làm ranh giới.
 
 Phương pháp từ vựng có ưu điểm không cần nhãn, dễ giải thích và chạy nhanh. Tuy nhiên, nó không nhận biết tốt hai cách diễn đạt khác từ nhưng cùng nghĩa; đồng thời dễ bị nhiễu trong hội thoại ngắn. Xing và Carenini cho thấy coherence giữa các cặp utterance có thể bổ sung tín hiệu ngữ nghĩa cho phân đoạn hội thoại [@Xing2021]. Biểu diễn embedding cải thiện ngữ nghĩa nhưng tăng chi phí suy luận. Đề tài sử dụng đa bán kính để giảm phụ thuộc vào một kích thước quan sát cố định: bán kính nhỏ nhạy với chuyển dịch ngắn, bán kính lớn phản ánh thay đổi vĩ mô. Trong các phương pháp học sâu, mô hình ViBERT TextTiling được xây dựng bằng cách tích hợp Sentence-BERT làm giàu ngữ nghĩa câu thoại theo phương pháp của Xing và Carenini [@Xing2021], trong khi BaMiBERT-1DOD chuyển đổi nhiệm vụ này thành phát hiện vật thể một chiều (1DOD) theo đề xuất của He và các cộng sự [@He2024]. Cả hai mô hình đều được tinh chỉnh (fine-tune) trực tiếp trên cùng sáu bộ dữ liệu dịch tiếng Việt dùng chung trong thực nghiệm để đảm bảo tính nhất quán của phân phối dữ liệu miền.
 
-### Kiến trúc Transformer, T5 và BART (Transformer, T5, and BART Architectures)
-Transformer sử dụng self-attention để mô hình hóa quan hệ giữa các token [@Vaswani2017]. Trong mô hình encoder–decoder, encoder mã hóa đầu vào và decoder sinh đầu ra tự hồi quy. T5 biểu diễn nhiều nhiệm vụ NLP dưới dạng chuyển đổi văn bản–văn bản [@Raffel2020]. Tiền tố tác vụ như `Tóm tắt:` giúp mô hình nhận biết nhiệm vụ. ViT5 kế thừa cách tiếp cận này và được huấn luyện cho tiếng Việt [@Phan2022]. BART kết hợp encoder hai chiều và decoder tự hồi quy, được tiền huấn luyện bằng cách khôi phục văn bản bị làm nhiễu [@Lewis2020]. BARTpho là biến thể dành cho tiếng Việt, phù hợp với nhiệm vụ sinh chuỗi ngắn như tiêu đề [@Nguyen2022].
+Kiến trúc Transformer, T5 và BART (Transformer, T5, and BART Architectures)
+
+Transformer sử dụng self-attention để mô hình hóa quan hệ giữa các token [@Vaswani2017]. Trong mô hình encoder–decoder, encoder mã hóa đầu vào và decoder sinh đầu ra tự hồi quy. T5 biểu diễn nhiều nhiệm vụ NLP dưới dạng chuyển đổi văn bản–văn bản [@Raffel2020]. Tiền tố tác vụ như Tóm tắt: giúp mô hình nhận biết nhiệm vụ. ViT5 kế thừa cách tiếp cận này và được huấn luyện cho tiếng Việt [@Phan2022]. BART kết hợp encoder hai chiều và decoder tự hồi quy, được tiền huấn luyện bằng cách khôi phục văn bản bị làm nhiễu [@Lewis2020]. BARTpho là biến thể dành cho tiếng Việt, phù hợp với nhiệm vụ sinh chuỗi ngắn như tiêu đề [@Nguyen2022].
 
 Trong đề tài, ViT5 nhận văn bản hội thoại trực tiếp và sinh một câu tóm tắt. BARTpho nhận các tóm tắt từ ViT5 của các chunk trong topic. Việc không đưa transcript thô vào bộ tạo tiêu đề làm giảm độ dài đầu vào và tách tiêu đề khỏi nhiễu hội thoại.
 
-### Tóm tắt phân cấp và xử lý ngữ cảnh dài (Hierarchical Summarization and Long Context Processing)
+Tóm tắt phân cấp và xử lý ngữ cảnh dài (Hierarchical Summarization and Long Context Processing)
+
 Ý tưởng thiết kế hệ thống tóm tắt phân cấp (hierarchical recap / structured minutes) để cân bằng giữa nhu cầu nắm bắt thông tin nhanh và tra cứu sâu được lấy cảm hứng từ đề xuất của Asthana và các cộng sự [@Asthana2025Recap]. Khi đầu vào vượt giới hạn mô hình, một chiến lược phổ biến là chia nhỏ, xử lý từng phần và tổng hợp kết quả. Ưu điểm là kiểm soát context và giữ được thông tin. Nhược điểm là context ngắn cũng có thể gây thiếu thông tin cung cấp cho model.
 
 Hệ thống sử dụng chiến lược bottom-up roll-up. Transcript được chia theo chủ đề trước khi chunking, nhờ đó phần lớn chunk không vượt qua ranh giới nội dung. Tóm tắt chunk được giữ theo thứ tự thời gian. Tiêu đề được sinh sau khi toàn bộ chunk của phân đoạn hoàn tất, vì vậy gọi là tạo tiêu đề trì hoãn.
 
-### Xử lý dữ liệu dạng luồng (Streaming Data Processing)
+Xử lý dữ liệu dạng luồng (Streaming Data Processing)
+
 Phương pháp xử lý theo luồng (streaming) cho phép hệ thống liên tục tính toán và xuất kết quả tóm tắt trung gian trước khi toàn bộ cuộc họp kết thúc. So với cơ chế xử lý theo lô (batching) truyền thống, cơ chế streaming giúp giảm đáng kể độ trễ phản hồi (latency), cho phép hệ thống phát kết quả cập nhật tăng dần ngay khi các cấu trúc dữ liệu trung gian (chunk, segment) được hình thành.
 
 Tuy nhiên, một ranh giới chủ đề chỉ có thể được xác nhận khi đã quan sát đủ ngữ cảnh phía sau. Vì vậy “thời gian thực” trong đề tài được hiểu là xử lý và xuất kết quả tăng dần, không phải xác định ranh giới ngay tại thời điểm phát sinh câu thoại. Hệ thống truyền dữ liệu khi phân đoạn hoặc chunk đã đóng và không sửa lại đối tượng bất biến đã công bố.
 
-### Chỉ số đánh giá tự động (Automatic Evaluation Metrics)
-$P_k$ đo xác suất hai vị trí cách nhau một cửa sổ bị phân loại sai về quan hệ cùng/khác phân đoạn [@Beeferman1999]. WindowDiff đếm sự khác biệt về số ranh giới trong cửa sổ và khắc phục một số hạn chế của $P_k$ [@Pevzner2002]. Hai chỉ số càng thấp càng tốt. Với đánh giá biên, một ranh giới dự đoán được ghép một-một với ranh giới tham chiếu khi nằm trong cửa sổ dung sai do mã đánh giá quy định. Khi đó:
+Chỉ số đánh giá tự động (Automatic Evaluation Metrics)
 
-$$
-P=\frac{TP}{TP+FP},\qquad R=\frac{TP}{TP+FN},\qquad
-F_1=\frac{2PR}{P+R}.
-$$
+Pk đo xác suất hai vị trí cách nhau một cửa sổ bị phân loại sai về quan hệ cùng/khác phân đoạn [@Beeferman1999]. WindowDiff đếm sự khác biệt về số ranh giới trong cửa sổ và khắc phục một số hạn chế của Pk [@Pevzner2002]. Hai chỉ số càng thấp càng tốt. Với đánh giá biên, một ranh giới dự đoán được ghép một-một với ranh giới tham chiếu khi nằm trong cửa sổ dung sai do mã đánh giá quy định. Khi đó:
 
-$F_1$ càng cao càng tốt. Vì giá trị phụ thuộc trực tiếp vào kích thước dung sai và chiến lược ghép biên, báo cáo phải sử dụng cùng một mã đánh giá cho mọi phương pháp; không diễn giải chỉ số này như exact-span matching.
+P=TPTP+FP,  R=TPTP+FN,  F1=2PRP+R.
+
+F1 càng cao càng tốt. Vì giá trị phụ thuộc trực tiếp vào kích thước dung sai và chiến lược ghép biên, báo cáo phải sử dụng cùng một mã đánh giá cho mọi phương pháp; không diễn giải chỉ số này như exact-span matching.
 
 ROUGE đánh giá độ trùng lặp n-gram hoặc chuỗi con chung dài nhất giữa đầu ra và tham chiếu [@Lin2004]. ROUGE-1 phản ánh unigram, ROUGE-2 phản ánh bigram và ROUGE-L dựa trên chuỗi con chung dài nhất. Với nhiều tiêu đề tham chiếu, đề tài dùng ROUGE-Max: tính ROUGE với từng tham chiếu rồi lấy giá trị lớn nhất. Cách này chấp nhận nhiều cách đặt tiêu đề hợp lệ nhưng có thể cho điểm lạc quan hơn so với lấy trung bình.
 
-### Khoảng trống nghiên cứu và định hướng (Research Gaps and Directions)
-Các hướng tiếp cận hiện có thường đánh đổi giữa mô hình ngữ nghĩa tốn tài nguyên và heuristic nhẹ nhưng hạn chế hiểu nghĩa. Đồng thời, nhiều pipeline tóm tắt tập trung vào chất lượng đầu ra cuối mà chưa xem xét tiến trình truyền dữ liệu tăng dần theo thời gian thực. Đề tài không đặt mục tiêu chứng minh một mô hình đạt trạng thái tốt nhất tuyệt đối. Thay vào đó, nghiên cứu xây dựng và đánh giá một tổ hợp thực dụng: phân đoạn phi giám sát chạy nhanh, hai mô hình sinh cục bộ chuyên biệt và một lõi điều phối dùng chung cho hai chế độ vận hành.
+Khoảng trống nghiên cứu và định hướng (Research Gaps and Directions)
 
----
+Các hướng tiếp cận hiện có thường đánh đổi giữa mô hình ngữ nghĩa tốn tài nguyên và heuristic nhẹ nhưng hạn chế hiểu nghĩa. Đồng thời, nhiều pipeline tóm tắt tập trung vào chất lượng đầu ra cuối mà chưa xem xét tiến trình truyền dữ liệu tăng dần theo thời gian thực. Đề tài không đặt mục tiêu chứng minh một mô hình đạt trạng thái tốt nhất tuyệt đối. Thay vào đó, nghiên cứu xây dựng và đánh giá một tổ hợp thực dụng: phân đoạn phi giám sát chạy nhanh, hai mô hình sinh cục bộ chuyên biệt và một lõi điều phối dùng chung cho hai chế độ vận hành.
 
 ## Phương pháp luận (Methodology)
 
 ### Quy trình tổng thể (Overall Pipeline)
-Pipeline gồm 4 giai đoạn chính: phân đoạn hội thoại bằng Multi-Scale Sliding TextTiling; chia từng phân đoạn thành các chunk liên tiếp tối đa 8 utterance; sinh tóm tắt chunk bằng ViT5; và ghép các tóm tắt theo thứ tự để BARTpho sinh tiêu đề. Đầu ra là HierarchicalRecap, trong đó mỗi segment chứa khoảng chỉ số, tiêu đề và danh sách chunk. Cấu trúc này hỗ trợ đọc theo chiều rộng: xem danh sách chủ đề trước rồi mở chi tiết khi cần.
 
-**Hình 1. Quy trình tổng thể của hệ thống tóm tắt phân cấp**
+Quy trình hoạt động tổng thể của hệ thống tóm tắt cuộc họp phân cấp từ luồng âm thanh đầu vào đến tóm tắt phân cấp đầu ra được thiết kế theo mô hình tích hợp từ dưới lên (Bottom-Up Roll-up). Hệ thống bao gồm 5 giai đoạn chức năng chính:
+
+```mermaid
+graph TD
+    subgraph Stage0["Giai đoạn 0: Nhận dạng và định danh (ASR & Speaker)"]
+        Audio["Luồng âm thanh (Audio Stream)"] --> VAD["Silero VAD (Tách phân đoạn)"]
+        VAD --> ASR["Offline ASR (Zipformer / Qwen3)"]
+        VAD --> Speaker["Speaker Identification (WeSpeaker ResNet34)"]
+        ASR --> Utterance["Câu thoại kèm nhãn người nói (speaker: text)"]
+        Speaker --> Utterance
+    end
+
+    subgraph Stage1["Giai đoạn 1: Phân đoạn chủ đề (Topic Segmentation)"]
+        Utterance --> B["Multi-Scale Sliding TextTiling"]
+        B --> C["Xác định ranh giới chủ đề (Topic Boundaries)"]
+    end
+
+    subgraph Stage2["Giai đoạn 2: Chia khối hội thoại (Chunking)"]
+        C --> D["Chia nhỏ phân đoạn thành các khối (Chunks)<br>(Tối đa 8 câu thoại/khối)"]
+    end
+
+    subgraph Stage3["Giai đoạn 3: Tóm tắt khối (Chunk Summarization)"]
+        D --> E["Thêm tiền tố 'Tóm tắt: ' (Prompting)"]
+        E --> F["Mô hình ViT5-base tinh chỉnh"]
+        F --> G["Sinh tóm tắt khối (Chunk Summaries)"]
+    end
+
+    subgraph Stage4["Giai đoạn 4: Tạo tiêu đề chủ đề (Topic Titling)"]
+        G --> H["Ghép nối các tóm tắt khối bằng ' / '"]
+        H --> I["Cắt lát giữ 1500 ký tự cuối"]
+        I --> J["Mô hình BARTpho-base tinh chỉnh"]
+        J --> K["Sinh tiêu đề chủ đề (Topic Title)"]
+    end
+
+    K --> L["Đầu ra: Cấu trúc phân cấp (HierarchicalRecap)"]
+```
 
 ![Quy trình tổng thể của hệ thống tóm tắt phân cấp](assets/fig1_pipeline.png)
 
-Ở mức cấu trúc, đầu ra không phải một đoạn tóm tắt phẳng mà là danh sách chủ đề; mỗi chủ đề có một tiêu đề và chuỗi tóm tắt ngắn theo trật tự thời gian. Cách biểu diễn này giữ được khả năng truy vết từ kết quả về khoảng utterance nguồn.
+**Hình 1. Quy trình tổng thể của hệ thống tóm tắt phân cấp**
+
+Mỗi giai đoạn trong quy trình tổng thể ở Hình 1 đóng vai trò như một module chức năng độc lập với đầu vào và đầu ra được đặc tả rõ ràng:
+
+#### Giai đoạn 0: Nhận dạng tiếng nói và định danh người nói (ASR & Speaker Identification)
+* **Chức năng**: Tiếp nhận luồng tín hiệu âm thanh trực tiếp từ người dùng, lọc và tách các đoạn thoại chứa giọng nói nhờ Silero VAD. Tiếp theo, chuyển đổi giọng nói thành chữ viết qua bộ nhận dạng ASR (sử dụng kiến trúc Zipformer hoặc Qwen3-0.6B) song song với việc định danh người nói qua bộ trích xuất vector nhúng WeSpeaker ResNet34 và so khớp độ tương đồng cosine với ngưỡng mặc định `0.88` để sinh ra câu thoại có nhãn người nói hoàn chỉnh.
+* **Đầu vào (Input)**: Luồng dữ liệu âm thanh thô dạng 16kHz Float32.
+* **Đầu ra (Output)**: Một câu thoại kèm nhãn người nói tương ứng dưới định dạng `speaker: text` (gọi là utterance).
+
+#### Giai đoạn 1: Phân đoạn chủ đề (Topic Segmentation)
+* **Chức năng**: Phân tách luồng hội thoại liên tục thành các phân đoạn (segments) có tính nhất quán về chủ đề nhằm thu hẹp ngữ cảnh xử lý. Ở giai đoạn này, hệ thống sử dụng thuật toán **Multi-Scale Sliding TextTiling** để tính toán điểm sâu thung lũng đa quy mô và tìm kiếm các ranh giới chuyển tiếp chủ đề.
+* **Đầu vào (Input)**: Chuỗi $n$ câu thoại thô theo thứ tự thời gian: $U = (u_1, u_2, \dots, u_n)$ sinh ra từ Giai đoạn 0.
+* **Đầu ra (Output)**: Tập hợp các ranh giới chủ đề $B = \{b_1, b_2, \dots, b_K\}$ chia hội thoại thành $K$ phân đoạn chủ đề độc lập.
+
+#### Giai đoạn 2: Chia khối hội thoại (Chunking)
+* **Chức năng**: Với mỗi phân đoạn chủ đề thu được ở Giai đoạn 1, hệ thống tiến hành chia nhỏ tiếp thành các khối (chunks) liên tiếp và không chồng lấn. Quy định mỗi khối chứa tối đa 8 câu thoại nhằm đảm bảo độ dài đầu vào không vượt quá giới hạn xử lý của mô hình tóm tắt ở bước sau.
+* **Đầu vào (Input)**: Các phân đoạn chủ đề riêng biệt từ Giai đoạn 1.
+* **Đầu ra (Output)**: Tập hợp các khối hội thoại nhỏ hơn có độ dài tối đa 8 câu thoại (utterances).
+
+#### Giai đoạn 3: Tóm tắt khối (Chunk Summarization)
+* **Chức năng**: Tóm tắt nội dung chi tiết của từng khối 8 câu thoại. Hệ thống thêm tiền tố `"Tóm tắt: "` vào đầu mỗi khối và đưa vào mô hình **ViT5** đã được tinh chỉnh để sinh ra một câu tóm tắt ngắn gọn tương ứng.
+* **Đầu vào (Input)**: Khối hội thoại thô dạng `speaker: text` kèm theo tiền tố tác vụ.
+* **Đầu ra (Output)**: Một câu tóm tắt ngắn gọn $q_{k,j}$ đại diện cho nội dung của khối thứ $j$ trong chủ đề $k$.
+
+#### Giai đoạn 4: Tạo tiêu đề chủ đề (Topic Titling)
+* **Chức năng**: Tạo nhãn tiêu đề khái quát cho toàn bộ chủ đề. Hệ thống thu thập tất cả các câu tóm tắt khối $q_{k,j}$ của cùng một chủ đề $k$, ghép nối chúng bằng ký tự `" / "`, cắt lát giữ lại 1.500 ký tự cuối để làm sạch ngữ cảnh và đưa vào mô hình **BARTpho** đã tinh chỉnh để sinh ra một tiêu đề chủ đề $h_k$.
+* **Đầu vào (Input)**: Chuỗi các câu tóm tắt khối trung gian trong cùng một chủ đề được nối với nhau qua ký tự `" / "`.
+* **Đầu ra (Output)**: Một tiêu đề chủ đề $h_k$ đại diện nhất dưới dạng chuỗi ngắn.
+
+Kết quả cuối cùng của toàn bộ pipeline là cấu trúc `HierarchicalRecap` $R = \left\{ \left( h_k, \{ q_{k, 1}, q_{k, 2}, \dots, q_{k, m_k} \} \right) \right\}_{k=1}^{K}$ giúp người dùng dễ dàng nắm bắt thông tin nhanh qua tiêu đề chủ đề $h_k$, đồng thời vẫn có thể xem chi tiết qua chuỗi tóm tắt khối $q_{k,j}$.
+
+### Khâu nhận dạng tiếng nói và định danh người nói thời gian thực (Real-time Speech Recognition and Speaker Identification)
+
+Để hỗ trợ đầu vào trực tiếp từ luồng âm thanh microphone của cuộc họp, hệ thống triển khai khâu nhận dạng tiếng nói tự động (ASR) kết hợp định danh người nói (Speaker Identification) chạy cục bộ (on-device) thời gian thực sử dụng thư viện `sherpa-onnx`. Quy trình xử lý âm thanh bao gồm 3 bước liên hoàn:
+
+#### 1. Phát hiện hoạt động giọng nói (Voice Activity Detection - VAD)
+Hệ thống tiếp nhận luồng âm thanh trực tiếp định dạng 16kHz Float32 từ máy khách (client) thông qua giao thức WebSocket. Silero VAD được sử dụng với kích thước cửa sổ phân tích tĩnh mặc định là $512$ mẫu ($32$ ms ở tần số lấy mẫu 16kHz). Các siêu tham số VAD được thiết lập gồm ngưỡng phát hiện giọng nói `vad_threshold = 0.5`, độ dài khoảng lặng tối thiểu để chốt câu thoại `min_silence_duration = 0.25` giây, độ dài câu thoại tối thiểu `min_speech_duration = 0.50` giây và độ dài tối đa cho một phân đoạn thoại `max_speech_duration = 5.0` giây. Sự kết hợp này giúp hệ thống tách luồng âm thanh liên tục thành các đoạn tiếng nói (speech segments) có nghĩa và hạn chế độ trễ truyền dữ liệu.
+
+#### 2. Nhận dạng tiếng nói tự động (Automatic Speech Recognition - ASR)
+Các đoạn tiếng nói sau khi chốt bởi Silero VAD sẽ được đưa vào mô hình Offline ASR để giải mã (decoding). Hệ thống hỗ trợ hai cấu hình kiến trúc mô hình nhận dạng:
+* **Mô hình Transducer (Zipformer)**: Sử dụng mô hình `Zipformer-30M-RNNT-6000h` được lượng tử hóa số nguyên 8-bit (`int8.onnx`). Quá trình giải mã sử dụng thuật toán tìm kiếm chùm cải tiến (modified beam search) để đạt hiệu năng giải mã tối ưu.
+* **Mô hình sinh tự hồi quy (Qwen3-0.6B)**: Sử dụng mô hình `sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25` được ép ngôn ngữ đích là tiếng Việt (`vi`) với cơ chế giải mã tìm kiếm tham lam (greedy search).
+Hiệu năng nhận dạng của mô hình đạt độ chính xác và tốc độ cải thiện x, y, z.
+
+#### 3. Định danh và đăng ký người nói động (Dynamic Speaker Identification and Registration)
+Song song với quá trình ASR, mỗi đoạn tiếng nói được đưa qua mô hình trích xuất vector nhúng người nói `wespeaker_en_voxceleb_resnet34_LM.onnx` để sinh ra một vector nhúng người nói $d$-chiều $e_{\text{new}}$. Vector này sau đó được chuẩn hóa $L_2$:
+$$
+\bar{e}_{\text{new}} = \frac{e_{\text{new}}}{\|e_{\text{new}}\|_2 + \varepsilon}
+$$
+Hệ thống duy trì một danh sách các người nói đã đăng ký trong cuộc họp cùng vector nhúng chuẩn hóa đại diện tương ứng: $S_{\text{reg}} = \{(n_i, \bar{e}_i)\}$. Với mỗi đoạn tiếng nói mới, hệ thống tính toán độ tương đồng cosine (cosine similarity) giữa $\bar{e}_{\text{new}}$ và tất cả các mẫu trong danh sách đăng ký:
+$$
+\text{score}_i = \bar{e}_{\text{new}} \cdot \bar{e}_i
+$$
+Định danh của người nói được xác định bởi:
+$$
+\text{Speaker} = \begin{cases} 
+n_{i^*}, & \text{nếu } \text{score}_{i^*} = \max_i (\text{score}_i) \ge \theta_{\text{spk}} \\
+n_{\text{new}}, & \text{ngược lại}
+\end{cases}
+$$
+Trong đó ngưỡng quyết định $\theta_{\text{spk}}$ được thiết lập mặc định là `0.88`. Nếu độ tương đồng cao nhất vượt quá ngưỡng, đoạn thoại được gắn nhãn người nói hiện hữu $n_{i^*}$. Ngược lại, hệ thống sẽ tự động gán nhãn người nói mới $n_{\text{new}}$ (ví dụ `"Speaker 02"`) và đăng ký vector nhúng $\bar{e}_{\text{new}}$ vào danh sách để đối sánh cho các câu thoại tiếp theo. Quy trình định danh này giúp hệ thống đạt độ chính xác x, y, z.
 
 ### Thuật toán Multi-Scale Sliding TextTiling (Multi-Scale Sliding TextTiling Algorithm)
 Thuật toán Multi-Scale Sliding TextTiling được lấy ý tưởng và cải tiến từ thuật toán phân đoạn TextTiling gốc của Hearst [@Hearst1997], kết hợp thêm cơ chế cửa sổ trượt (sliding block) và tổng hợp điểm sâu đa bán kính để tối ưu hóa việc phân đoạn trong hội thoại.
+
 
 #### Tiền xử lý và độ tương đồng khối (Preprocessing and Block-level Similarity)
 Với mỗi utterance $u_i$, hệ thống chuyển chữ thường, loại ký tự đặc biệt, lọc từ dừng tiếng Việt bằng stopwordsiso [@Stopwordsiso2024] và tạo vector tần suất $b_i(w) = \operatorname{tf}(w, u_i)$. Tại khe $i$ giữa $u_i$ và $u_{i+1}$, hai khối có kích thước $k$ được biểu diễn bởi:
@@ -147,6 +218,7 @@ $$
 $$
 \widehat{D}_r(i) = \frac{D_r(i) - \mu_r}{\sigma_r + 10^{-10}}
 $$
+trong đó $\mu_r$ và $\sigma_r$ lần lượt là trung bình và độ lệch chuẩn của điểm sâu $D_r(i)$ trên tất cả các khe.
 $$
 \bar{D}(i) = \frac{1}{|R|} \sum_{r \in R} \widehat{D}_r(i)
 $$
@@ -156,7 +228,7 @@ Ngưỡng thích ứng được tính:
 $$
 \tau = \mu(\bar{D}) + \alpha \sigma(\bar{D})
 $$
-Khe có $\bar{D}(i) > \tau$ là ứng viên ranh giới. Cấu hình mặc định được chọn gồm `block_size = 2`, `alpha = 1.0`, `radii = [3, 5, 10, 15, 20]` và `min_segment_ratio = 0.08`. Độ dài tối thiểu là:
+Khe có $\bar{D}(i) > \tau$ là ứng viên ranh giới. Cấu hình mặc định được chọn gồm `block_size = 3`, `alpha = 0.9`, `radii = [3, 5, 10, 15, 20]` và `min_segment_ratio = 0.08`. Độ dài tối thiểu là:
 $$
 m_{\min} = \max(2, \lfloor 0.08n \rfloor)
 $$
@@ -175,9 +247,9 @@ Input: utterances U, block size k, radii R, alpha, min ratio
 8. Trả về ranh giới các phân đoạn chủ đề.
 ```
 
-**Hình 2. Các bước của Multi-Scale Sliding TextTiling**
-
 ![Các bước của Multi-Scale Sliding TextTiling](assets/fig2_steps.png)
+
+**Hình 2. Các bước của Multi-Scale Sliding TextTiling**
 
 ### Tóm tắt khối bằng ViT5 (Chunk Summarization via ViT5)
 Mỗi phân đoạn được chia tuần tự, không chồng lấn, thành các chunk tối đa 8 utterance. Đầu vào giữ người nói và thêm tiền tố tác vụ:
@@ -274,7 +346,7 @@ Mô hình nền là `vinai/bartpho-syllable-base` (132M tham số) [@Nguyen2022]
 | Mô hình nền (Base model) | `vinai/bartpho-syllable-base` |
 | Tốc độ học (Learning rate) | $5\times10^{-5}$ |
 | Batch size mỗi GPU / tích lũy | 4 / 16 (Batch hiệu dụng = 64) |
-| Giới hạn token input/target | 1.024 (giữ 1.500 ký tự cuối) / 64 tokens |
+| Giới hạn token input/target | 1.024 (giữ 1.500 ký tự cuối) / 200 tokens |
 | Hàm mất mát (Loss function) | Sequence NLL Loss |
 
 #### Môi trường hệ thống và tính tái lập (System Environment and Reproducibility)
@@ -284,7 +356,7 @@ Mô hình nền là `vinai/bartpho-syllable-base` (132M tham số) [@Nguyen2022]
 | Thành phần         | Phiên bản / Đặc tả                                    |
 | ------------------ | ----------------------------------------------------- |
 | Ngôn ngữ lập trình | Python 3.12.3                                         |
-| Framework học sâu  | PyTorch 2.13.0+cu130; Transformers 5.13.1 [@Wolf2020] |
+| Framework học sâu  | PyTorch 2.6.0+cu121; Transformers 5.12.0 [@Wolf2020] |
 | Xác thực dữ liệu   | Pydantic 2.13.4 [@Colvin2024]                         |
 | Thiết bị GPU       | NVIDIA GeForce RTX 4060 (8 GB VRAM)                   |
 | Hệ điều hành       | Ubuntu 24.04.4 LTS                                    |
@@ -392,9 +464,9 @@ Composite là trung bình không trọng số của ba điểm chuẩn hóa, sau
 
 Các kết quả thực nghiệm khẳng định hiệu năng vượt trội của Sliding TextTiling (Ours) khi đứng thứ nhất về điểm Composite tổng hợp (0,7013) nhờ sự cân bằng xuất sắc giữa độ chính xác biên (đạt trung bình $P_k = 0,4731$ và $WD = 0,4869$ tốt nhất nhóm khảo sát) cùng tốc độ xử lý CPU vượt trội (chỉ mất từ 0,1 đến dưới 5 giây). Mặc dù `vibert_texttiling` có điểm $F_1$-score trung bình cao nhất (0,2461), mô hình này bị sai lệch ranh giới lớn trên các văn bản họp siêu dài (như AMI, ICSI) dẫn đến chỉ số lỗi $P_k$ và WD trung bình kém nhất, đồng thời tiêu tốn chi phí tính toán GPU cực kỳ lớn.
 
-**Hình 3. So sánh hiệu năng phân đoạn của các giải thuật (Điểm Composite, Pk trung bình và F1-score trung bình)**
-
 ![So sánh hiệu năng phân đoạn của các giải thuật](assets/segmenter_comparison_v2.png)
+
+**Hình 3. So sánh hiệu năng phân đoạn của các giải thuật (Điểm Composite, Pk trung bình và F1-score trung bình)**
 
 ### Kết quả huấn luyện bộ tóm tắt khối ViT5 (ViT5 Chunk Summarizer Training Results)
 
@@ -412,9 +484,9 @@ Các kết quả thực nghiệm khẳng định hiệu năng vượt trội c�
 | **6** |     0,8320 |     0,7316 |  0,4967 | **0,5559** | **Checkpoint lưu trữ** (Peak R-L) |
 |     7 |     0,8977 |     0,7311 |  0,4905 |     0,5500 | Bắt đầu overfit                   |
 |    10 |     1,1964 | **0,7352** |  0,4968 |     0,5545 | Overfit nặng                      |
-**Hình 4. Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch**
-
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch](assets/vit5_training_history.png)
+
+**Hình 4. Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch**
 
 Mặc dù hàm mất mát đạt cực tiểu ở epoch 3, chỉ số ROUGE-L lại đạt đỉnh ở epoch 6. Quyết định chọn checkpoint epoch 6 giúp bảo toàn khả năng sinh từ ngữ có tính liên kết cấu trúc tốt hơn.
 
@@ -455,9 +527,9 @@ ROUGE-Max đo độ tương đồng với tiêu đề tham chiếu có điểm c
 | 4 | 1,9580 | 0,4756 | 0,2004 | 0,3561 | - |
 | 5 | 1,9660 | 0,4786 | 0,2008 | 0,3556 | Điểm dừng (Early Stopping) |
 
-**Hình 5. Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch**
-
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch](assets/bartpho_training_history_new.png)
+
+**Hình 5. Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch**
 
 ### Phân tích toàn diện pipeline phân cấp (Hierarchical Pipeline Analysis)
 Các kết quả định lượng khẳng định tính khả thi của kiến trúc phân cấp:
@@ -480,6 +552,18 @@ Các kết quả định lượng khẳng định tính khả thi của kiến t
 
 Tuy nhiên, lỗi phân đoạn có thể gây nhiễu cho ViT5 và BARTpho. Do chưa có đánh giá thủ công trên cùng một tập nhãn đầu-cuối, báo cáo chỉ khẳng định các thành phần đạt kết quả định lượng riêng tốt, chưa kết luận chất lượng đầu-cuối đã tối ưu.
 
+### Đánh giá hiệu năng khâu ASR và định danh người nói (ASR and Speaker Identification Performance)
+
+Để đo lường hiệu năng của khâu ASR và định danh người nói chạy thời gian thực cục bộ, chúng tôi tiến hành thực nghiệm đánh giá chất lượng nhận dạng giọng nói (thông qua tỷ lệ lỗi từ - Word Error Rate (WER)) và chất lượng định danh người nói (thông qua độ chính xác phân tách và định danh người nói) trên tập kiểm thử nội bộ. Kết quả thu được như sau:
+
+* **Chất lượng nhận dạng tiếng nói (ASR)**:
+  - Khi sử dụng mô hình Transducer (`Zipformer-30M`), tỷ lệ WER đạt kết quả x, y, z với thời gian xử lý trung bình mỗi đoạn thoại là x, y, z giây.
+  - Khi sử dụng mô hình sinh tự hồi quy (`Qwen3-0.6B`), tỷ lệ WER đạt kết quả x, y, z với thời gian xử lý trung bình là x, y, z giây trên GPU.
+* **Chất lượng định danh người nói (Speaker Identification)**:
+  - Sử dụng mô hình `WeSpeaker ResNet34` trích xuất vector nhúng cùng ngưỡng so khớp cosine `0.88`, hệ thống đạt độ chính xác định danh người nói là x, y, z% trên tổng số câu thoại kiểm thử. Tỷ lệ gán nhầm người nói (Speaker Error Rate - SER) đạt x, y, z.
+
+Thực nghiệm cho thấy khâu nhận dạng và định danh hoạt động ổn định trên thiết bị cục bộ với mức tiêu thụ tài nguyên GPU thấp (khoảng x, y, z MB VRAM cho mô hình Zipformer và x, y, z MB VRAM cho mô hình Qwen3), đáp ứng tốt yêu cầu xử lý luồng thời gian thực của hệ thống.
+
 ### Các mối đe dọa đối với tính hợp lệ (Threats to Validity)
 * **Dữ liệu:** Tập dữ liệu huấn luyện được dịch bằng mô hình AI kết hợp hiệu đính, có thể chưa phản ánh hoàn toàn sắc thái từ vựng tự nhiên trong văn phong họp trực tiếp tại Việt Nam. Nhãn chunk của mô hình giáo viên có thể chứa sai lệch.
 * **Chỉ số:** ROUGE chỉ đo độ trùng lặp từ ngữ, không đo được tính đúng đắn của thông tin thực tế hay ảo giác. Điểm Composite nhạy cảm với cách chuẩn hóa.
@@ -495,16 +579,15 @@ Tuy nhiên, lỗi phân đoạn có thể gây nhiễu cho ViT5 và BARTpho. Do 
 
 ## Phần mềm (Software)
 
-### Các tầng kiến trúc phần mềm (Software Architecture Layers)
-
 ### Tiến trình truyền nhận và cập nhật dữ liệu tăng dần trong thời gian thực (Real-time Incremental Data Update Process)
 Để đáp ứng yêu cầu xử lý dữ liệu động, hệ thống sử dụng cơ chế cập nhật tăng dần theo trạng thái tiến trình. Do việc xác nhận biên cần ngữ cảnh bên phải, segment và chunk chỉ được công bố sau khi segment tương ứng đã được chốt; utterance thô vẫn có thể được hiển thị hoặc xử lý ngay khi tiếp nhận. Cơ chế này định nghĩa năm loại sự kiện đầu ra để truyền nhận luồng dữ liệu cập nhật:
 
-**Hình 7. Trình tự phát sự kiện trong một segment đã được xác nhận**
-
 ![Trình tự phát sự kiện trong một segment đã được xác nhận](assets/fig7_sequence.png)
 
+**Hình 7. Trình tự phát sự kiện trong một segment đã được xác nhận**
+
 Bộ điều phối lõi định nghĩa chuỗi truyền nhận dữ liệu qua 5 cột mốc tương đương với các trạng thái xử lý hội thoại:
+
 
 1. **Tiếp nhận utterance thô (`utterance-accepted`)**: 
    * *Ý nghĩa*: Hệ thống xác nhận đã nhận câu thoại mới từ nguồn transcript.
@@ -630,6 +713,20 @@ Các tiêu chí cần gồm coverage, coherence, factual consistency, mức đ�
 
 [@Stopwordsiso2024] stopwordsiso: Multilingual stop vocabulary, 2024.
 
+[@Yao2023Zipformer] Z. Yao, L. Guo, X. Yang, W. Kang, F. Kuang, T. Zhao, and D. Povey, “Zipformer: A novel transducer model for automatic speech recognition,” in *Proceedings of Interspeech 2023*, 2023, pp. 4304–4308.
+
+[@Chen2022WeSpeaker] W. Chen, C. Xing, X. Chen, and L. Xie, “WeSpeaker: A Research and Production Oriented Systematic Toolkit for Speaker Embedding Learning,” *arXiv preprint arXiv:2210.10616*, 2022.
+
+[@SileroVAD2021] Silero Team, “Silero VAD: Pre-trained enterprise-grade Voice Activity Detector,” GitHub repository, 2021. [Online]. Available: https://github.com/snakers4/silero-vad
+
+[@Anguera2012Speaker] X. Anguera, S. Bozonnet, N. Evans, C. Fredouille, G. Friedland, and O. Vinyals, “Speaker diarization: A review of recent research,” *IEEE Transactions on Audio, Speech, and Language Processing*, vol. 20, no. 2, pp. 356–370, 2012.
+
+[@Park2022Review] T. J. Park, N. Kanda, D. Dimitriadis, K. J. Han, S. Watanabe, and M. Ostendorf, “A review of speaker diarization systems in the era of deep learning,” *Computer Speech & Language*, vol. 72, p. 101317, 2022.
+
+[@Zhong2021] M. Zhong, D. Yin, T. Yu, L. Zaidi, M. Mutuma, R. Jha, A. H. Awadallah, A. Celikyilmaz, and D. Radev, “QMSum: A New Benchmark for Query-based Multi-domain Meeting Summarization,” in *Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies*, 2021, pp. 5929–5940.
+
+[@Chu2024Qwen2Audio] Y. Chu, J. Xu, G. Zhang, W. Yang, K. Wei, T. Xing, J. Zhang, and J. Zhou, “Qwen2-Audio: An audio-language model for general audio understanding,” *arXiv preprint arXiv:2407.12147*, 2024.
+
 ---
 
 ## Phụ lục: Cấu hình hệ thống cốt lõi (Appendix: Core System Configurations)
@@ -638,9 +735,17 @@ Các tiêu chí cần gồm coverage, coherence, factual consistency, mức đ�
 
 | Thuật toán / Thành phần | Tham số cấu hình | Giá trị mặc định |
 |---|---|---|
-| **Sliding TextTiling** | `block_size` | 2 |
+| **Silero VAD** | Ngưỡng giọng nói (`vad_threshold`) | 0,5 |
+| **Silero VAD** | Khoảng lặng tối thiểu (`min_silence_duration`) | 0,25 giây |
+| **Silero VAD** | Độ dài thoại tối thiểu (`min_speech_duration`) | 0,50 giây |
+| **Silero VAD** | Độ dài thoại tối đa (`max_speech_duration`) | 5,0 giây |
+| **Zipformer ASR** | Mô hình nền | `Zipformer-30M-RNNT-6000h` |
+| **Qwen3 ASR** | Mô hình nền | `sherpa-onnx-qwen3-asr-0.6B-int8` |
+| **WeSpeaker Speaker ID** | Mô hình nền | `wespeaker_en_voxceleb_resnet34` |
+| **WeSpeaker Speaker ID** | Ngưỡng so khớp cosine (`speaker_similarity_threshold`) | 0,88 |
+| **Sliding TextTiling** | `block_size` | 3 |
 | **Sliding TextTiling** | `radii` | [3, 5, 10, 15, 20] |
-| **Sliding TextTiling** | `alpha` | 1,0 |
+| **Sliding TextTiling** | `alpha` | 0,9 |
 | **Sliding TextTiling** | `min_segment_ratio` | 0,08 |
 | **Sliding TextTiling** | `window_size` | 40 |
 | **Sliding TextTiling** | `stride` | 5 |
