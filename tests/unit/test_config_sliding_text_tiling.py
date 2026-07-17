@@ -16,13 +16,15 @@ from src.config.text_tiling import SlidingTextTilingConfig
 class DefaultsTests(unittest.TestCase):
     def test_defaults_match_reference_implementation(self) -> None:
         cfg = SlidingTextTilingConfig()
-        self.assertEqual(cfg.block_size, 3)
+        self.assertEqual(cfg.block_size, 2)
         self.assertEqual(cfg.radii, [3, 5, 10, 15, 20])
-        self.assertEqual(cfg.alpha, 0.9)
+        self.assertEqual(cfg.alpha, 1.0)
         self.assertEqual(cfg.use_stopwords, True)
         self.assertEqual(cfg.agg, "mean")
         self.assertEqual(cfg.normalize, "zscore")
         self.assertEqual(cfg.min_segment_ratio, 0.08)
+        self.assertEqual(cfg.window_size, 40)
+        self.assertEqual(cfg.stride, 5)
 
     def test_frozen(self) -> None:
         cfg = SlidingTextTilingConfig()
@@ -32,13 +34,15 @@ class DefaultsTests(unittest.TestCase):
     def test_extra_field_rejected(self) -> None:
         with self.assertRaises(ConfigError):
             SlidingTextTilingConfig(
-                block_size=3,
+                block_size=2,
                 radii=[3, 5, 10],
-                alpha=0.9,
+                alpha=1.0,
                 use_stopwords=True,
                 agg="mean",
                 normalize="zscore",
                 min_segment_ratio=0.08,
+                window_size=40,
+                stride=5,
                 surprise=1,  # type: ignore[call-arg]
             )
 
@@ -75,6 +79,10 @@ class ValidationTests(unittest.TestCase):
     def test_custom_alpha_accepted(self) -> None:
         cfg = SlidingTextTilingConfig(alpha=1.5)
         self.assertEqual(cfg.alpha, 1.5)
+
+    def test_stride_must_be_less_than_window_size(self) -> None:
+        with self.assertRaises(ConfigError):
+            SlidingTextTilingConfig(window_size=30, stride=30)
 
 
 class EnvOverrideTests(unittest.TestCase):

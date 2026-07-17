@@ -116,6 +116,56 @@ class FindBoundariesTests(unittest.TestCase):
         # Only the force-close tail
         self.assertEqual(boundaries, [len(utts) - 1])
 
+    def test_at_window_size_batch_path_active(self) -> None:
+        """Verify n == window_size uses batch path (no window partitioning)."""
+        utts = ["alpha beta"] * 20 + ["gamma delta"] * 20
+        boundaries, _ = find_boundaries(utts, window_size=40, stride=5,
+                                        block_size=2, radii=[3, 5], alpha=0.5,
+                                        min_segment_ratio=0.05)
+        self.assertIn(len(utts) - 1, boundaries)
+        real = [b for b in boundaries if b != len(utts) - 1]
+        self.assertGreaterEqual(len(real), 1)
+
+    def test_window_size_plus_one_enters_streaming_path(self) -> None:
+        """Verify n == window_size + 1 enters streaming path correctly."""
+        utts = ["alpha beta"] * 20 + ["gamma delta"] * 21
+        boundaries, _ = find_boundaries(utts, window_size=40, stride=10,
+                                        block_size=2, radii=[3, 5], alpha=0.5,
+                                        min_segment_ratio=0.05)
+        # Two windows: start=0 and start=1 (pinned), overlapping on 39 utts
+        self.assertIn(len(utts) - 1, boundaries)
+        real = [b for b in boundaries if b != len(utts) - 1]
+        self.assertGreaterEqual(len(real), 1)
+
+    def test_streaming_max_stride_no_overlap(self) -> None:
+        """Verify stride == window_size - 1 (max valid, zero overlap) works."""
+        utts = ["alpha beta"] * 50 + ["gamma delta"] * 50
+        boundaries, _ = find_boundaries(utts, window_size=40, stride=39,
+                                        block_size=2, radii=[3, 5], alpha=0.5,
+                                        min_segment_ratio=0.05)
+        self.assertIn(len(utts) - 1, boundaries)
+        real = [b for b in boundaries if b != len(utts) - 1]
+        self.assertGreaterEqual(len(real), 1)
+
+    def test_streaming_merge_small_segment_triggered(self) -> None:
+        """A tiny segment flanked by large blocks must be merged out."""
+        # 45 'a' + 3 distinct + 45 'a' — the 3-utterance middle segment
+        # is small enough to trigger merge_small_segments when
+        # min_segment_ratio is high enough.
+        utts = (["alpha beta"] * 45 + ["gamma delta epsilon zeta eta"] * 3
+                + ["alpha beta"] * 45)
+        boundaries, _ = find_boundaries(utts, window_size=40, stride=10,
+                                        block_size=2, radii=[3, 5], alpha=0.6,
+                                        min_segment_ratio=0.15)
+        # With min_seg = max(2, floor(93 * 0.15)) = 13, any segment < 13
+        # utterances is merged — the middle segment (3 utts) must disappear.
+        self.assertIn(len(utts) - 1, boundaries)
+        # Each remaining segment must be at least 13 utterances long.
+        prev = -1
+        for b in boundaries:
+            self.assertGreaterEqual(b - prev, 13)
+            prev = b
+
 
 class SlidingTextTilingServiceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -123,9 +173,24 @@ class SlidingTextTilingServiceTests(unittest.TestCase):
         self.service = SlidingTextTilingService(self.config)
 
     def test_default_config(self) -> None:
-        self.assertEqual(self.config.block_size, 3)
-        self.assertEqual(self.config.alpha, 0.9)
+        self.assertEqual(self.config.block_size, 2)
+        self.assertEqual(self.config.alpha, 1.0)
         self.assertEqual(self.config.radii, DEFAULT_RADII)
+        self.assertEqual(self.config.window_size, 40)
+        self.assertEqual(self.config.stride, 5)
+
+    def test_streaming_window_segmentation(self) -> None:
+        """Verify that streaming window partition and evaluation works correctly on long inputs."""
+        utts = ["alpha beta"] * 50 + ["gamma delta"] * 50
+        cfg = SlidingTextTilingConfig(window_size=40, stride=10, alpha=0.5)
+        service = SlidingTextTilingService(cfg)
+        events = service.process(utts)
+        self.assertGreaterEqual(len(events), 2)
+        self.assertEqual(events[-1].utterances_end, 99)
+        self.assertEqual(events[0].utterances_start, 0)
+        # Verify contiguous, non-overlapping segments
+        for i in range(1, len(events)):
+            self.assertEqual(events[i].utterances_start, events[i - 1].utterances_end + 1)
 
     def test_empty_input_returns_no_events(self) -> None:
         self.assertEqual(self.service.process([]), [])

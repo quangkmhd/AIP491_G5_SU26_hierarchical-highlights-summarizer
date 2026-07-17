@@ -49,8 +49,8 @@ class DefaultsFlowTests(unittest.TestCase):
 
     def test_default_compose_matches_paper(self) -> None:
         cfg = MeetingRecapConfig(_env_file=None)
-        self.assertEqual(cfg.text_tiling.block_size, 3)
-        self.assertEqual(cfg.text_tiling.alpha, 0.9)
+        self.assertEqual(cfg.text_tiling.block_size, 2)
+        self.assertEqual(cfg.text_tiling.alpha, 1.0)
         self.assertEqual(cfg.text_tiling.radii, [3, 5, 10, 15, 20])
         self.assertEqual(cfg.chunking.chunk_size, 8)
         self.assertEqual(cfg.abstractive.context_window, 512)
