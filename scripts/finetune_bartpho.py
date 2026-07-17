@@ -101,14 +101,43 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_custom_dataset(data_path, segment_vietnamese=False):
-    """Load dữ liệu từ file JSON và chuyển đổi thành HuggingFace Dataset."""
+def load_custom_dataset(data_path, segment_vietnamese=False, split_type=None, seed=42):
+    """Load dữ liệu từ file JSON hoặc JSONL, hỗ trợ chia train/val 90/10 theo meeting/dialogue, và chuyển đổi thành HuggingFace Dataset."""
     if not os.path.exists(data_path):
         logger.error(f"Không tìm thấy file dữ liệu tại: {data_path}")
         sys.exit(1)
 
-    with open(data_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    # Đọc dữ liệu linh hoạt (JSON hoặc JSONL)
+    data = []
+    try:
+        with open(data_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        # Thử đọc kiểu JSON Lines
+        with open(data_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    data.append(json.loads(line))
+                except Exception as e:
+                    logger.warning(f"Error parsing JSON line: {e}")
+                    continue
+
+    # Chia train/val 90/10 theo meeting/dialogue
+    if split_type in ["train", "val"]:
+        import random
+        random.seed(seed)
+        random.shuffle(data)
+        split_idx = int(len(data) * 0.9)
+        if split_type == "train":
+            data = data[:split_idx]
+            logger.info(f"Đang chuẩn bị tập Train ({split_type}): Giữ lại {len(data)} cuộc họp/mẫu (90%)")
+        else:
+            data = data[split_idx:]
+            logger.info(f"Đang chuẩn bị tập Validation ({split_type}): Giữ lại {len(data)} cuộc họp/mẫu (10%)")
+    else:
+        logger.info(f"Tải toàn bộ {len(data)} dòng dữ liệu từ {data_path} không phân chia.")
 
     processed_data = {
         "source": [],
@@ -116,22 +145,66 @@ def load_custom_dataset(data_path, segment_vietnamese=False):
     }
 
     for item in data:
-        instruction = item.get("instruction", "")
-        input_text = item.get("input", "")
-        output_text = item.get("output", "")
+        # Nếu item có cấu trúc phức tạp chứa dialogue (như train_vi.json), ta trích xuất hoặc gom dữ liệu
+        if "dialogue" in item:
+            dialogue_list = item.get("dialogue", [])
+            title = item.get("title", "")
+            summaries = item.get("summary", [])
 
-        # BARTpho yêu cầu input ở dạng text thông thường
-        # Ta có thể kết hợp instruction và input bằng dấu xuống dòng hoặc ký tự phân tách
-        source_text = f"{instruction}\n{input_text}"
-        target_text = output_text
+            # Sinh Title example
+            if title and title != "none":
+                formatted_dialogue = []
+                for idx, turn in enumerate(dialogue_list):
+                    text = turn.get("text_vi", "").strip()
+                    speaker = f"S{idx % 2}"
+                    formatted_dialogue.append(f"- {speaker}: {text}")
+                source_title = "Đặt tiêu đề ngắn gọn cho đoạn hội thoại sau bằng tiếng Việt:\n" + "\n".join(formatted_dialogue)
+                target_title = title
+                if segment_vietnamese and HAS_PYVI:
+                    source_title = ViTokenizer.tokenize(source_title)
+                    target_title = ViTokenizer.tokenize(target_title)
+                processed_data["source"].append(source_title)
+                processed_data["target"].append(target_title)
 
-        if segment_vietnamese and HAS_PYVI:
-            source_text = ViTokenizer.tokenize(source_text)
-            target_text = ViTokenizer.tokenize(target_text)
+            # Sinh Chunk Summary examples
+            if summaries:
+                chunk_size = 8
+                num_chunks = (len(dialogue_list) + chunk_size - 1) // chunk_size
+                for chunk_idx in range(min(num_chunks, len(summaries))):
+                    chunk_summary = summaries[chunk_idx]
+                    if not chunk_summary or chunk_summary == "none":
+                        continue
+                    chunk_utts = dialogue_list[chunk_idx * chunk_size : (chunk_idx + 1) * chunk_size]
+                    formatted_chunk = []
+                    for turn_idx, turn in enumerate(chunk_utts):
+                        global_turn_idx = chunk_idx * chunk_size + turn_idx
+                        text = turn.get("text_vi", "").strip()
+                        speaker = f"S{global_turn_idx % 2}"
+                        formatted_chunk.append(f"- {speaker}: {text}")
+                    source_summary = "Tóm tắt đoạn hội thoại sau bằng tiếng Việt:\n" + "\n".join(formatted_chunk)
+                    target_summary = chunk_summary
+                    if segment_vietnamese and HAS_PYVI:
+                        source_summary = ViTokenizer.tokenize(source_summary)
+                        target_summary = ViTokenizer.tokenize(target_summary)
+                    processed_data["source"].append(source_summary)
+                    processed_data["target"].append(target_summary)
+        else:
+            # Dành cho định dạng phẳng pre-extracted instruction, input, output
+            instruction = item.get("instruction", "")
+            input_text = item.get("input", "")
+            output_text = item.get("output", "")
 
-        processed_data["source"].append(source_text)
-        processed_data["target"].append(target_text)
+            source_text = f"{instruction}\n{input_text}"
+            target_text = output_text
 
+            if segment_vietnamese and HAS_PYVI:
+                source_text = ViTokenizer.tokenize(source_text)
+                target_text = ViTokenizer.tokenize(target_text)
+
+            processed_data["source"].append(source_text)
+            processed_data["target"].append(target_text)
+
+    logger.info(f"Đã trích xuất thành công {len(processed_data['source'])} ví dụ huấn luyện.")
     return Dataset.from_dict(processed_data)
 
 
@@ -149,13 +222,15 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, use_fast=False)
 
     # 2. Load Dataset
-    logger.info(f"Đang tải dữ liệu train từ: {args.train_data_path}")
-    train_dataset = load_custom_dataset(args.train_data_path, args.segment_vietnamese)
-
-    val_dataset = None
     if args.val_data_path:
+        logger.info(f"Đang tải dữ liệu train từ: {args.train_data_path}")
+        train_dataset = load_custom_dataset(args.train_data_path, args.segment_vietnamese)
         logger.info(f"Đang tải dữ liệu validation từ: {args.val_data_path}")
         val_dataset = load_custom_dataset(args.val_data_path, args.segment_vietnamese)
+    else:
+        logger.info(f"Không nhận thấy val_data_path. Thực hiện tự động chia 90/10 theo cuộc họp (seed 42) từ train_data_path: {args.train_data_path}")
+        train_dataset = load_custom_dataset(args.train_data_path, args.segment_vietnamese, split_type="train")
+        val_dataset = load_custom_dataset(args.train_data_path, args.segment_vietnamese, split_type="val")
 
     # 3. Hàm tiền xử lý (Preprocessing function)
     def preprocess_function(examples):
