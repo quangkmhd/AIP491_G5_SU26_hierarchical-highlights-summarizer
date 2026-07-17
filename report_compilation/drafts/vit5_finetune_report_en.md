@@ -32,11 +32,11 @@ at step 4,740) correctly identified the right stopping point.
 
 ```
 data/Alimeeting4MUG_vi/train_vi.jsonl
-  → for each chunk_summaries entry:
+  → 90/10 random split by meeting/dialogue (seed=42)
+  → for each chunk_summaries entry in the split meetings:
         - resolve raw sentences by [start_id, end_id] in content.sentences
         - format as "speaker: text\n..."  (input)
         - use the existing `summary` field as target
-  → 90/10 random split (seed=42)
   → Seq2SeqTrainer (ROUGE-1/2/L, early stop on rougeL)
   → outputs/chunk_summarizer/vit5-chunk-summarizer-v1/  (model + tokenizer)
 ```
@@ -53,16 +53,16 @@ CLI wrappers: `scripts/train_chunk_summarizer.sh`, `scripts/eval_chunk_summarize
 
 ## Dataset
 
-- **Source**: `data/Alimeeting4MUG_vi/train_vi.jsonl` (295 records)
+- **Source**: `data/Alimeeting4MUG_vi/train_vi.jsonl` (295 records/meetings)
 - **Block extraction**: 1-indexed `content.chunk_summaries[*]` with
   `start_id` / `end_id` ranges
 - **Skip stats**: 0 missing sentences, 0 empty summaries, 0 empty
   formatted blocks — every (record, topic, block) triple became a
   training example
 - **Examples**: 28,079 (one per chunk_summaries entry)
-- **Split**: 25,272 train / 2,807 val (90/10, seed=42)
-- **Per-epoch quick eval**: 200-sample random subset of the 2,807
-  val (for speed; the full 2,807 is evaluated once at end of training)
+- **Split**: 265 train meetings (25,051 chunks) / 30 val meetings (3,028 chunks) (90/10 split by meeting, seed=42)
+- **Per-epoch quick eval**: 200-sample random subset of the 3,028
+  val (for speed; the full 3,028 is evaluated once at end of training)
 
 ### Token-length distribution (raw 8u block, spm)
 
@@ -277,7 +277,7 @@ This sub-project mirrors `src/train/topic_titler/`. Key differences:
 | Final rougeL | 0.5574 (full val) | n/a |
 
 Both follow the same data flow:
-`jsonl → build examples → HF Dataset → tokenize → 90/10 split → Seq2SeqTrainer → ROUGE-1/2/L → best ckpt`.
+`jsonl → 90/10 meeting-level split → build examples → HF Dataset → tokenize → Seq2SeqTrainer → ROUGE-1/2/L → best ckpt`.
 
 ---
 

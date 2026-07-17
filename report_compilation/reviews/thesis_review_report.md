@@ -89,7 +89,7 @@ Hội thoại đầu vào được định nghĩa là chuỗi 1-indexed: $U = (u
 
 ### 3.3. Đối chiếu chỉ số hiệu năng
 Các chỉ số tự động được xác minh là nhất quán về mặt số liệu giữa báo cáo luận văn và file tóm tắt hệ thống `system_summary_report.md`:
-* **Sliding TextTiling** (trên `meeting_committee`): $P_k = 0.4488$, $WD = 0.4835$, $F_1 = 0.1970$.
+* **Sliding TextTiling** (trung bình trên 6 tập dữ liệu): $P_k = 0.4731$, $WD = 0.4869$, $F_1 = 0.1340$ (trên tập tiếng Việt `dialseg_711` đạt $P_k = 0.3651$, $WD = 0.3813$, $F_1 = 0.3423$).
 * **ViT5 Chunk Summarizer** (trên tập dev): ROUGE-1/2/L = $0.7265 / 0.4854 / 0.5486$.
 * **BARTpho Topic Titler** (trên tập dev): RougeMax-1/2/L = $0.5304 / 0.2837 / 0.4443$.
 

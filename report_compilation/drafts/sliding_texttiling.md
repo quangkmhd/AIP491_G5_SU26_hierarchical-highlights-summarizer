@@ -74,7 +74,7 @@ $$b_i = \{w: \text{tf}(w, U_i)\}$$
 Nhằm tăng tính ổn định về mặt ngữ cảnh, thay vì tính tương đồng trực tiếp giữa hai câu thoại đơn lẻ cạnh nhau, ta gộp nhóm các câu thoại xung quanh biên thành hai khối trái $B1_i$ và phải $B2_i$ có độ dài $k$ (`block_size`):
 
 - Khối bên trái tại vị trí $i$:
-  $$B1_i(w) = \sum_{j=\max(0, i-k+1)}^{i} \text{tf}(w, U_j)$$
+  $$B1_i(w) = \sum_{j=\max(1, i-k+1)}^{i} \text{tf}(w, U_j)$$
 - Khối bên phải tại vị trí $i$:
   $$B2_i(w) = \sum_{j=i+1}^{\min(n, i+k)} \text{tf}(w, U_j)$$
 
@@ -87,11 +87,11 @@ Trả về chuỗi độ tương đồng dài $n-1$: $S = [S_0, S_1, \dots, S_{n
 Tại mỗi vị trí biên thứ $i$, nếu độ tương đồng $S_i$ là một điểm cực tiểu cục bộ (valley), nó đại diện cho một điểm chuyển giao tiềm năng của chủ đề. Để đo lường mức độ "sâu" của thung lũng tương đồng này, ta quét sang hai phía trái và phải để tìm kiếm đỉnh tương đồng cục bộ cao nhất trong phạm vi bán kính tìm kiếm $r$:
 
 - **Đỉnh cực đại phía trái (Left Peak):**
-  $$p_L(i, r) = \max \{S_{j} \mid \max(0, i-r) \le j \le i\}$$
+  $$p_L(i, r) = \max \{S_{j} \mid \max(1, i-r) \le j \le i\}$$
   được tìm bằng cách dò ngược từ $i-1$ về phía trước, giữ nguyên giá trị đỉnh nếu độ tương đồng tăng dần và chặn đứng nếu có xu hướng đi xuống trở lại.
   
 - **Đỉnh cực đại phía phải (Right Peak):**
-  $$p_R(i, r) = \max \{S_{j} \mid i \le j \le \min(n-2, i+r)\}$$
+  $$p_R(i, r) = \max \{S_{j} \mid i \le j \le \min(n-1, i+r)\}$$
   được tìm tương tự bằng cách dò tiến từ $i+1$ về phía sau.
 
 Điểm dốc sâu (Depth Score) tại vị trí $i$ ứng với bán kính $r$ là trung bình cộng khoảng cách từ hai đỉnh tới thung lũng:
@@ -259,7 +259,7 @@ $$BOW(u_t) = \{ (w, f(w)) \mid w \in u_t \land w \notin Stopwords \}$$
 Để giảm nhiễu cục bộ và tăng độ mượt cho tín hiệu từ vựng, ta nhóm các vector từ vựng kề nhau thành hai khối liên tiếp (Trái và Phải) xung quanh vị trí ranh giới tiềm năng $i$ (nằm giữa $u_i$ và $u_{i+1}$). Độ rộng của khối được điều khiển bởi tham số `block_size` ($k$).
 
 Vector tổng hợp cho Khối Trái ($B_1$) và Khối Phải ($B_2$) tại ranh giới thứ $i$ được xác định bởi:
-$$B_1(i) = \sum_{j = \max(0, i - k + 1)}^{i} BOW(u_j)$$
+$$B_1(i) = \sum_{j = \max(1, i - k + 1)}^{i} BOW(u_j)$$
 $$B_2(i) = \sum_{j = i + 1 Min(n, i + k + 1)}^{n} BOW(u_j)$$
 
 Trong đó, tần số của mỗi từ $w$ trong khối là tổng tần số xuất hiện của từ đó tại các câu trong khối tương ứng:
@@ -275,12 +275,12 @@ Tại mỗi điểm ranh giới thứ $i$, điểm độ sâu biểu thị kho�
 
 Với một bán kính tìm kiếm đỉnh truyền thống (hay bán kính kiểm soát cục bộ) là $r$:
 - **Tìm đỉnh bên trái cao nhất trong bán kính $r$**:
-  $$S_{left\_peak}(i, r) = \max_{j \in [\max(0, i - r), i]} S(j)$$
+  $$S_{left\_peak}(i, r) = \max_{j \in [\max(1, i - r), i]} S(j)$$
   Với điều kiện chuỗi tương đồng từ $i$ ngược về trái phải đơn điệu tăng hoặc đạt đỉnh, tức là:
   $$S(j) \ge S(j+1) \quad \text{với mọi } j \text{ từ } i-1 \text{ về phía sau, dừng lại nếu } S(j) < S(j+1).$$
 
 - **Tìm đỉnh bên phải cao nhất trong bán kính $r$**:
-  $$S_{right\_peak}(i, r) = \max_{j \in [i, \min(n-2, i + r)]} S(j)$$
+  $$S_{right\_peak}(i, r) = \max_{j \in [i, \min(n-1, i + r)]} S(j)$$
   Với điều kiện chuỗi tương đồng từ $i$ xuôi về phải phải đơn điệu tăng hoặc đạt đỉnh:
   $$S(j) \ge S(j-1) \quad \text{với mọi } j \text{ từ } i+1 \text{ xuôi về trước, dừng lại nếu } S(j) < S(j-1).$$
 

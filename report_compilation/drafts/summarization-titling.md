@@ -66,7 +66,7 @@ $$x = \text{"Tóm tắt: "} \mathbin{\Vert} \left[ \big(s_1 \mathbin{\Vert} \tex
 - **Nguồn dữ liệu**: Được chiết xuất từ tập dữ liệu `Alimeeting4MUG_vi` (bản ghi âm hội thoại cuộc họp dịch từ tiếng Trung sang tiếng Việt).
 - **Quy mô dữ liệu**:
   - **Tập Train (`train_vi.jsonl`)**: 295 bản ghi (hội thoại), chiết xuất ra **28,079** cặp dữ liệu song song `(8-utterance block, summary)`. 
-  - **Phân chia huấn luyện**: Chia ngẫu nhiên theo tỷ lệ **90% train (25,272 mẫu)** và **10% validation (2,807 mẫu)** với seed cố định là 42.
+  - **Phân chia huấn luyện**: Chia ngẫu nhiên theo mức độ cuộc họp (meeting-level group split) theo tỷ lệ **90% train (265 cuộc họp, tương đương 25,051 mẫu)** và **10% validation (30 cuộc họp, tương đương 3,028 mẫu)** với seed cố định là 42.
   - **Tập Dev benchmark (`dev_vi.jsonl`)**: 65 bản ghi hội thoại, chiết xuất ra **6,038** khối 8 câu thoại độc lập.
   - **Tập Test benchmark (`test_vi.jsonl`)**: 65 bản ghi hội thoại, chiết xuất ra **3,863** khối.
 - **Phân phối độ dài token (tokenizer SentencePiece của ViT5)**:

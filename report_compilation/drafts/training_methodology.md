@@ -160,7 +160,7 @@ Công thức này loại bỏ sự thiên kiến cá nhân của người dán n
 
 Khác với các bộ sinh văn bản trên, các thuật toán phân đoạn chủ đề (Dialogue Topic Segmentation - DTS) vận hành theo các cơ chế khác nhau:
 
-- **Unsupervised Segmenters (`custom_texttiling`, `sliding_texttiling`)**:
+- **Unsupervised Segmenters (`sliding_texttiling`)**:
   *   **Không cần huấn luyện**: Các phương pháp này là heuristic thuần túy, hoạt động dựa trên toán học tương đồng Cosine của tần suất từ (Bag-of-Words - BoW) và tính toán khoảng sâu dốc để tìm biên (Local Minima Depth Score Analysis). Do đó, chúng không yêu cầu quá trình huấn luyện máy học, giúp hệ thống triển khai tức thì trên bất kỳ máy chủ cấu hình thấp nào mà không tốn chi phí học nhãn.
 - **Deep Learning Segmenters (`vibert_texttiling`, `bamibert_1dod`)**:
   *   **Sử dụng mô hình có sẵn**: Mô hình phân đoạn vector hóa `vibert` dựa trên các mô hình nhúng câu Transformer (như SBERT tiếng Việt) được tinh chỉnh để tối ưu khoảng cách ngữ nghĩa giữa các lượt thoại liên tiếp.

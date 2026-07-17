@@ -33,18 +33,17 @@ Types ──► Config ──► Repo ──► Service ──► Runtime ──
 
 Phân đoạn chủ đề hội thoại (DTS) có nhiệm vụ chia nhỏ một luồng hội thoại dài, liên tục thành các phân vùng ngữ nghĩa (topic segments) độc lập. Khác với tài liệu viết thông thường, hội thoại tự do không có ngắt trang, tiêu đề chương hay định dạng rõ ràng, đồng thời chứa nhiều từ thừa và có xu hướng lặp lại từ vựng lớn.
 
-### 2.1. Năm thuật toán phân đoạn được hỗ trợ
+### 2.1. Bốn thuật toán phân đoạn được hỗ trợ
 
-Hệ thống triển khai và đánh giá 5 thuật toán phân đoạn thuộc hai nhóm phương pháp luận:
+Hệ thống triển khai và đánh giá 4 thuật toán phân đoạn thuộc hai nhóm phương pháp luận:
 
 1. **Unsupervised (Phi giám sát - Không cần huấn luyện)**:
    - **`nltk_texttiling`**: Sử dụng thư viện NLTK cổ điển. Hạn chế lớn là bộ tách từ gốc NLTK không tối ưu cho ngôn ngữ đơn âm tiết tiếng Việt.
-   - **`custom_texttiling`**: Cải tiến Bag-of-Words (BoW) tiếng Việt bằng cách lọc từ dừng (`stopwordsiso`), chuẩn hóa chữ thường và tính toán độ tương đồng Cosine kết hợp điểm sâu thung lũng (depth score).
    - **`sliding_texttiling`**: Thuật toán đa thang đo đề xuất của chúng tôi. Thay vì đo độ dốc sâu ở một kích thước cửa sổ cố định, thuật toán chạy song song nhiều bán kính trượt khác nhau để bắt được cả chuyển dịch chủ đề mịn (micro-shift) lẫn thô (macro-shift).
 
 2. **Supervised (Có giám sát - Học sâu)**:
-   - **`vibert_texttiling`**: Thay thế vector BoW tĩnh bằng vector nhúng ngữ nghĩa dày đặc (dense sentence embeddings) sinh ra từ mô hình `Sentence-BERT` tiếng Việt (`models/vibert/cpt_3818.pth`).
-   - **`bamibert_1dod`**: Tiếp cận dưới dạng bài toán phát hiện vật thể một chiều (1D Object Detection) để phân loại trực tiếp xem biên lượt thoại có phải ranh giới chủ đề không (`models/bamibert-1dod-vi-v1`).
+   - **`vibert_texttiling`**: Được chúng tôi tinh chỉnh (fine-tune) dựa trên phương pháp của Xing và Carenini (2021) [@Xing2021] trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm. Mô hình thay thế vector BoW tĩnh bằng vector nhúng ngữ nghĩa dày đặc sinh ra từ mô hình `Sentence-BERT` (`models/vibert/cpt_3818.pth`).
+   - **`bamibert_1dod`**: Được chúng tôi tinh chỉnh (fine-tune) dựa trên phương pháp phát hiện vật thể một chiều (1D Object Detection) của He và cộng sự (2024) [@He2024] trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm, phân loại trực tiếp biên lượt thoại (`models/bamibert-1dod-vi-v1`).
 
 ---
 
@@ -60,7 +59,7 @@ $$b_i = \{w: \text{tf}(w, U_i)\}$$
 
 #### Bước 2.2.2: Tính Cosine Similarity giữa các khối (Gap Cosine Similarity)
 Tại mỗi ranh giới $i$ (nằm giữa câu thoại $U_i$ và $U_{i+1}$), hệ thống trượt một cửa sổ có bán kính $k$ (`block_size`) để gộp các câu thoại bên trái thành khối $B_1$ và bên phải thành khối $B_2$:
-$$B_1(i)[w] = \sum_{j=\max(0, i-k+1)}^{i} \text{tf}(w, U_j)$$
+$$B_1(i)[w] = \sum_{j=\max(1, i-k+1)}^{i} \text{tf}(w, U_j)$$
 $$B_2(i)[w] = \sum_{j=i+1}^{\min(n, i+k)} \text{tf}(w, U_j)$$
 
 Tính toán Cosine Similarity $S_i$ tại biên $i$:
@@ -68,8 +67,8 @@ $$S_i = \text{Cosine}(B_1(i), B_2(i)) = \frac{\sum_{w} B_1(i)[w] \cdot B_2(i)[w]
 
 #### Bước 2.2.3: Điểm sâu thung lũng đa quy mô (Multi-Scale Depth Scoring)
 Tại vị trí biên $i$, điểm dốc sâu (Depth Score) đại diện cho khoảng sụt giảm tương đồng từ vựng so với hai đỉnh lân cận cao nhất bên trái ($p_L$) và phải ($p_R$) trong phạm vi bán kính khảo sát $r$:
-$$p_L(i, r) = \max \{S_{j} \mid \max(0, i-r) \le j \le i\}$$
-$$p_R(i, r) = \max \{S_{j} \mid i \le j \le \min(n-2, i+r)\}$$
+$$p_L(i, r) = \max \{S_{j} \mid \max(1, i-r) \le j \le i\}$$
+$$p_R(i, r) = \max \{S_{j} \mid i \le j \le \min(n-1, i+r)\}$$
 
 Điểm độ sâu tương ứng với quy mô $r$:
 $$D_r(i) = \frac{1}{2} \left[ p_L(i, r) + p_R(i, r) - 2S_i \right]$$
@@ -104,11 +103,10 @@ $$\tau = \mu(\bar{D}) + \alpha \cdot \sigma(\bar{D}) \quad (\text{Mặc định 
 
 | Hạng | Thuật toán | Điểm Composite (↑) | Avg Pk (↓) | Avg WD (↓) | Avg F1 (↑) | Nhận xét hiệu năng thực tế |
 | :---: | :--- | :---: | :---: | :---: | :---: | :--- |
-| **1** | **`vibert_texttiling`** | **0.5854** | **0.4239** | **0.4315** | 0.0225 | Độ chính xác cao nhất trên các tài liệu siêu dài (`ami`, `icsi`). Yêu cầu tài nguyên GPU và thời gian chạy lâu. |
-| **2** | **`custom_texttiling`** | **0.5690** | 0.4778 | 0.5754 | 0.1485 | Cân bằng hoàn hảo giữa độ chính xác và tốc độ chạy trên CPU (chỉ mất vài giây). |
-| **3** | **`sliding_texttiling`** | **0.5680** | 0.4488 | 0.4835 | **0.1970** | Đạt điểm F1 cao nhất toàn diện. Thích ứng xuất sắc với luồng hội thoại có độ dài phân đoạn biến thiên cao. |
-| **4** | **`bamibert_1dod`** | **0.3496** | 0.5288 | 0.6519 | 0.0360 | Hoạt động tốt trên hội thoại ngắn nhiệm vụ, nhưng không ổn định trên họp tự do. |
-| **5** | **`nltk_texttiling`** | **0.3071** | 0.5160 | 0.6570 | 0.0379 | Hiệu năng kém nhất do không được tối hữu hóa cho tiếng Việt. |
+| **1** | **`sliding_texttiling`** (Ours) | **0.7013** | **0.4731** | **0.4869** | 0.1340 | Đạt Composite cao nhất, cân bằng giữa độ chính xác biên (Pk, WD tốt nhất) và tốc độ xử lý vượt trội trên CPU. |
+| **2** | **`bamibert_1dod`** | **0.4787** | 0.5288 | 0.6519 | 0.0360 | Phân đoạn tốt trên tập ngắn, kém ổn định trên họp dài. |
+| **3** | **`vibert_texttiling`** | **0.3689** | 0.5552 | 0.7991 | **0.2461** | Đạt F1-score tốt nhất, nhưng có sai lệch biên lớn (Pk, WD kém nhất) và chi phí tính toán GPU rất cao. |
+| **4** | **`nltk_texttiling`** | **0.3035** | 0.5441 | 0.7029 | 0.1108 | Hiệu năng kém nhất do không được tối ưu hóa cho tiếng Việt. |
 
 ---
 
@@ -129,7 +127,7 @@ $$\mathcal{L}_{\text{summarize}}(\theta) = -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1
 
 #### 3.1.2. Thống kê dữ liệu huấn luyện
 - **Nguồn**: Trích xuất từ tập dữ liệu cuộc họp `Alimeeting4MUG_vi`.
-- **Quy mô**: **28,079 cặp** câu song song `(block, summary)`. Phân chia tỷ lệ **90% train (25,272 mẫu)** và **10% validation (2,807 mẫu)**.
+- **Quy mô**: **28,079 cặp** câu song song `(block, summary)`. Phân chia theo mức độ cuộc họp (meeting-level group split) với tỷ lệ **90% train (265 cuộc họp, tương đương 25,051 mẫu)** và **10% validation (30 cuộc họp, tương đương 3,028 mẫu)**.
 - **Phân phối độ dài**: Trung bình 137 tokens, phân vị 99 là 296 tokens. Chỉ có $0.01\%$ mẫu vượt ngưỡng 512 tokens. Do đó, thiết lập `max_input_length = 512` và `max_target_length = 128` là cực kỳ tối ưu.
 
 > [!NOTE]
@@ -137,7 +135,7 @@ $$\mathcal{L}_{\text{summarize}}(\theta) = -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1
 > Hệ thống sử dụng tham số `extra_ids = 96` để đồng bộ kích thước từ vựng của tokenizer khớp chính xác với ma trận nhúng trọng số thiết kế của ViT5 ($36,000 + 96 = 36,096$), tránh các lỗi tràn chỉ mục GPU (out-of-bounds).
 
 #### 3.1.3. Tiến trình và Kết quả huấn luyện
-Sử dụng phương pháp đánh giá 2 bước (kiểm tra nhanh trên 200 mẫu ngẫu nhiên mỗi epoch để tránh chậm trễ, và đánh giá toàn bộ 2,807 mẫu khi kết thúc huấn luyện):
+Sử dụng phương pháp đánh giá 2 bước (kiểm tra nhanh trên 200 mẫu ngẫu nhiên mỗi epoch để tránh chậm trễ, và đánh giá toàn bộ 3,028 mẫu khi kết thúc huấn luyện):
 
 | Epoch | Loss | R-1 | R-2 | R-L | Nhận xét thực nghiệm |
 | :---: | :---: | :---: | :---: | :---: | :--- |

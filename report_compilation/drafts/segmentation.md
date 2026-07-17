@@ -29,20 +29,8 @@ Heuristic segmenters use lexical cohesion properties to identify topic shifts, r
     *   Fast execution.
     *   Relies primarily on default NLTK tokenization rules which may not align perfectly with Vietnamese multi-character syllable spacing.
 
-### 2. `custom_texttiling` (`src/segmenters/custom_texttiling.py`)
-*   **Concept**: Customized Bag-of-Words (BoW) text tiling tuned specifically for dialog records.
-*   **How it works**:
-    1.  Extracts word frequencies for each utterance (after stripping punctuation and running Vietnamese stopword filtering using `stopwordsiso`).
-    2.  Calculates cosine similarities across sliding window windows (`block_size`).
-    3.  Computes depth scores indicating similarity drops around valleys:
-        $$\text{depth}(i) = (\text{peak}_L - \text{val}_i) + (\text{peak}_R - \text{val}_i)$$
-    4.  Labels valleys higher than $\mu + \alpha \cdot \sigma$ as segment boundaries.
-*   **Properties**:
-    *   Configurable hyperparameters: `block_size` (sliding window radius) and `alpha` (thresholding scalar).
-    *   Substantially more accurate for Dialogue Transcripts than the default NTLK implementation.
-
-### 3. `sliding_texttiling` (`src/segmenters/sliding_texttiling.py`)
-*   **Concept**: Multi-scale Sliding TextTiling combining Custom TextTiling with Multi-Scale Depth Validation, inspired by Section 3.2.2 of Asthana et al. (2025)'s *LLM-powered Meeting Recap System*. Xem tài liệu chi tiết: [sliding_texttiling.md](sliding_texttiling.md).
+### 2. `sliding_texttiling` (`src/segmenters/sliding_texttiling.py`)
+*   **Concept**: Multi-scale Sliding TextTiling combining standard TextTiling with Multi-Scale Depth Validation, inspired by Section 3.2.2 of Asthana et al. (2025)'s *LLM-powered Meeting Recap System*. Xem tài liệu chi tiết: [sliding_texttiling.md](sliding_texttiling.md).
 *   **How it works**:
     *   Instead of measuring depths at a single hardcoded window, it performs **multi-scale depth analysis** simultaneously over a collection of radii (defaults: `[3, 5, 10, 15, 20]`). Xem tài liệu chi tiết: [sliding_texttiling.md](sliding_texttiling.md).
     *   Each radius corresponds to searching for boundaries at different resolutions (smaller radii identify quick shifts; wider radii locate larger phase shifts).
@@ -58,14 +46,16 @@ Heuristic segmenters use lexical cohesion properties to identify topic shifts, r
 Supervised segmenters leverage deep transformer models fine-tuned to recognize dialogue boundaries.
 
 ### 1. `vibert_texttiling` (`src/segmenters/vibert_texttiling.py`)
-*   **Concept**: Replaces static Bag-of-Words similarities in TextTiling with dense sentence embeddings yielded by a fine-tuned Vietnamese Bert.
+*   **Concept**: Replaces static Bag-of-Words similarities in TextTiling with dense sentence embeddings yielded by a Vietnamese Bert fine-tuned by us.
+*   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm dựa trên phương pháp tính điểm liên kết cặp câu của Xing và Carenini (2021) [@Xing2021].
 *   **Details**:
     *   Loads local weights (e.g., `models/vibert/cpt_3818.pth`).
     *   Feeds sentence structures to map semantic embeddings, calculating cosine distances between embeddings to evaluate topic shifts.
     *   Inherits similarity alignment features from TextTiling.
 
 ### 2. `bamibert_1dod` (`src/segmenters/bamibert_1dod.py`)
-*   **Concept**: Re-envisions dialogue segmenting as a **1D Object Detection task (1DOD)**, inspired by *One-Dimensional Object Detection for Streaming Text Segmentation of Meeting Dialogue*.
+*   **Concept**: Re-envisions dialogue segmenting as a **1D Object Detection task (1DOD)**, inspired by the paper *One-Dimensional Object Detection for Streaming Text Segmentation of Meeting Dialogue* [@He2024].
+*   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm dựa trên phương pháp phát hiện biên của He và cộng sự (2024).
 *   **How it works**:
     *   Utilizes a local fine-tuned model (`models/bamibert-1dod-vi-v1`).
     *   Encodes speaker turns and textual context within a sliding multi-sentence window.
