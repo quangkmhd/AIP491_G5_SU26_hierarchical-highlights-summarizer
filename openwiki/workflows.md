@@ -12,9 +12,9 @@ To conform with the findings of Paper 2 (§4), users explore meeting summaries i
        Utterance Stream
               │
               ▼
-   ┌──────────────────────────────────┐
-   │  SlidingTextTilingService        │ ── BoW → cosine → multiscale depth → τ threshold
-   └──────────────────────────────────┘
+    ┌──────────────────────────────────┐
+    │   SlidingTextTilingService    │ ── Overlapping windows → local τ threshold
+    └──────────────────────────────────┘
               │
               ▼
         Confirmed Boundary

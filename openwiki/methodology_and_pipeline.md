@@ -67,7 +67,7 @@ Với mỗi câu thoại $u_i$ trong danh sách hội thoại $U = \{u_1, u_2, .
 
 ### Bước 1.2: Tính toán độ tương đồng Cosine giữa các block thoại (Gap Cosine Similarity)
 Để xác định mức độ nhất quán chủ đề tại mỗi điểm phân tách giữa câu thoại $u_i$ và $u_{i+1}$ (gọi là khe nứt / gap $i$), hệ thống trượt một cửa sổ có kích thước $k$ (biến số `block_size`).
-- Tập hợp các câu thoại bên trái khe nứt $i$ (từ vị trí thoại $max(0, i-k+1)$ đến $i$) được gộp chung thành một BoW lớn $B_1$.
+- Tập hợp các câu thoại bên trái khe nứt $i$ (từ vị trí thoại $max(1, i-k+1)$ đến $i$) được gộp chung thành một BoW lớn $B_1$.
 - Tập hợp các câu thoại bên phải khe nứt $i$ (từ vị trí $i+1$ đến $min(n, i+k)$) được gộp thành BoW lớn $B_2$.
 - Tính toán giá trị tương đồng Cosine giữa hai vector này:
   $$Similarity(i) = \frac{B_1 \cdot B_2}{\|B_1\| \|B_2\|} = \frac{\sum_{w} count_{B_1}(w) \times count_{B_2}(w)}{\sqrt{\sum_w count_{B_1}^2(w)} \sqrt{\sum_w count_{B_2}^2(w)}}$$
@@ -117,8 +117,7 @@ Theo nghiên cứu từ **Paper 2**, việc cố gắng nhồi nhét hàng nghì
 - **Nhiệm vụ:** Nhận một Chunk tối đa 8 câu thoại liên tiếp từ một phân đoạn phân mảnh, viết một bản tóm tắt ngắn đầy đủ ý cho Chunk đó.
 - **Dòng dữ liệu đầu vào:** Để giữ ngữ cảnh về người nói, danh sách câu thoại trong Chunk được định dạng dưới dạng chuỗi nối có phân cách xuống dòng và kèm tên:
   ```text
-  Tóm tắt:
-  Speaker A: Chào mọi người, hôm nay chúng ta bàn về tính năng streaming.
+  Tóm tắt: Speaker A: Chào mọi người, hôm nay chúng ta bàn về tính năng streaming.
   Speaker B: Tôi nghĩ nên sử dụng Server-Sent Events (SSE) để truyền dữ liệu nhẹ hơn.
   Speaker A: Hoàn toàn đồng ý, giải pháp này vừa đơn giản vừa tối ưu.
   ```
