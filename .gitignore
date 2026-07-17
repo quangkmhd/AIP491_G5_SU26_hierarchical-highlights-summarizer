@@ -44,3 +44,10 @@ bamibert-1dod-vi-v1/
 
 # Local inference checkpoints (copied by the operator; never committed)
 models/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Obsidian settings
+report_compilation/.obsidian/
