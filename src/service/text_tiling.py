@@ -100,6 +100,8 @@ class SlidingTextTilingService:
             agg=self.config.agg,
             normalize_mode=self.config.normalize,
             min_segment_ratio=self.config.min_segment_ratio,
+            window_size=self.config.window_size,
+            stride=self.config.stride,
         )
 
         # find_boundaries guarantees boundaries[-1] == n - 1; assert to
@@ -110,12 +112,25 @@ class SlidingTextTilingService:
 
         # Count real (non-tail) boundaries for logging clarity.
         n_boundaries = sum(1 for b in boundaries if b != n - 1)
-        self.logger.info(
-            "sliding_text_tiling n_utterances=%d n_boundaries=%d alpha=%.2f radii=%s "
-            "block_size=%d agg=%s normalize=%s",
-            n, n_boundaries, self.config.alpha, self.config.radii,
-            self.config.block_size, self.config.agg, self.config.normalize,
-        )
+        # Mirror the n > window_size branch inside find_boundaries so the
+        # log line truthfully reflects which path was taken.
+        used_streaming = n > self.config.window_size
+        if used_streaming:
+            self.logger.info(
+                "streaming_sliding_text_tiling n_utterances=%d n_boundaries=%d "
+                "alpha=%.2f radii=%s block_size=%d agg=%s normalize=%s "
+                "window_size=%d stride=%d",
+                n, n_boundaries, self.config.alpha, self.config.radii,
+                self.config.block_size, self.config.agg, self.config.normalize,
+                self.config.window_size, self.config.stride,
+            )
+        else:
+            self.logger.info(
+                "sliding_text_tiling n_utterances=%d n_boundaries=%d "
+                "alpha=%.2f radii=%s block_size=%d agg=%s normalize=%s",
+                n, n_boundaries, self.config.alpha, self.config.radii,
+                self.config.block_size, self.config.agg, self.config.normalize,
+            )
 
         events: list[SegmentEvent] = []
         prev = -1

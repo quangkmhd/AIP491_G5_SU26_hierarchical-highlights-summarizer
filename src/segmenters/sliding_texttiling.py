@@ -121,7 +121,7 @@ def multiscale_depth(
     """Stack depth profiles from every radius, normalize each, then aggregate.
 
     `radii` must be a non-empty list of positive integers — guaranteed by
-    `SlidingTextTilingConfig._radii_non_empty` and by the substitution of
+    `SlidingTextTilingConfig._validate_invariants` and by the substitution of
     `DEFAULT_RADII` inside `find_boundaries` when the caller passes None.
     """
     all_depths = [normalize(depth_scores(scores, radius=r), normalize_mode) for r in radii]
@@ -179,18 +179,53 @@ def merge_small_segments(
 
 def find_boundaries(
     utterances: list[str],
-    block_size: int = 3,
+    block_size: int = 2,
     radii: list[int] | None = None,
-    alpha: float = 0.9,
+    alpha: float = 1.0,
     stopwords: set[str] | None = None,
     agg: str = "mean",
     normalize_mode: str = "zscore",
     min_segment_ratio: float = 0.08,
+    window_size: int = 40,
+    stride: int = 5,
 ) -> tuple[list[int], dict[int, float]]:
-    """Run the full sliding-TextTiling pipeline and return boundary indices.
+    """Run the streaming sliding-window TextTiling pipeline and return boundary indices.
 
     The final boundary (n-1) is always appended as a force-close so the
     tail segment is emitted. Returns (sorted_boundary_indices, depth_at_boundary).
+
+    Short inputs (``n <= window_size``) take a single batch pass: one
+    global depth profile, one global threshold (``mean + alpha * std``),
+    and one ``merge_small_segments`` post-pass.
+
+    Long inputs (``n > window_size``) take a streaming sliding-window pass:
+
+    * The transcript is partitioned into overlapping windows of
+      ``window_size`` consecutive utterances, advanced by ``stride``
+      utterances at a time. A final window is pinned to the tail so the
+      last ``window_size`` utterances are always evaluated.
+    * Every global gap ``g`` is assigned to the window whose center is
+      closest to ``g`` (ties resolve to the earliest window). Gaps with
+      no containing window are dropped — the partition above guarantees
+      this does not happen in practice, but a defensive ``None`` check
+      is preserved.
+    * The depth threshold is computed **per local window**:
+      ``threshold_window = local_mean + alpha * local_std``. This is a
+      deliberate trade-off: a window straddling a sharp topic shift
+      will see an inflated local ``std`` and a correspondingly high
+      threshold, which can dampen detection of the very shift present
+      in that window. Conversely, a window of near-uniform utterances
+      collapses to ``local_std ~= 0`` and the threshold falls to the
+      local mean, so any vocabulary drift is treated as a candidate
+      boundary. Tune ``alpha`` upward if both failure modes bite on
+      the same dataset; the per-window pass scales with the size of
+      the transcript (not the number of topics) because the algorithm
+      is local rather than global.
+    * ``merge_small_segments`` is applied globally over the merged
+      boundary set, with ``min_seg = max(2, int(n * min_segment_ratio))``.
+      The tail boundary (depth 0.0, not stored in ``boundary_depths``)
+      is treated as a real boundary here, so a small tail segment can
+      be merged into its neighbour based on the neighbour's local depth.
     """
     n = len(utterances)
     if n <= 1:
@@ -198,16 +233,70 @@ def find_boundaries(
     radii = list(radii) if radii is not None else list(DEFAULT_RADII)
     sw = stopwords if stopwords is not None else set()
 
-    sim = similarity_scores(utterances, block_size=block_size, stopwords=sw)
-    if len(sim) < 2:
-        return [n - 1], {}
+    # If transcript is smaller than or equal to window_size, fall back to batch
+    if n <= window_size:
+        sim = similarity_scores(utterances, block_size=block_size, stopwords=sw)
+        if len(sim) < 2:
+            return [n - 1], {}
+        depth = multiscale_depth(sim, radii=radii, agg=agg, normalize_mode=normalize_mode)
+        threshold = float(depth.mean() + alpha * depth.std())
+        candidates = [(i, float(depth[i])) for i in range(len(depth)) if depth[i] > threshold]
+        boundaries = [c[0] for c in candidates]
+        boundary_depths = dict(candidates)
+        boundaries.append(n - 1)
+        boundaries = sorted(set(boundaries))
+        min_seg = max(2, int(n * min_segment_ratio))
+        if min_seg > 2 and len(boundaries) > 2:
+            boundaries = merge_small_segments(boundaries, boundary_depths, min_seg)
+        return boundaries, boundary_depths
 
-    depth = multiscale_depth(sim, radii=radii, agg=agg, normalize_mode=normalize_mode)
-    threshold = float(depth.mean() + alpha * depth.std())
+    # Build sliding windows
+    starts = []
+    curr = 0
+    while curr < n - window_size:
+        starts.append(curr)
+        curr += stride
+    if not starts or starts[-1] != n - window_size:
+        starts.append(n - window_size)
 
-    candidates = [(i, float(depth[i])) for i in range(len(depth)) if depth[i] > threshold]
-    boundaries = [c[0] for c in candidates]
-    boundary_depths = dict(candidates)
+    # Map each global gap to the window where it's closest to the center
+    gap_to_window = {}
+    for g in range(n - 1):
+        best_start = None
+        min_dist = float("inf")
+        for start in starts:
+            if start <= g < start + window_size - 1:
+                center = start + (window_size - 1) / 2.0
+                dist = abs(g - center)
+                if dist < min_dist:
+                    min_dist = dist
+                    best_start = start
+        gap_to_window[g] = best_start
+
+    # Group gaps by window
+    window_gaps = {start: [] for start in starts}
+    for g, start in gap_to_window.items():
+        if start is not None:
+            window_gaps[start].append(g)
+
+    # Local evaluations per window
+    boundaries = []
+    boundary_depths = {}
+
+    for start in starts:
+        window_utts = utterances[start : start + window_size]
+        sim = similarity_scores(window_utts, block_size=block_size, stopwords=sw)
+        if len(sim) < 2:
+            continue
+        depth = multiscale_depth(sim, radii=radii, agg=agg, normalize_mode=normalize_mode)
+        threshold = float(depth.mean() + alpha * depth.std())
+
+        for g in window_gaps[start]:
+            j = g - start
+            if depth[j] > threshold:
+                boundaries.append(g)
+                boundary_depths[g] = float(depth[j])
+
     boundaries.append(n - 1)
     boundaries = sorted(set(boundaries))
 

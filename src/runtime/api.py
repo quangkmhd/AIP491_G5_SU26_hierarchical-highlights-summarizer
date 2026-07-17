@@ -1,4 +1,4 @@
-"""FastAPI server with /api/v1/meetings/stream SSE endpoint."""
+"""FastAPI server with /api/v1/meetings/stream SSE and /ws WebSocket ASR endpoints."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 import time
 import uuid
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
@@ -23,9 +23,17 @@ from src.logging import (
     log_error_with_fix,
     request_context,
 )
-from src.service import StreamingOrchestrator
+from src.service import StreamingOrchestrator, RecapEventType
 from src.types.schemas import TranscriptIngestionRequest
 from src.types.transcript import DialogueTranscript
+
+try:
+    import numpy as np
+    from src.config.asr import AsrConfig
+    from src.service.asr_engine import AsrEngine
+    _ASR_AVAILABLE = True
+except ImportError:
+    _ASR_AVAILABLE = False
 
 
 def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
@@ -81,14 +89,21 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
         allow_methods=["POST", "GET", "OPTIONS"],
         allow_headers=["Content-Type"],
     )
-    # Serve the static UI so the page can be loaded from the same origin
-    # (avoids file:// CORS quirks in headless browsers)
+    # Serve the static UI -- prefer the React frontend build if available,
+    # otherwise fall back to the legacy src/ui directory.
+    dist_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     ui_dir = Path(__file__).resolve().parent.parent / "ui"
-    if ui_dir.is_dir():
-        app.mount("/static", StaticFiles(directory=str(ui_dir)), name="ui-static")
+    if dist_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(dist_dir / "assets")), name="frontend-assets")
 
         @app.get("/")
         async def index() -> FileResponse:
+            return FileResponse(str(dist_dir / "index.html"))
+    elif ui_dir.is_dir():
+        app.mount("/static", StaticFiles(directory=str(ui_dir)), name="ui-static")
+
+        @app.get("/")
+        async def index() -> FileResponse:  # type: ignore[no-redef]
             index_path = ui_dir / "index.html"
             if not index_path.is_file():
                 return JSONResponse(
@@ -97,6 +112,19 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
             return FileResponse(str(index_path))
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
+
+    # --- ASR Engine initialization ---
+    asr_engine_instance = None
+    if _ASR_AVAILABLE:
+        try:
+            asr_config = AsrConfig()
+            asr_engine_instance = AsrEngine(asr_config)
+            logger.info("ASR engine loaded successfully")
+        except Exception as e:
+            logger.warning("ASR engine not available: %s. WebSocket /ws will be disabled.", e)
+    else:
+        logger.info("sherpa-onnx not installed; ASR WebSocket endpoint disabled.")
+    app.state.asr_engine = asr_engine_instance
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):  # type: ignore[no-untyped-def]
@@ -186,6 +214,137 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
             yield {"event": "end", "data": "{}"}
 
         return EventSourceResponse(event_generator())
+
+    @app.get("/health")
+    def health_check():
+        return {
+            "status": "healthy",
+            "asr_available": app.state.asr_engine is not None,
+        }
+
+    @app.websocket("/ws")
+    async def websocket_asr_endpoint(websocket: WebSocket):
+        """Realtime mic -> VAD -> ASR -> Speaker -> TextTiling -> Recap pipeline.
+
+        Wire protocol (copied from viet_iter3_inference streaming backend):
+          Client -> Server: binary Float32 PCM, 16 kHz mono (no header).
+          Client -> Server: text "ping"   -> {"type":"pong"}
+          Server -> Client: text JSON
+              -> {"type":"utterance", ...}
+              -> {"type":"segment-closed", ...}
+              -> {"type":"chunk-closed", ...}
+              -> {"type":"title-emitted", ...}
+              -> {"type":"meeting-completed", ...}
+        """
+        if app.state.asr_engine is None:
+            logger.error("ASR engine not initialized -- rejecting WebSocket client.")
+            await websocket.close(code=1011, reason="ASR engines not initialized")
+            return
+
+        await websocket.accept()
+        logger.info("WebSocket client connected: %s", websocket.client)
+
+        asr = app.state.asr_engine
+        vad = asr.create_vad()
+        ws_orchestrator = StreamingOrchestrator()
+        ws_orchestrator.reset_incremental()
+
+        registered_speakers: dict[str, np.ndarray] = {}
+        tail: np.ndarray = np.array([], dtype=np.float32)
+        utterance_id = 0
+
+        async def process_speech_segment(seg_audio: np.ndarray) -> None:
+            """Decode one speech segment, identify speaker, feed orchestrator."""
+            nonlocal utterance_id
+            utterance_id += 1
+            duration = len(seg_audio) / 16000.0
+
+            speaker_name = asr.identify_speaker(seg_audio, registered_speakers)
+            text = asr.decode_segment(seg_audio)
+            logger.info(
+                "ASR Segment #%d: speaker=%s text='%s'",
+                utterance_id, speaker_name, text,
+            )
+
+            if text:
+                await websocket.send_json({
+                    "type": "utterance",
+                    "id": utterance_id,
+                    "text": text,
+                    "duration": round(duration, 2),
+                    "speaker": speaker_name,
+                })
+
+                for evt in ws_orchestrator.accept_utterance(
+                    text=text,
+                    speaker=speaker_name,
+                    index=utterance_id - 1,
+                ):
+                    if evt.type != RecapEventType.UTTERANCE_ACCEPTED:
+                        await websocket.send_json({
+                            "type": evt.type.value,
+                            **evt.data,
+                        })
+
+        try:
+            while True:
+                message = await websocket.receive()
+                if message.get("type") == "websocket.disconnect":
+                    break
+
+                if "bytes" in message:
+                    chunk = np.frombuffer(message["bytes"], dtype=np.float32)
+                    tail = np.concatenate([tail, chunk])
+                    while len(tail) >= asr.vad_window_size:
+                        vad.accept_waveform(tail[:asr.vad_window_size])
+                        tail = tail[asr.vad_window_size:]
+
+                    while not vad.empty():
+                        seg = vad.front
+                        samples = np.asarray(seg.samples, dtype=np.float32)
+                        vad.pop()
+                        if len(samples) < int(0.3 * 16000):
+                            continue
+                        await process_speech_segment(samples)
+
+                elif "text" in message:
+                    try:
+                        payload = json.loads(message["text"])
+                        if payload.get("type") == "ping":
+                            await websocket.send_json({"type": "pong"})
+                    except (json.JSONDecodeError, AttributeError):
+                        pass
+
+        except WebSocketDisconnect:
+            logger.info("WebSocket client disconnected.")
+        except Exception as exc:
+            logger.exception("Error in WebSocket handler: %s", exc)
+        finally:
+            try:
+                vad.flush()
+                while not vad.empty():
+                    seg = vad.front
+                    samples = np.asarray(seg.samples, dtype=np.float32)
+                    vad.pop()
+                    if len(samples) < int(0.3 * 16000):
+                        continue
+                    await process_speech_segment(samples)
+            except Exception:
+                logger.exception("Error flushing VAD on close.")
+
+            try:
+                for evt in ws_orchestrator.flush_and_finalize():
+                    try:
+                        await websocket.send_json({
+                            "type": evt.type.value,
+                            **evt.data,
+                        })
+                    except Exception:
+                        pass
+            except Exception:
+                logger.exception("Error finalizing recap on close.")
+
+            logger.info("WebSocket cleaned up (total %d segments).", utterance_id)
 
     return app
 
