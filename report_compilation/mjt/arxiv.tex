@@ -1,0 +1,1411 @@
+\documentclass[12pt, letterpaper]{template}
+% \documentclass[a4paper,oneside,12pt]{template}
+% \PassOptionsToPackage{comma,sort,compress}{natbib}
+
+% \usepackage[comma,sort,compress]{natbib}
+% \usepackage[authoryear, round]{natbib}
+% \usepackage[authoryear, round, square]{natbib}
+% \usepackage{natbib}
+% \bibliographystyle{plainnat}
+\usepackage[numbers]{natbib} % or [authoryear]
+\bibliographystyle{plainnat}
+% \bibliographystyle{ieeetr}
+
+\usepackage{hyperref}[citecolor=magenta]
+
+% \hypersetup{
+%     colorlinks = true,
+%     citecolor = {magenta},
+% }
+\hypersetup{
+    colorlinks=true,
+    citecolor=blue,
+    linkcolor=blue,
+    urlcolor=black
+}
+
+% \usepackage{hyperref}       % hyperlinks
+% \hypersetup{
+%     colorlinks=true,        % default is false
+%     linkcolor=red,          % default is red
+%     % filecolor=magenta,
+%     urlcolor=magenta,       % default is magenta
+%     citecolor=Blue9, %citecolor,    % default is green?
+% }
+\definecolor{darkblue}{rgb}{0, 0, 0.5}
+% \hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
+% \hypersetup{colorlinks=true, citecolor=blue, linkcolor=blue, urlcolor=blue}
+\usepackage{url}            % simple URL typesetting
+\urlstyle{same}  % makes URLs use the same font as normal text
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{abstract}       
+\usepackage{tikz}
+\usepackage{pgfplots, pgfplotstable}
+\pgfplotsset{compat=1.15}
+
+\usepackage{lineno}
+
+\usepackage{enumitem}       % [leftmargin=20pt]
+\usepackage{subfig}         % subfloat
+\usepackage{graphicx}
+% \usepackage{subcaption}
+\usepackage{multirow}       %
+\usepackage{xspace}         % xspace
+\usepackage{wrapfig}        % wrapfigure
+\usepackage{colortbl}
+% \usepackage{tcolorbox}
+\usepackage{bbm}            % indicator function (\mathbbm)
+\usepackage{adjustbox}
+\usepackage{xcolor}
+\usepackage[subfigure]{tocloft}
+
+% Put the word "Figure" / "Table" before the number in the lists
+\renewcommand{\cftfigpresnum}{Figure\ }
+\renewcommand{\cfttabpresnum}{Table\ }
+
+% Set the width reserved for "Figure <num>" and "Table <num>"
+% Tune these lengths until wrapping aligns nicely.
+\setlength{\cftfignumwidth}{4.5em}
+\setlength{\cfttabnumwidth}{4.5em}
+
+% Optional: adjust spacing between number block and caption text
+% \setlength{\cftfignumsep}{1.0em}
+% \setlength{\cfttabnumsep}{1.0em}
+% \usepackage[T1,T5]{fontenc}
+% \usepackage{times}
+% \usepackage[T1]{fontenc}
+% \usepackage[T5,T1]{fontenc}
+% \usepackage{tgbonum}
+% \usepackage{tgtermes}
+% \renewcommand{\familydefault}{\sfdefault}
+% \renewcommand{\familydefault}{\rmdefault}
+% \usepackage{libertineotf}
+
+\usepackage{cite}
+% \usepackage[utf8]{vietnam}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+% \usepackage[T5,T1]{fontenc}
+% \usepackage[vietnamese, english]{babel}
+% \usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+% \usepackage{stfloats}
+% \usepackage[english, vietnamese]{babel}
+% \newcommand*\vn{\fontencoding{T5}\selectfont\selectlanguage{vietnamese}}
+% \newcommand*\en{\fontencoding{T1}\selectfont\selectlanguage{english}}
+\usepackage{makecell}
+\usepackage{utfsym}
+\usepackage{xcolor}
+% \usepackage{hyperref}
+% \usepackage{subcaption}
+\usepackage{multirow}
+
+\providecommand{\keywords}[1]
+{
+  \small	
+  \textbf{Keywords:} #1
+}
+
+\usepackage[most,skins,theorems]{tcolorbox}
+\tcbset{
+  aibox/.style={
+    width=\linewidth,
+    top=8pt,
+    bottom=4pt,
+    colback=blue!6!white,
+    colframe=black,
+    colbacktitle=black,
+    enhanced,
+    center,
+    attach boxed title to top left={yshift=-0.1in,xshift=0.15in},
+    boxed title style={boxrule=0pt,colframe=white,},
+  }
+}
+\newtcolorbox{AIbox}[2][]{aibox,title=#2,#1}
+
+\setlength\parindent{0pt}
+
+% My commands
+\newcommand{\tabitem}{\textbullet~~}
+
+\newcommand{\PRM}{PRM\xspace}
+
+\newcommand{\specialcell}[2][c]{\begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+\newcommand{\official}{$^{*}$}
+\newcommand{\tms}{$\times$}
+\newcommand{\mean}[1]{#1}
+\newcommand{\bmean}[1]{\textbf{#1}}
+\newcommand{\improve}[1]{\scalebox{.70}{\color{red!50!black}#1}}
+\newcommand{\std}[1]{\scalebox{.70}{$\pm$ #1}}
+\newcommand{\bstd}[1]{\scalebox{.70}{\textbf{$\pm$ #1}}}
+% \newcommand{\highlight}{\cellcolor{green!20}}
+% \newcommand{\highlight}{\cellcolor{gray!20}}
+\newcommand{\revise}[1]{{\color{magenta}[#1]}}
+
+\newcommand{\mycolor}{cyan!10}
+\newcommand{\highlight}{\cellcolor{\mycolor}}
+% \newcommand{\highlight}{\cellcolor{mygray}}
+
+% \definecolor{citecolor}{HTML}{0071bc}
+% \definecolor{codeblue}{rgb}{0.25,0.5,0.5}
+% \definecolor{myblue}{rgb}{0.88,0.98,0.98}
+% \definecolor{mygreen}{rgb}{0, 0.5, 0.1}
+% \definecolor{myred}{rgb}{0.84, 0.04, 0.33}
+% \definecolor{mygray}{gray}{0.92}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+
+
+% \title{ESG Analysis and Scoring in Vietnamese Corporate Sustainability Reports}
+\title{}
+
+% \author[]{Anonymous authors}
+
+% \affil[1]{anonymous}
+
+
+% \affil[4]{Beijing University of Posts and Telecommunications}
+% \affil[*]{Work done during an internship at Shanghai AI Laboratory}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+
+\begin{document}
+
+\begin{titlepage}
+
+\center % Center everything on the page
+
+\includegraphics[width=12cm]{figures/FPTU_logo.png}\\[1cm] 
+%\includegraphics[width=12cm]{title/black-stacked-trinity.jpg}\\[1cm] 
+
+\Large FPT University\\[1.5cm] % Minor heading such as course title
+\ifdefined\department
+\large \department\\[1.5cm] % Minor heading such as course title
+\fi
+
+\makeatletter
+{ \huge \bfseries ESG Analysis and Scoring in Vietnamese Corporate Sustainability Reports}\\[1.5cm] % Title of your document
+\vfill
+\vfill
+
+
+\ifdefined\authorid
+\author{By \\}\
+Tran Duc Trung, Nguyen Van Manh,\\Nguyen Huu Duy Anh, Do Kien Lam
+\else
+By \\Tran Duc Trung, Nguyen Van Manh,\\Nguyen Huu Duy Anh, Do Kien Lam\\[2cm] % Your name
+\fi
+
+
+Supervisor: PhD. Tran Van Ha\\[2cm] % Their name
+\vfill
+
+
+{\large \today}\\[2cm] % Date, change the \today to a set date if you want to be precise
+
+\vfill
+
+
+\end{titlepage}
+
+% \maketitle
+
+\section*{\Huge{Project Specification}}
+The authors confirm their contribution to the thesis as follows:
+
+\textbf{Tran Duc Trung}:
+\begin{itemize}
+    \item Methodology
+    \item Implementation.
+    \item Data preparation.
+    \item Paper research.
+\end{itemize}
+
+\textbf{Nguyen Van Manh}:
+\begin{itemize}
+    \item Methodology.
+    \item Implementation.
+    \item Paper research.
+    \item Data preparation.
+\end{itemize}
+
+\textbf{Nguyen Huu Duy Anh}:
+\begin{itemize}
+    \item Software design.
+    \item Implementation.
+    \item Paper research.
+    \item Data preparation.
+\end{itemize}
+
+\textbf{Do Kien Lam}:
+\begin{itemize}
+    \item Software design.
+    \item Implementation.
+    \item Paper research.
+    \item Data preparation.
+\end{itemize}
+\clearpage
+\textbf{Abstract}
+
+Environmental, Social, and Governance (ESG) factors have become critical indicators for assessing corporate sustainability and ethical practices. However, existing ESG evaluation systems often face issues such as inconsistent criteria and limited linguistic coverage, particularly for Vietnamese data. To address these challenges, we introduce a comprehensive framework for ESG text classification and scoring. We developed the ViEn-ESG dataset, a high-quality bilingual Vietnamese-English dataset with 130,798 pairs of sentences - labels, which we release publicly to foster further research. We fine-tuned a BERT-based model for ESG classification specifically tailored to Vietnamese financial and sustainability reports. Our models exhibit strong classification performance with an accuracy of 94.66\% on the Vietnamese-only model, in the bililingual model archive 94.83\% F1 score on the English language, and 91.94\% on the Vietnamese. In addition to classification, we also implemented a robust scoring mechanism to compute ESG scores by aggregating sentiment signals within each ESG dimension, providing a more interpretable and quantitative assessment of corporate sustainability. Our results highlight the effectiveness of pre-trained language models in low-resource settings, and an integrated scoring mechanism, collectively offering new benchmarks and practical tools for ESG analytics in the Vietnamese market.
+ESG, BERT, classification, machine learning
+
+\noindent\textbf{Keywords:} ESG Classification, ESG Scoring, ESG Dataset.
+\clearpage
+
+\tableofcontents
+\clearpage
+% Make list of figures show "Figure X ..."
+% \makeatletter
+% \renewcommand{\l@figure}[2]{%
+%   \@dottedtocline{1}{1.1em}{2.0em}{Figure~#1}{#2}}
+% \renewcommand{\l@table}[2]{%
+%   \@dottedtocline{1}{1.1em}{2.0em}{Table~#1}{#2}}
+% \makeatother
+
+
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+\clearpage
+\addcontentsline{toc}{section}{List of Tables}
+\listoftables
+\clearpage
+% \begin{abstract}
+% Environmental, Social, and Governance (ESG) factors have become critical indicators for assessing corporate sustainability and ethical practices. However, existing ESG evaluation systems often face issues such as inconsistent criteria and limited linguistic coverage, particularly for Vietnamese data. To address these challenges, we introduce a comprehensive framework for ESG text classification and scoring. We developed the ViEn-ESG dataset, a high-quality bilingual Vietnamese-English dataset with 130,798 pairs of sentences - labels, which we release publicly to foster further research. We fine-tuned a BERT-based model for ESG classification specifically tailored to Vietnamese financial and sustainability reports. Our models exhibit strong classification performance with an F1 score of 94.12\% on the English language, and 92\% on the Vietnamese. In addition to classification, we also implemented a robust scoring mechanism to compute ESG scores by aggregating sentiment signals within each ESG dimension, providing a more interpretable and quantitative assessment of corporate sustainability. Our results highlight the effectiveness of pre-trained language models in low-resource settings, and an integrated scoring mechanism, collectively offering new benchmarks and practical tools for ESG analytics in the Vietnamese market.
+
+% % Environmental, Social, and Governance (ESG) factors play a critical role in assessing corporate sustainability and ethical impact. While recent advances in natural language processing (NLP) have leveraged large pre-trained models for ESG classification, most prior work focuses on English-language data, limiting applicability in multilingual contexts. In this work, we present a state-of-the-art BERT-based model for ESG classification specifically tailored to Vietnamese financial and sustainability reports. A key contribution of our work is the construction of ViEn-ESG-100 dataset, a high-quality, manually labeled 103,656 sentences Vietnamese-English ESG dataset, which we release publicly to foster further research. We fine-tune a BERT-base model on our dataset and achieve strong performance across multiple ESG dimensions. Our results highlight the effectiveness of pre-trained language models in low-resource settings and establish a new benchmark for ESG classification in the Vietnamese market.
+
+% \end{abstract}
+
+% \begin{flushright}
+% \textit{xxxxxxxxxxxxxxxxxxxxxxx \\ xxxxxxxxxxxxxxxxxxxxx \\ -Proverb}
+% \end{flushright}
+
+% \vspace{-0.3em}
+% \begin{figure*}[!h]
+% \centering
+% \vspace{-0.3em}
+% \includegraphics[width=0.85\linewidth]{figures/fig1_f1.pdf}
+% \vspace{-0.3em}
+% \caption{Comparison between the performance of current model on our ViEn-ESG dataset.
+% }
+% \label{fig:compute-optimal}
+% \end{figure*}
+
+\section{Introduction}
+Environmental, Social, and Governance (ESG) factors have gained significant attention as crucial indicators for assessing corporate sustainability, ethical impact, and long-term value creation \citep{Kiriu2020}. The rise of ESG as a fundamental framework for evaluating corporate performance reflects a paradigm shift in how stakeholders—including investors, regulators, consumers, and communities—assess business value beyond traditional financial metrics. This transformation has been driven by mounting evidence that companies with strong ESG practices demonstrate superior long-term financial performance, reduced operational risks, and enhanced stakeholder trust \citep{Aydomu2022}.
+
+Evaluating a company's ESG performance reveals insights into non-financial aspects of their operations and helps stakeholders understand their contributions to sustainable development \citep{ebert}. Environmental factors encompass a company's impact on natural resources, climate change mitigation efforts, pollution control measures, and commitment to circular economy principles. Social considerations include labor practices, community engagement, product safety, data protection, and diversity and inclusion initiatives. Governance aspects focus on board composition, executive compensation, anti-corruption measures, transparency in reporting, and stakeholder rights protection \citep{Berg2019}. The comprehensive assessment of these dimensions provides a holistic view of corporate responsibility and sustainable business practices.
+
+The increasing need for objective and efficient evaluation of companies' ESG activities has highlighted significant limitations in traditional manual assessment methods. Manual analysis of extensive textual data like sustainability reports, annual filings, news articles, and regulatory documents is not only laborious and time-consuming but also susceptible to human error, subjective biases, and potential manipulation \citep{Luccioni2020}. The sheer volume of ESG-related information generated by corporations has grown exponentially, with sustainability reports now spanning hundreds of pages and containing complex, nuanced language that requires domain expertise to interpret accurately. Furthermore, differing evaluation criteria across various ESG rating agencies—such as MSCI, Sustainalytics, and Refinitiv—often lead to inconsistent and sometimes contradictory assessments of the same company, complicating objective judgment for investors and other stakeholders \citep{Billio2020,Lee2023}.
+
+Recent advances in NLP offer promising solutions to automate and standardize ESG evaluations, addressing both scalability and consistency challenges. The application of NLP techniques to ESG analysis represents a rapidly evolving field that encompasses multiple sophisticated tasks \citep{Avramov2022}. Researchers are leveraging NLP for automated ESG scoring systems that can process vast amounts of textual data in real-time, classify text into specific ESG categories with high granularity, identify and quantify ESG-related risks and opportunities, extract structured information from unstructured reports and news sources, detect emerging ESG issues from financial communications, and perform sentiment analysis on ESG-related disclosures \citep{sec-bert}. These applications extend beyond simple classification to include complex tasks such as ESG materiality assessment, impact measurement, and predictive modeling of ESG performance trends.
+
+A significant focus in this research area involves leveraging powerful pre-trained language models (PLMs), particularly those based on the Transformer architecture such as BERT \citep{bert} and its variants including RoBERTa \citep{roberta}, DistilBERT \citep{distilbert}, Sentence-BERT \citep{sentence-bert}, and domain-specific models like FinBERT and FinBERT-ESG \citep{finbert}. These models have demonstrated exceptional performance in understanding complex financial and sustainability language, capturing contextual nuances that are critical for accurate ESG assessment. However, despite their success, current approaches to ESG classification using these models typically rely on adding task-specific classification heads during fine-tuning, which introduces several methodological concerns that have not been adequately addressed in the literature.
+
+However, existing ESG classification systems often struggle with multilingual applicability, particularly for emerging markets where ESG reporting is conducted in local languages. The majority of available ESG datasets and models are English-centric, creating significant barriers for comprehensive global ESG analysis. This limitation is particularly problematic for international investors and multinational corporations that need to assess ESG performance across diverse linguistic and cultural contexts. The lack of high-quality, annotated ESG datasets in languages other than English has been a persistent bottleneck in developing truly global ESG analysis capabilities.
+
+In this thesis, we address this gap by introducing a comprehensive ESG classification pipeline tailored for the Vietnamese language. Our key contributions include:
+
+1. We introduce \textbf{ViEn-ESG} dataset, a large-scale bilingual (Vietnamese–English) dataset comprising 130,798 sentence-level samples related to ESG, along with an additional subset of 6,430 sentiment-labeled sentences. To the best of our knowledge, this is the first publicly available resource of its kind, designed to advance research in Vietnamese ESG analysis.
+
+2. We develop a state-of-the-art BERT-based model for ESG classification, fine-tuned on our dataset. This includes the first dedicated model for Vietnamese ESG classification, achieving strong performance in both English and Vietnamese, thereby demonstrating the effectiveness of pre-trained language models in low-resource, domain-specific settings.
+
+3. We introduce a robust ESG scoring mechanism that aggregates sentiment signals across Environmental, Social, and Governance dimensions, offering an interpretable and quantitative approach to assessing corporate sustainability.
+
+4. This thesis establishes a new benchmark for automated ESG classification in Vietnamese and provide practical tools to support ESG analysis for researchers, practitioners, and stakeholders.
+
+\section{Related Work}
+
+\subsection{ESG Text Classification Approaches}
+The E-BERT model \citep{ebert}, specifically trained based on Google's BERT architecture for ESG rating tasks, achieved a notable 93\% accuracy in automating the evaluation process, aiming for precise and consistent outcomes. Other BERT-based models have shown strong results in tasks like classifying sentences as sustainable or unsustainable or identifying ESG issues. Furthermore, SEC-BERT finetune \citep{sec-bert-ft} developed a domain-adapted SEC-BERT \citep{sec-bert} model for detecting ESG-related issues from financial news, achieving improved performance through in-domain pre-fine-tuning. Their system classifies news into 33 ESG issue types and powers the ESG Issue Detector (EID) tool, enabling investors to identify ESG risks efficiently. The study also explored multilingual augmentation and LLM-based zero-shot baselines, finding domain-specific models to be significantly more effective.
+
+ESG-KIBERT \citep{esg-kibert}, a BERT-based model further pre-trained on ESG-specific corpora, which incorporates a hard attention mechanism to enhance ESG classification performance. The model achieved 99.72\% accuracy on a four-class (E, S, G, None) task and was combined with sentiment analysis and industry-specific weighting using SASB’s materiality map to generate transparent, domain-aware ESG ratings.
+
+ESGify \citep{esgify}, an open-source NLP-based model built on MPNet \citep{mpnet} for multi-label ESG risk classification. Leveraging a manually annotated dataset of 14,000 sentences from ESG reports, the model achieved superior performance to GPT-3.5 using tailored data augmentation strategies such as back translation and LLM-generated examples.
+
+Despite these advances, recent developments have also explored ESG performance assessment through machine learning approaches \citep{Jiang2024}, where researchers have developed frameworks for evaluating corporate sustainability performance using advanced analytical techniques and structured datasets from Fortune 500 companies. The emergence of domain-specific ESG datasets has extended to specialized applications such as ESG rating explainability \citep{DelVitto2023}, where researchers have developed annotated corpora specifically designed to understand and interpret ESG scoring methodologies through machine learning techniques. 
+
+\subsection{ESG Scoring and Evaluation Frameworks}
+
+The Rasch model \citep{Soares2024} proposed an innovative framework for ESG scoring by combining NLP with Item Response Theory (IRT). Using Portuguese news articles on Petrobras, the method extracted ESG-related sentiment and validated its psychometric robustness, offering more reliable temporal dynamics in ESG performance. Similarly, Patel et al. \citep{Patel2023} developed a systematic ESG scoring system by leveraging Social Network Analysis (SNA) and machine learning, highlighting how stakeholder networks and textual sentiment can be jointly modeled to produce more holistic and sustainable ESG ratings. Another study \citep{Zhang2023} provided a survey of sentiment-based ESG scoring methods, emphasizing that probability-based scoring with advanced deep learning models such as FinBERT offers greater sensitivity to nuanced language compared to ratio-based sentiment methods.
+
+Building on these foundations, ESG-KIBERT \citep{esg-kibert} represents a paradigm shift in sentiment-driven ESG evaluation. The model extends BERT through pre-training on ESG-specific corpora and performs joint ESG classification and sentiment analysis at the sentence level. ESG-KIBERT further integrates SASB’s industry-specific materiality weights, ensuring that sentiment scores are not only linguistically accurate but also financially and sector-relevant. Empirical results show that it outperformed both ratio-based and evidence-based models, achieving 99.72\% accuracy and strong alignment with MSCI benchmarks. Its transparent aggregation of sentiment polarity and sector-sensitive weights establishes it as a state-of-the-art method for ESG scoring.
+
+
+\subsection{ESG-Specific Datasets and Resources}
+
+The development of specialized datasets for domain-specific NLP and AI applications has become increasingly important as researchers seek to address the unique challenges and requirements of various professional fields. While general-purpose datasets like OpenWebText \citep{openwebtext}, Common Crawl \citep{commoncrawl}, and The Pile \citep{thepile} have provided broad linguistic coverage for pre-training large language models, domain-specific applications require more targeted resources. In the biomedical domain, well-known examples include MIMIC-III \citep{mimic3} for clinical note analysis, PubMed\citep{pubmed} for biomedical literature mining, and BioASQ-QA \citep{bioasq-qa} for biomedical question answering. In the financial domain, datasets such as FiQA \citep{fiqa} for question answering and sentiment analysis in financial texts have enabled progress in specialized financial NLP. The computer vision community has benefited enormously from ImageNet \citep{imagenet}, which has driven advances in image classification and transfer learning, while speech processing has advanced with corpora like LibriSpeech \citep{librispeech} for automatic speech recognition. These domain-specific resources have demonstrated the critical importance of targeted datasets in developing robust AI systems capable of understanding the nuanced language, visual information, and specialized terminology of professional and technical domains. 
+
+In the ESG domain, datasets are scarce. Early ESG datasets were predominantly English-centric and relatively small in scale. Schimanski et al. \citep{Tobias2024}, developed three specialized 2,000-sentence datasets designed for precise ESG text classification. Another notable dataset was produced by \citep{esgminer}, the authors gathered more than 450,000 headlines, with about 27,000 ESG-related headlines from the Twitter account of The Guardian. They then manually mapped relevant headlines to ESG aspects after examining the tags for ESG-relatedness.
+
+Multilingual approaches have gained particular attention, such as ESG-Kor \citep{esgkor} represents a pioneering effort in multilingual ESG dataset development, providing a comprehensive Korean dataset comprising 118,946 sentences for ESG-related information extraction with manual annotations based on objective rules from ESG evaluation agencies. This dataset specifically targets the extraction of Environmental, Social, and Governance information from Korean companies' sustainability reports, addressing the critical gap in non-English ESG resources and demonstrating significant classification performance with Korean pre-trained language models. While multilingual ESG tasks are emerging, involving datasets in languages like Chinese \citep{Pontes2023}, English \citep{chen-etal-2023-multi-lingual} and French, Japanese \citep{kao-etal-2024-imntpu}, a significant portion of the existing research has focused primarily on English-language data. More recently, The ESG-Activities benchmark \citep{esgactive} introduces a novel approach to ESG text classification by focusing on fine-grained environmental activities comprising 1,325 labeled text segments as defined in the EU ESG taxonomy. This dataset uniquely combines manually curated data with synthetically generated examples to enhance model performance, demonstrating that fine-tuned smaller models can outperform larger proprietary solutions in specific ESG classification tasks. 
+
+% \subsection{Pseudo-Labeling in Semi-Supervised Learning}
+
+% Pseudo-labeling, first systematically introduced in \citep{Lee2013PseudoLabelT}, is a foundational technique in semi-supervised learning: an initial model is trained on labeled data, then pseudo-labels are generated for unlabeled data, and the training process continues iteratively. This approach allows the utilization of large amounts of unlabeled data, making it particularly useful when labeled data is scarce or expensive. In practical applications, pseudo-labeling has proven effective in various fields: \citep{Rhee2019} applied it to anomaly detection through domain adaptation; \citep{Ham2022}  improved it in the medical field by integrating pruning; and in computer vision \citep{c2fpl} proposed Coarse-to-Fine Pseudo-Labeling to enhance the quality of pseudo-labels for video anomaly detection.
+
+% However, pseudo-labeling faces issues such as confirmation bias and label noise. To address these, several improvements have been proposed: Meta Pseudo-Labels \citep{metapseudo} with a teacher–student dynamic; Curriculum Pseudo-Labeling \citep{flexmatch} with increasing difficulty; Class-Distribution-Aware Pseudo-Labeling \citep{class-dist-pseudo} addresses the issue of class imbalance by assigning class-specific confidence thresholds—lower thresholds for minority classes and higher ones for majority classes—thereby balancing pseudo-label contributions across classes; and Prototype-Guided Pseudo-Labeling \citep{Yang2023} was proposed for semi-supervised text classification, where prototypes built from labeled samples guide the selection of unlabeled data near class centers, reducing boundary underfitting and alleviating class imbalance. Additionally, approaches like ReLaB \citep{relab}, based on label propagation, and FreeMatch \citep{freematch}, with dynamic confidence thresholds, have demonstrated the flexibility and evolution of the method. Furthermore, \citep{fixmatch}, with FixMatch, highlighted the power of combining pseudo-labeling and consistency regularization to achieve state-of-the-art results in semi-supervised learning.
+
+The remainder of this thesis is organized as follows. In Section \ref{methodology}, we describe the methodology and present the selected language models used for ESG classification. Section \ref{dataset} introduces the ViEn-ESG dataset, detailing the data collection process, annotation methodology, and data analysis. In Section \ref{exp}, we outline the model configuration, followed by a comprehensive evaluation of model performance across Vietnamese and multilingual ESG classification tasks. Section \ref{software} shows our demo for the ESG classification tool. Finally, Section \ref{con} concludes the thesis and discusses directions for future work.
+
+\section{Methodology} \label{methodology}
+
+Our approach leverages state-of-the-art Natural Language Processing (NLP) techniques, specifically fine-tuning a pre-trained transformer-based language model, to address the task of ESG classification in the Vietnamese language. ESG factors are considered crucial indicators for assessing corporate sustainability and value creation, and NLP has emerged as a valuable tool for analyzing related textual data. Given the identified challenge of limited comprehensive, labeled ESG datasets, particularly for low-resource languages like Vietnamese, our methodology focuses on building a robust classification system supported by a newly constructed large-scale dataset.
+
+\subsection{ESG Classification using BERT-based Models} 
+
+BERT \citep{bert} is an advanced language model used in many NLP tasks, first introduced in the paper “BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding”. The power of BERT comes from several factors. First, BERT has a compact size, with only 110 million parameters. Second, the neural network is purposefully designed to capture complex relationships between words and sentences. BERT is an encoder model based on the Transformer \citep{transformer} architecture — with the self-attention mechanism at its core — designed to create contextual representations for words or sentences. With its bidirectional nature, BERT excels at understanding the overall semantics of a sentence, making it very suitable for tasks such as ESG information classification. Third, BERT was pretrained on large text datasets including BookCorpus and English Wikipedia, enabling the model to learn both word and sentence representations and facilitating transfer learning.
+
+BERT is a transfer learning framework, and its use typically involves two stages: pretraining and fine-tuning. Many BERT models have been pretrained on different unlabeled text datasets. These models can then be applied directly to a variety of tasks: text classification, named entity recognition (NER), question answering, or sentiment classification. After the original BERT was introduced, several improved models, such as RoBERTa \citep{roberta}, ALBERT \citep{albert}, DistilBERT \citep{distilbert}, were developed based on BERT’s architecture, achieving higher performance through slight modifications to model design or pretraining hyperparameters. These pretrained models are publicly available to the research community and can be further fine-tuned for specific language tasks.
+
+We experiment with a suite of BERT-based models, each fine-tuned specifically for ESG classification. These models are based on established architectures known for their success in a range of NLP classification tasks. Our goal is to evaluate the effectiveness of different model bases in the Vietnamese ESG context.
+
+% \begin{figure*}[!ht]
+% \centering
+% \vspace{-1.0em}
+
+% \includegraphics[width=1.0\linewidth]{figures/BERT-CLS.pdf}
+% \vspace{-2.8em}
+% \caption{The ESG classification pipeline.}
+% % \vspace{-0.3em}
+% \label{fig:bert-cls}
+% \end{figure*}
+
+The standard approach to classification tasks using BERT-based models involves a structured fine-tuning process that follows a multi-stage pipeline that transforms input text into classification predictions through dedicated task-specific components.
+
+Consider an input sentence $X = \{x_1, x_2, \ldots, x_n\}$ of length $n$. The classification pipeline can be formally represented through the following sequential transformations.
+
+{\bf Input Embedding:}
+The input sentence undergoes an initial embedding transformation that converts discrete tokens into dense vector representations:
+
+\begin{equation}
+  H_0 = \text{Embedding}(X)  
+\end{equation}
+
+Where $H_0 \in \mathbb{R}^{n \times d}$ represents the initial token embeddings with dimensionality $d$, including special tokens like [CLS] and [SEP] that provide structural information to the model.
+
+{\bf Transformer Encoding:}
+The embedded input passes through multiple transformer layers, where each layer applies self-attention and feed-forward transformations:
+
+\begin{equation}
+H_L = \text{Transformer}_L(H_{L-1}), \quad L = 1, 2, \ldots, M
+\end{equation}
+
+Where $M$ is the total number of transformer layers, and $H_L \in \mathbb{R}^{n \times d}$ represents the contextualized hidden states after the $L$-th layer. Each transformer layer captures increasingly complex linguistic patterns and dependencies.
+
+{\bf Classification Head:}
+The final classification is performed using a dedicated linear classification head that operates on the [CLS] token representation:
+
+\begin{equation}
+\hat{y} = \text{Softmax}(W_c \cdot H_M[0] + b_c)
+\end{equation}
+
+Where $H_M[0] \in \mathbb{R}^{d}$ is the [CLS] token representation after the final transformer layer, $W_c \in \mathbb{R}^{|\mathcal{Y}| \times d}$ is the classification weight matrix, $b_c \in \mathbb{R}^{|\mathcal{Y}|}$ is the classification bias vector, $\mathcal{Y} = \{E, S, G, N\}$ is the set of ESG classification labels and $\hat{y} \in \mathbb{R}^{|\mathcal{Y}|}$ represents the predicted class probability distribution.
+
+{\bf Training Objective:}
+The model parameters are optimized to minimize the cross-entropy loss between predicted and true labels:
+
+\begin{equation}
+\mathcal{L}_{\text{CE}} = -\sum_{i=1}^{|\mathcal{Y}|} y_i \log(\hat{y}_i)
+\end{equation}
+
+Where $\mathcal{L}_{\text{CE}}$ is the Cross-entropy loss function, $y_i$ is the true label, $y \in \{0,1,2,3\}^{|\mathcal{Y}|}$ is the encoded true label vector.
+
+\subsection{Scoring System}
+
+The dataset was constructed to support the ESG sentiment classification in Vietnamese. Each sample in the dataset consists of a Vietnamese text segment and labels corresponding to that domain, representing negative, neutral, or positive sentiment (e.g., Environmental Negative, Environmental Neutral, Environmental Positive).
+
+To enhance analysis effectiveness and ensure accuracy during training, we divided the initial dataset into three subsets, each representing a distinct thematic class: E (Environment), S (Social), and G (Governance). After the partitioning, we trained separate models for each class to clearly distinguish between sentiments (negative, neutral, and positive) within the corresponding data. This partitioning approach allows the models to focus on and learn the unique characteristics of each class, thereby improving the accuracy and effectiveness of the analysis process. We believe that this method not only enhances the performance of the models but also increases the reliability and precision in sentiment classification for each class.
+
+\subsubsection{Scoring Model Architecture}
+
+We fine-tuned a pre-trained transformer-based language model specialized for Vietnamese text. For each ESG domain, a separate multi-label classification model was constructed, taking the preprocessed input and predicting outputs corresponding to the negative, neutral, and positive sentiment classes. The model architecture includes a standard BERT backbone followed by a dense output layer for multi-label prediction. To address class imbalance, we employed the Binary Cross-Entropy loss with optional class weights. Similar to ESG classification, due to the characteristics of the Vietnamese language, spaces are not used to separate words in compound words. We continue to use ViTokenizer in Pyvi to analyze the input text string and accurately determine word boundaries.
+
+The initial training phase involved fine-tuning the pre-trained model exclusively on the labeled dataset of the chosen ESG domain. Hyperparameters, including learning rate, batch size, and the number of epochs were optimized through experiments and practical tuning to balance convergence and overfitting risks. Early stopping mechanisms were implemented by monitoring validation loss and macro-F1 scores on the held-out validation set.
+
+Performance metrics included precision, recall, and F1-score for each sentiment class, as well as macro, micro, and weighted averages to provide a comprehensive assessment. The impact of pseudo-labeled data was analyzed both quantitatively (through metrics) and qualitatively (via inspection of high-confidence pseudo predictions). All experiment metadata, including label splits, training logs, and detailed results, were archived to ensure reproducibility.
+
+\subsubsection{ESG Score Computation and Evaluation}
+
+Based on the method proposed in ESG-KIBERT \citep{esg-kibert}, we have adopted the ESG scoring method based on industry-specific weights and sentiment analysis. The sentiment model classifies each sentence into three emotional categories: positive, neutral, or negative, according to E, S, and G. Sentiment scores are assigned as +1 (positive), 0 (neutral), and -1 (negative), creating a clear and balanced scale.
+
+We apply this method because SASB was chosen over other frameworks like GRI and the Task Force on Climate-related Financial Disclosures (TCFD) due to its industry-specific approach, which allows for more precise customization of ESG weightings. Furthermore, the authors aligned SASB’s industry classifications with MSCI’s sector framework to establish a coherent analytical structure that meets financial market demands. This approach emphasizes the significance of ESG factors specific to each industry, thereby enhancing the reliability of the evaluation process.
+
+\begin{figure*}[!h]
+\centering
+\includegraphics[width=1.\linewidth]{figures/esg_score_tab.png}
+\caption{SASB-based materiality map for ESG factor weighting by industry.}
+\label{fig:esg-score}
+\end{figure*}
+
+The materiality map, illustrated in Figure \ref{fig:esg-score}, depicts industry sectors with varying ESG relevance. Dark shading represents sectors linked to over 50\% of industries, while light shading indicates those linked to fewer than 50\%. The authors derived quantitative values to enhance the consistency and intuitiveness of ESG evaluations. Weightings were assigned according to shading intensity: 0.25 for light purple, representing the median of the less than 50\% importance range, and 0.75 for dark purple, representing the median of the greater than 50\% importance range. The total weight for each industry was determined by summing the weighted counts within each pillar. The Environment pillar was categorized as "E", Social Capital and Human Capital were grouped under "S", and Business Model \& Innovation along with Leadership \& Governance were classified as "G".
+
+\begin{equation}
+ESG_{\text{company}} =
+W_E \cdot \sum_{i=1}^{N_E} S_{E,i}
++ W_S \cdot \sum_{j=1}^{N_S} S_{S,j}
++ W_G \cdot \sum_{k=1}^{N_G} S_{G,k}
+\end{equation}
+
+Where $W_E, W_S, W_G$ represent the industry-specific weight for E, S, G to which the specific company belongs and $S_{E,i}, S_{S,j}, S_{G,k}$ refer to sentiment scores assigned to each sentence labeled as E, S, G, respectively. Based on the formula provided by the authors in the paper, we have also applied the formula for calculating the ESG rating based on industry-specific weights and sentiment analysis.
+
+\subsection{Model Selection} 
+
+We experiment with a suite of BERT-based models, each fine-tuned specifically for ESG classification. These models are based on established architectures known for their success in a range of NLP classification tasks. Our goal is to evaluate the effectiveness of different model bases in the Vietnamese ESG context.
+
+The selection of BERT-based models as the foundation for our classifiers stems from their proven effectiveness across a wide spectrum of NLP tasks, including text classification, information extraction, and sentiment analysis. The Transformer architecture, upon which BERT and its variants are built, excels at capturing long-range dependencies and contextual relationships within text, which is crucial for understanding the often subtle and complex language used in ESG disclosures. 
+
+We use a pretrained model trained on large-scale datasets to develop the ESG classifier for Vietnamese ESG model. We employed PhoBERT \citep{phobert}, along with experiments using other Vietnamese language models such as ViSoBERT \citep{visobert}, viBERT \citep{velectra} and vELECTRA \citep{velectra}.
+
+% \renewcommand{\cellalign}{tl}
+% \renewcommand{\theadalign}{tl}
+\begin{table}[h]
+\centering
+\caption{Model selected in our experiment}
+\resizebox{1.00\linewidth}{!}{
+\begin{tabular}{|l|c|r|}
+% \begin{tabular}{p{3.5cm}p{2cm}p{6cm}}
+    \hline
+    {\bf Backbone} & {\bf \# Param} & {\bf Data Training Source}\\
+    \hline
+    {PhoBERT (2020)} & 135M &  \makecell[r]{Vietnamese Wikipedia (1GB),\\Vietnamese news (19GB)} \\
+    \hline
+    {ViSoBERT (2023)} & 97M &  \makecell[r]{Vietnamese social networks comment\\(Facebook, TikTok, Youtube)} \\
+    \hline
+    {vELECTRA (2020)} & 110M &   \makecell[r]{NewsCorpus, OscarCorpus (58.4 GB)} \\
+    \hline
+    {viBERT (2020)} & 115M &  10GB subset data of vELECTRA \\
+    \hline
+    \makecell[l]{BERT-base-multilingual-uncased/cased\\(2017)} & 168/179M  & \makecell[r]{BookCorpus,\\104 languages of Wikipedia}\\
+    \hline
+    \makecell[l]{DistilBERT-base-multilingual-cased\\(2019)} & 168M &  \makecell[r]{BookCorpus,\\104 languages of Wikipedia} \\
+    \hline
+    \makecell[l]{RoBERTa-base\\XML-RoBERTa-base (2019)} & 124/279M  & \makecell[r]{BookCorpus, Wikipedia, OpenWebText,\\Stories, CC-News(160GB)}\\
+    \hline
+    {DeBERTa-v3-small/base (2022)} & 141/184M  & \makecell[r]{BookCorpus, Wikipedia, OpenWebText,\\Stories (78GB)}\\
+    \hline
+    {FinBERT (2022)} & 109M & \makecell[r]{Fine-tuning BERT on TRC2-financial} \\
+
+    \hline
+\end{tabular}
+}
+\label{tab:sel_model}
+\end{table}
+
+
+For multi-language model setting, we specifically chose to experiment with a suite of models, including BERT-base-cased, BERT-base-uncased, RoBERTa-base, XLM-RoBERTa-base, DeBERTa-v3-base, DeBERTa-v3-small, FinBERT and DistilBERT-base-cased, to provide a comparative analysis. This allows us to assess not only the general applicability of transformer models but also the relative strengths of different architectural variations and pre-training strategies when applied to the specific domain of Vietnamese ESG text. The decision to fine-tune these models, rather than training from scratch, is motivated by the need to leverage the extensive linguistic knowledge already encoded within them, thereby mitigating the data requirements and computational costs associated with training large models on a limited domain-specific dataset.
+Models detailed in Table \ref{tab:sel_model}.
+
+% \clearpage
+
+% \clearpage
+% More analysis can be found at Q5/Appendix (token, num steps).\revise{add more analysis}
+
+\section{Dataset} \label{dataset}
+
+% Tom tat:
+
+% data thu thap het trong thang 12/2024 gom 348 report esg, 68,553 sentences news
+
+% -> 384 report -> extraced 65,103 cau -> lay ra 30k cau\\
+% -> ViEn-ESG = 68,553 news + 35,103 report  = 130,798 chua label
+% 46k en + 44k vi + 30k vi + 10k translate = 130k
+% data label:
+
+% - 30k label tay tu t2/2025-t4/2025 - labeled: 30k\\
+% - model dung de tao pesudo label -> input 54k -> tao dc 34063 cau - labeled: 64k\\
+% - label tay tu t4/2025->t6/2025 dc 46k en + 10k vi= 56k - labeled: 120656\\
+% - Label bang cach dich cau tieng anh da label sang tv dung model "erax-ai/EraX-Translator-V1.0" 10k -t6/2025 - labeled 133656\\
+% -> end
+
+
+In this section, we present the datasets used for developing and evaluating our ESG classification models. Effective domain-specific text classification requires high-quality labeled data that captures the linguistic characteristics and thematic diversity of the target domain. We systematically collected ESG-related content from corporate sustainability reports and financial news sources, followed by comprehensive preprocessing, manual annotation and many annotation techniques to create reliable ground truth labels for training and evaluation purposes. Our dataset can access at \href{https://huggingface.co/datasets/nguyen599/ViEn-ESG-100}{https://huggingface.co/datasets/nguyen599/ViEn-ESG-100}.
+
+% \begin{table}[h]
+% \caption{Overview of datasets utilized for ESG classification and sentiment analysis.}
+% \label{tab:data}
+% \centering
+% \resizebox{0.7\linewidth}{!}{
+% \begin{tabular}{lr@{\hskip 15pt}r@{\hskip 15pt}r@{\hskip 15pt}r@{\hskip 15pt}r}
+%     \toprule
+%     {\bf Dataset} & {\bf Size} & {\bf Language} & {\bf Source} & {\bf Classes} \\
+%     \midrule
+%     {ViEn-ESG} & {130,798} & \makecell[r]{English, \\Vietnamese} & \makecell[r]{Corporate Reports,\\News} & E/S/G/N\\
+%     \midrule
+%     {\makecell[l]{Vietnamese ESG\\Sentiment}} & {6,430} & \makecell[r]{Vietnamese} & \makecell[r]{Corporate Reports} & \makecell[r]{E/S/G/N+\\Positive/Neutral/\\ Negative}\\
+%     \bottomrule
+% \end{tabular}
+% }
+% \end{table}
+
+% \renewcommand{\cellalign}{tl}
+% \renewcommand{\theadalign}{tl}
+\begin{table}[h]
+\caption{Overview of datasets utilized for ESG classification and sentiment analysis.}
+\label{tab:data}
+\centering
+\resizebox{0.85\linewidth}{!}{
+\begin{tabular}{|l|r|r|r|r|}
+    % \toprule
+    \hline
+    {\bf Data type} & {\bf Language} & {\bf No. Sentence} & {\bf Source} & {\bf Labeling techique}\\
+    % \midrule
+    % {} & {English} & {Vietnamese} & {}\\
+    % \midrule
+    \hline
+    \makecell[l]{ESG\\classification} & {English}  & 45,942 & \makecell[r]{Corporate Reports,\\News} & {Manual label}\\
+    \hline
+    
+    \makecell[l]{ESG\\classification} & {Vietnamese}  & 60,222 & \makecell[r]{Corporate Reports,\\News} & {Manual label}\\
+    \hline
+    
+    \makecell[l]{ESG\\classification} & {Vietnamese}  & 14,634 & \makecell[r]{Corporate Reports,\\News} & {Pseudo label}\\
+    \hline
+    
+    \makecell[l]{ESG\\classification} & {Vietnamese}  & 10,000 & \makecell[r]{English data} & {Translate} \\
+    % {Neural}  & 15,210 & 22,529 & 37,739\\
+    % \midrule
+    \hline
+    \makecell[l]{ESG\\sentiment} & {Vietnamese} & 6,430 & Corporate Reports & {Manual}\\
+    % \makecell[l]{Total} & {Total} & 45,942 & 84,856 & 130,798\\
+    % \bottomrule
+    \hline
+\end{tabular}
+}
+\end{table}
+
+% \begin{table}[h]
+% \caption{Overview of datasets utilized for ESG classification and sentiment analysis.}
+% \label{tab:data}
+% \centering
+% \resizebox{0.75\linewidth}{!}{
+% \begin{tabular}{|l|l|r|r|r|}
+%     \hline
+%     {\bf Data type} & {\bf Language} & {\bf No. Sentence} & {\bf Source} & {\bf Labeling technique}\\
+%     \hline
+%     \makecell[l]{ESG\\classification} & {English}  & 45,942 & \makecell[r]{Corporate Reports,\\News} & {Manual label}\\
+%     \hline
+%     \multirow{3}{*}{\makecell[l]{ESG\\classification}} & \multirow{3}{*}{Vietnamese}  
+%     & 60,222 & \makecell[r]{Corporate Reports,\\News} & {Manual label}\\
+%     \cline{3-5}
+%      &  & 14,634 & \makecell[r]{Corporate Reports,\\News} & {Pseudo label}\\
+%     \cline{3-5}
+%      &  & 10,000 & \makecell[r]{English data} & {Translate}\\
+%     \hline
+
+%     \makecell[l]{ESG\\sentiment} & {Vietnamese} & 6,430 & Corporate Reports & {Manual}\\
+%     \hline
+% \end{tabular}
+% }
+% \end{table}
+
+
+\subsection{Dataset Description}\label{class-wise}
+
+A cornerstone of this research is the development and utilization of the {\bf ViEn-ESG dataset}, a novel, large-scale, bilingual corpus specifically curated for ESG classification tasks in the English and Vietnamese languages. The creation of this dataset was motivated by the significant scarcity of publicly available, high-quality labeled data for ESG analysis, particularly for low-resource languages such as Vietnamese. Addressing this gap is crucial for advancing NLP applications in sustainable finance and corporate responsibility assessment within emerging markets. ViEn-ESG comprises a total of 130,798 sentence-level samples, meticulously collected and annotated to serve as a robust foundation for training and evaluating ESG classification models. In addition, we selected a subset of 6,430 sentences in the ViEn-ESG dataset and created a segment label that includes Negative, Neutral, or Positive sentiment to capture sentiment signals associated with ESG-related statements. This sentiment-labeled subset plays a critical role in training the sentiment analysis component of our framework, which is later integrated into the ESG scoring mechanism. By leveraging these sentiment annotations, we enable the model to compute fine-grained ESG scores by aggregating sentiment distributions across the Environmental, Social, and Governance dimensions. This design ensures that the scoring process is both interpretable and quantitatively grounded, providing a practical tool for assessing corporate sustainability beyond categorical classification.
+
+
+\begin{figure*}[!ht]
+\centering
+\vspace{-0.5em}
+
+\includegraphics[width=1.0\linewidth]{figures/Pipeline_data.pdf}
+\vspace{-1.3em}
+\caption{Overview labeling data pipeline}
+\label{fig:pipelinefull}
+\end{figure*}
+
+\subsection{Data Collection} 
+
+Corporate sustainability reports represent comprehensive disclosures of organizational performance across environmental, social, and governance dimensions, serving as primary vehicles for communicating non-financial achievements and ESG commitments to diverse stakeholder groups. These documents have gained prominence as regulatory frameworks increasingly mandate ESG transparency and investors demand greater accountability regarding sustainable business practices \citep{Agbakwuru2024}. The growing emphasis on ESG disclosure has led companies across various industries to publish detailed sustainability reports that document their environmental stewardship, social responsibility initiatives, and governance structures.
+
+The ViEn-ESG dataset draws from two primary data sources: ESG news articles and official corporate sustainability disclosures. For news articles content, we systematically gathered ESG-focused articles published between January 1, 2015, and August 14, 2024, sourcing English-language content from ESGToday and Vietnamese articles from reputable news sites such as VnExpress and Vietnam News. To ensure thematic relevance, we selected articles that were explicitly tagged with "ESG" or categorized under ESG-related sections, guaranteeing that all collected content directly addressed environmental, social, or governance themes.
+
+The corporate disclosure component involved a collection of sustainability reports from major Vietnamese enterprises listed in the Ho Chi Minh Stock Exchange (HOSE)\citep{hose} and Hanoi Stock Exchange (HNX)\citep{hnx}, with English reports collected from Standard and Poor's 500 (S\&P 500) companies across ten key economic sectors, including technology, retail, consumer goods, health care, automotive, aviation, electronics, communication services, finance, and heavy industry, with publication dates spanning from 2012 to 2024 to capture evolving ESG practices and reporting standards over more than a decade.
+
+\subsection{Data Preprocessing}
+
+We collected 348 sustainability reports, extracted 65,103 curated textual segments. With the news dataset, we collected a total of 68,553 sentences, the comprehensive dataset reached 130,798 textual entries, providing extensive coverage of ESG-related corporate communications across multiple formats and contexts. The collected sustainability reports, predominantly distributed in PDF format, contained much unstructured content. We decided to keep only text and drop tabular and visual elements such as images or charts. An overview of the distribution of sustainability reports by category and language is illustrated in Figure~\ref{fig:reports_by_category}, highlighting the diversity of sectors and the bilingual nature of the collected data.
+
+\begin{figure*}[!ht]
+\centering
+% \vspace{-1.0em}
+
+\includegraphics[width=1.0\linewidth]{figures/pdfbyctg.pdf}
+\vspace{-1.3em}
+\caption{Distribution of Sustainability Reports by Category and Language}
+\label{fig:reports_by_category}
+\end{figure*}
+
+In the preprocessing step, we utilized the spaCy \citep{spacy} natural language processing library to perform sentence-level segmentation of the extracted textual content, enabling precise annotation at the sentence granularity level. The preprocessing pipeline incorporated several data normalization procedures including standardization of numerical formats, systematic removal of non-textual characters and symbols, and elimination of duplicate sentences. Post-processing measures included a comprehensive manual review to identify and correct automatic segmentation errors, inappropriate sentence boundaries, and content fragments that were either excessively brief or excessively long, with problematic segments being either manually corrected through proper segmentation or removed entirely from the dataset.
+
+\subsection{Annotation Methodology and Quality Assurance}
+
+\subsubsection{Manual Labeling}
+
+\begin{figure*}[!ht]
+\centering
+\vspace{-0.5em}
+
+\includegraphics[width=1.0\linewidth]{figures/data_pipeline.pdf}
+\vspace{-1.3em}
+\caption{Manual labeling data pipeline}
+\label{fig:pipeline}
+\end{figure*}
+
+The development of our ESG classification system required establishing a robust theoretical foundation grounded in internationally recognized ESG evaluation standards.  We drew upon the methodological frameworks employed by prominent global ESG rating organizations, such as Morgan Stanley Capital International (MSCI), Sustainalytics, and the Carbon Disclosure Project (CDP). Labeling pipeline shown in the Figure \ref{fig:pipeline}, a team of four domain experts, each possessing specialized knowledge in ESG assessment methodologies and familiar with the evaluation standards of these institutions, collaboratively developed and refined our annotation guidelines through iterative discussion and consensus-building processes. The labeling rules for ESG classification are detailed in Table \ref{tab:label-rule}. In the Table \ref{tab:label-rule-senti}, we show labeling rules for ESG sentiment.
+
+\begin{table}[h]
+\caption{Labeling rules for the ViEn-ESG dataset}
+\label{tab:label-rule}
+\centering
+\resizebox{1.0\linewidth}{!}{
+\begin{tabular}{l@{\hskip 10pt}l}
+    \toprule
+    {\bf Class} & {\bf Rule}\\
+    \midrule
+    {E} & \makecell[l]{Environmental factors include the reduction of hazardous substances, eco-friendly\\management, climate change, carbon emission, natural resources, pollution and waste,\\environmental performance, resource use, product innovation, and energy conservation.}\\
+    \midrule
+    {S} & \makecell[l]{Social factors include human capital, product responsibilities, workers, working\\environment, partners and competitors, consumers, community contribution, human\\rights, gender and diversity, labor standards, customer satisfaction, information\\protection, and privacy.}\\
+    \midrule
+    {G} & \makecell[l]{Governance factors include corporate behavior, shareholder rights, board of directors,\\auditing bodies, disclosures, stakeholders, CSR strategy, executive dividends, ethical\\management, laws and taxes.}\\
+    \midrule
+    {N} & \makecell[l]{Neutral contains ESG information as a neutral element, excluded from the environmental,\\social, and governance categories, or includes two categories of in one sentence, such as\\environmental, social, or social, governance.}\\
+    \bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[h]
+\caption{Labeling rules for the sentiment dataset.}
+\label{tab:label-rule-senti}
+\centering
+\resizebox{1.0\linewidth}{!}{
+\begin{tabular}{l@{\hskip 10pt}l}
+    \toprule
+    {\bf Class} & {\bf Rule}\\
+    \midrule
+    {Environment} & \makecell[l]{\tabitem Positive: Sustainable practices, green innovations, renewable energy, carbon reduction.\\
+    \tabitem Neutral: Descriptive or factual reporting without clear evaluative tone.\\
+    \tabitem Negative: Environmental violations, pollution, unsustainable activities, deforestation.}\\
+    \midrule
+    {Social} & \makecell[l]{\tabitem Positive: Initiatives improving social well-being, equity, diversity, community support.\\
+    \tabitem Neutral: Objective descriptions or informational reporting on social issues.\\
+    \tabitem Negative: Labor disputes, discrimination, social harm, human rights violations.
+    }\\
+    \midrule
+    {Governance} & \makecell[l]{\tabitem Positive: Strong leadership, transparent policies, effective governance, compliance with\\regulations.\\
+    \tabitem Neutral: Factual updates on governance practices without clear sentiment.\\
+    \tabitem Negative: Scandals, corruption, fraud, governance failures, lack of transparency.
+    }\\
+    \bottomrule
+\end{tabular}
+}
+\end{table}
+
+To ensure the highest quality and reliability of our dataset annotations, we implemented a rigorous two-stage labeling methodology involving four annotators who were thoroughly trained on the ESG classification guidelines and possessed extensive domain knowledge. During the initial phase, annotators independently classified sentences that exhibited clear categorical distinctions, focusing on unambiguous examples that could be readily assigned to Environmental, Social, Governance, or Non-ESG categories. The second phase involved collaborative deliberation sessions where annotators engaged in structured discussions to resolve challenging cases that presented classification ambiguities or overlapping characteristics across multiple ESG dimensions. To maintain stringent quality control standards, we established a consensus-based decision framework whereby sentences were included in the final dataset only when all four annotators reached unanimous agreement, thereby ensuring robust inter-annotator reliability while minimizing subjective bias. 
+
+\begin{table}[h]
+\caption{Cohen's Kappa coefficients measuring inter-annotator agreement across ESG categories and languages in the ViEn-ESG dataset.}
+\label{tab:cohen-kappa}
+\centering
+\resizebox{0.55\linewidth}{!}{
+\begin{tabular}{lccc}
+\toprule
+\textbf{Category} & \textbf{English} & \textbf{Vietnamese} & \textbf{All} \\
+\midrule
+Environment & 0.987 & 0.979 & 0.983 \\
+Social & 0.984 & 0.982 & 0.983 \\
+Governance & 0.990 & 0.989 & 0.989 \\
+Neural & 0.984 & 0.974 & 0.979 \\
+\midrule
+All & 0.986 & 0.981 & 0.984 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Another cases were systematically excluded from the dataset to preserve annotation quality, resulting in the removal of less than 0.2\% of the total sentences due to persistent disagreement among annotators. Our the inter-annotator agreement was quantitatively assessed using Cohen's kappa coefficient \citep{Cohen1960}, which demonstrated exceptionally high consensus levels across all categories and languages, with scores ranging from 0.974 to 0.990 as detailed in Table \ref{tab:cohen-kappa}, indicating almost perfect agreement according to established interpretation guidelines and validating the consistency and reliability of our annotation process. 
+
+\begin{table}[!h]
+\caption{Sample labeled data in the ViEn-ESG dataset.}
+\label{tab:sample_data}
+\centering
+\resizebox{1.0\linewidth}{!}{
+\begin{tabular}{l@{\hskip 10pt}l}
+    \toprule
+    {\bf Class} & {\bf Rule}\\
+    \midrule
+    {E} & \makecell[l]{
+    \tabitem  Known reserves of oil, gas and coal can be extracted for some decades into the future, in a\\cost-efficient manner using current technologies, at current energy prices. \\
+    \tabitem  this notably good development consequence 25\% decrease waste api processes fermion.\\
+    \tabitem  Greenhouse gas emissions were down meet the reduction target (15\% below fiscal 2013 level).
+    }\\
+    \midrule
+    {S} & \makecell[l]{
+    \tabitem  Economies need educated and skilled workforces to ensure their economic health. \\
+    \tabitem  One of the focuses of Servicio País is to revive public spaces near schools and neighborhoods\\in order to improve the quality of life of residents.\\
+    \tabitem  Moreover, onsite healthcare opportunities for employees are included in this program,\\
+    including access to a blood pressure machine, a mammography van, blood drives, a flu shot\\
+    clinic, biometric screening and an annual onsite visit from a wellness doctor.
+    }\\
+    \midrule
+    {G} & \makecell[l]{
+    \tabitem  Senior management reviews engagement system results annually. \\
+    \tabitem  The Audit Committee provides oversight with respect to financial reporting and legal risk.\\
+    \tabitem  The system of internal accounting control is supported by written policies and guidelines,\\the selection and training of qualified employees, an organizational structure that provides\\an appropriate division of responsibility and a program of internal auditing.
+    }\\
+    \midrule
+    {N} & \makecell[l]{
+    \tabitem  About Evercomm Evercomm is a software company supporting businesses to net zero. \\
+    \tabitem  As of the date of this filing, we are not aware of any matters that are required to be disclosed\\pursuant to this standard.\\
+    \tabitem  An increase of \$due to industry-wide price escalation and normal-course salary increases\\for on-site property management personnel.\\
+    }\\
+    \bottomrule
+\end{tabular}
+}
+\end{table}
+
+% All values indicate excellent agreement (κ > 0.97), demonstrating high consistency among the four annotators.
+
+The labeling schedule of four annotators involved two-hour daily sessions conducted five days per week, with annotators achieving a productivity rate of 600-700 sentences per hour, translating to approximately 7,000 sentences labeled per annotator per week. The comprehensive annotation timeline spanned approximately 3-4 months, with the initial three months period dedicated to processing clearly classifiable sentences, followed by an additional month of intensive phase focused on collaborative discussion and resolution of challenging cases, ensuring thorough coverage and meticulous attention to quality throughout the entire dataset construction process. 
+
+This methodologically rigorous manual labeling approach, which mirrors best practices established in other domain-specific dataset creation studies, guarantees high-quality supervised data that accurately reflects ESG principles and linguistic nuances across both English and Vietnamese contexts, ultimately providing a solid foundation for training robust and reliable ESG classification models, with representative examples of sentences from each class in the ViEn-ESG dataset presented in Table \ref{tab:sample_data}. In Table~\ref{tab:data}, we show the class-wise distribution of the ViEn-ESG dataset.
+
+% \begin{figure*}[!ht]
+% \centering
+% \vspace{0.5em}
+
+% \includegraphics[width=1.0\linewidth]{figures/esg_score_data.pdf}
+% \vspace{-1.3em}
+% \caption{Distribution of dataset use for ESG score model}
+% \label{fig:esg_score_data}
+% \end{figure*}
+
+\begin{table}[h]
+\caption{Class-wise distribution of ViEn-ESG Dataset.}
+\label{tab:data}
+\centering
+\resizebox{0.55\linewidth}{!}{
+\begin{tabular}{lrrr}
+    \toprule
+    {\bf Data} & {} & {\bf No. of Sentences} & {\bf Total}\\
+    \midrule
+    {} & {English} & {Vietnamese} & {}\\
+    \midrule
+    {Environment}  & 10,517 & 19,080 & 29,597\\
+    {Social}  & 11,112 & 25,201 & 36,313\\
+    {Government}  & 9,103 & 18,046 & 27,149 \\
+    {Neural}  & 15,210 & 22,529 & 37,739\\
+    \midrule
+    {Total} & 45,942 & 84,856 & 130,798\\
+    \bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsubsection{Pseudo-labeling for Data Enrichment}
+We also apply pseudo-labeling for data enrichment. The model initially trained on labeled data was used to generate probabilistic predictions for an external corpus of unlabeled texts. Only samples for which the model assigned a highest class probability exceeding a predefined confidence threshold of 0.94 were retained. For each retained text, pseudo-labels were assigned to the corresponding classes based on these confidence scores. This process optionally employed an iterative scheme, gradually adjusting the threshold across multiple rounds to maximize both the quantity and quality of automatically labeled samples.
+
+The resulting pseudo-labeled data was then combined with the original training set. The model was then retrained on this composite dataset, leveraging both human-annotated and high-confidence machine-labeled samples.
+
+In traditional pseudo-labeling methods, using a single model to predict labels for unlabeled data often carries significant risks. Specifically, if the model has high bias or suffers from overfitting on the initial training set, the pseudo-labels generated may contain systematic errors. These errors can accumulate when incorrectly labeled data is fed back into the training set, leading to a phenomenon known as confirmation bias—where the model increasingly reinforces its incorrect predictions.
+
+\begin{figure}[!t]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/pseudo_labeling.png}
+\caption{BERT Ensemble for Reliable Pseudo-Labels}
+\label{fig:pseudo-pipeline}
+\end{figure}
+
+To minimize problems due to pseudo-labeling, we propose a method that integrates ensemble learning into the pseudo-labeling process. This semi-supervised labeling approach leverages an ensemble of multiple BERT models. First, the labeled training data is used to train K independent BERT models, each trained on a different subset of the original data. After the training process is complete, all of these BERT models simultaneously predict labels for the unlabeled data. The predicted labels from these models are then aggregated using a voting mechanism, where the labels with the highest confidence are selected as the pseudo-labels. Specifically, labels that receive high consensus among the models are prioritized. Finally, the data with these pseudo-labels is added back into the training set, thereby improving the model's quality by effectively utilizing both labeled and unlabeled data. From the original train dataset of 27,366 sentences, we generated an additional 14,634 sentences using the unlabeled data by pseudo-labeling. This approach takes advantage of the power of BERT models to minimize the risk of mislabeling, reduce confirmation bias, and enhance the stability of the expanded label set. 
+
+The selected models include both multilingual and Vietnamese-optimized transformers: DistilBERT-base-multilingual, ViSoBERT, Vi-Electra, BERT-base-multilingual, PhoBERT, ViDeBERTa, RoBERTa-base. Each training iteration utilizes pseudo-data generated from the previous round to supplement the original training dataset, creating an iterative improvement process.
+
+{\textit{1) First Iteration:} In the initial iteration, models were trained on the 7 subset dataset of the original data and demonstrated promising baseline performance. DistilBERT-base-multilingual achieved the highest performance with 87.36\% accuracy, followed by ViSoBERT at 87.23\% and Vi-Electra at 86.86\%.
+
+The first iteration generated substantial pseudo-data with 8,830 samples for Environment, 7,667 for Social, 6,300 for Governance, and 2,974 for Irrelevant classes. To ensure dataset balance, we adjusted the pseudo-data quantities used, resulting in a total of 37,636 samples for the subsequent iteration with the following distribution: Irrelevant (8,877 total: 5,903 original + 2,974 pseudo), Environment (9,009 total: 4,384 original + 4,625 pseudo), Social (10,726 total: 10,026 original + 700 pseudo), and Governance (9,024 total: 7,053 original + 1,971 pseudo).
+
+{\textit{2) Second Iteration:} The second iteration showed significant performance improvements across all models. Vi-Electra achieved the best overall performance with 92.13\% accuracy, accompanied by impressive F1 scores across all classes. ViSoBERT and ViDeBERTa also demonstrated strong performance with accuracies of 91.33\% and 91.13\%, respectively.
+
+The second iteration generated 8,255 new pseudo-data samples, with Environment contributing 4,212 samples, Social 1,915 samples, Governance 1,548 samples, and Irrelevant 580 samples. After data balancing, the total sample count for the final iteration reached 42,000 samples with the following distribution: Irrelevant (11,077 total: 8,877 original + 2,200 pseudo), Environment (10,009 total: 9,009 original + 1,000 pseudo), Social (11,310 total: 10,726 original + 584 pseudo), and Governance (9,604 total: 9,024 original + 580 pseudo).
+
+\begin{figure}[!t]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/final_distribution_train.pdf}
+\caption{Data distribution by each pseudo labeling iteration }
+\label{fig:pseudo-3iter}
+\end{figure}
+
+{\textit{3) Third Iteration:} The final iteration marked the peak performance of our research. Vi-Electra continued to lead with 94.66\% accuracy, followed by BERT-base-multilingual at 94.36\% and ViSoBERT at 93.83\%. Notably, all models achieved accuracy above 91\%, demonstrating the stability and effectiveness of the pseudo-labeling methodology.
+
+\begin{figure}[!t]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=0.95\columnwidth,trim=0 4cm 0 5cm,clip]{figures/pseudo-result.pdf}
+% \vspace{-5in}
+\caption{Training Results following each pseudo labeling stage}
+\label{fig:pseudo-result}
+\end{figure}
+
+The research results demonstrate a consistent improvement trend across pseudo-labeling iterations. The average accuracy of models increased from 85.75\% in the first iteration to 90.82\% in the second iteration, reaching a peak of 93.47\% in the final iteration. Particularly, Vi-Electra showed consistent superiority across all three iterations, indicating excellent adaptability to Vietnamese text data.
+
+The Environment class consistently achieved the highest F1 scores across all models, while the Irrelevant class presented the most classification challenges. This can be attributed to the diverse and ambiguous nature of the Irrelevant class compared to the more specialized domain-specific classes.
+The pseudo-labeling approach proved particularly effective in enriching data and addressing class imbalance issues. By strategically selecting pseudo-labeled samples, we were able to maintain better class distribution while progressively increasing the dataset size, contributing to the observed performance improvements.
+
+\subsubsection{Annotation through Machine Translation}
+
+To expand the coverage of our Vietnamese dataset, we adopted a translation-based labeling strategy that leverages existing high-quality English data. Specifically, we selected 10,000 English sentences that had already been annotated with gold-standard labels. These sentences were then translated into Vietnamese using the \texttt{erax-ai/EraX-Translator-V1.0} model \citep{erax}, a neural machine translation system that has been shown to achieve strong performance on English-Vietnamese translation tasks. By preserving the semantic structure of the original sentences, this approach allows us to inherit the English labels and directly assign them to their translated Vietnamese counterparts.
+
+The main advantage of this method is that it enables rapid and cost-efficient creation of labeled data in a low-resource language setting, without the need for extensive manual annotation. Furthermore, because the labels are derived from semantically equivalent English sentences, this process ensures alignment across languages and facilitates the development of cross-lingual benchmarks. To mitigate the risk of translation errors, we applied post-translation validation by sampling a subset of the Vietnamese outputs and verifying whether the translated sentence preserved the original meaning and label consistency. In practice, we observed that label preservation remained reliable for well-structured sentences, though some minor noise could occur due to idiomatic expressions or domain-specific terminology.
+
+Despite these limitations, translation-based labeling serves as an effective intermediate solution between manual annotation and pseudo-labeling. It provides a scalable mechanism to enrich the dataset with diverse Vietnamese examples while maintaining semantic fidelity to the original English data. The resulting bilingual resource not only strengthens the robustness of our model training but also contributes toward the long-term goal of building more inclusive ESG datasets that support multilingual applications.  The detailed prompt used to guide the translation process is provided in the Appendix \ref{translate-prompt}.
+
+% \subsection{Exploratory Data Analysis}
+
+% \begin{figure*}[!t]
+% \centering
+% \subfloat[]{\includegraphics[width=2.0in]{figures/word_cloud_en_env.pdf}%
+% \label{fig_en_env}}
+% \hfil % used as a separator to get equal spacing.
+% \subfloat[]{\includegraphics[width=2.0in]{figures/word_cloud_en_soc.pdf}%
+% \label{fig_en_soc}}
+% \hfil
+% \subfloat[]{\includegraphics[width=2.0in]{figures/word_cloud_en_gov.pdf}%
+% \label{fig_env_gov}}
+% \hfil
+% \subfloat[]{\includegraphics[width=2.0in]{figures/word_cloud_vi_env.pdf}%
+% \label{fig_vi_env}}
+% \hfil
+% \subfloat[]{\includegraphics[width=2.0in]{figures/word_cloud_vi_soc.pdf}%
+% \label{fig_vi_soc}}
+% \hfil
+% \subfloat[]{\includegraphics[width=2.0in]{figures/word_cloud_vi_gov.pdf}%
+% \label{fig_vi_gov}}
+% \caption{Word cloud visualization of ESG classification results for bilingual dataset. (a-c) English dataset showing Environmental, Social, and Governance categories respectively. (d-f) Vietnamese dataset showing corresponding ESG categories.}
+% \label{wordcloud}
+% \end{figure*}
+
+% Following the completion of data preprocessing and labeling procedures, our finalized ViEn-ESG dataset comprises a comprehensive collection of 130,798 sentences with their corresponding class annotations, with 12,000 sentences designated for each of the E/S/G/N categories. The number of sentences by language for each ESG element in the dataset is shown in Table 3. To visualize the sectoral distribution and class balance, Fig.~\ref{fig:token_dist} shows the token length distribution of the dataset using the tokenizer of the BERT-base-multilingual-cased model. 
+
+% \begin{figure}[!t]
+% \hspace*{-0.2in} % Shift image 0.5 inch to the left
+% \centering
+% \includegraphics[width=0.75\columnwidth]{figures/token_length_distribution.pdf}
+% \caption{This is the caption for one fig.}
+% \label{fig:token_dist}
+% \end{figure}
+
+% Given that pre-trained language models exhibit sensitivity to input sequence lengths due to computational constraints and attention mechanisms, we conducted a thorough analysis of token length distributions across all sentences in the ViEn-ESG dataset, with results presented in Figure 5 revealing distinct linguistic characteristics where English sentences average 80 tokens while Vietnamese sentences average 100 tokens, reflecting the morphological and syntactic differences between these languages. To ensure optimal compatibility with contemporary pre-trained language models and maintain training efficiency, we implemented stringent length filtering criteria by systematically removing sentences falling outside the acceptable token range, specifically eliminating any sentence containing fewer than 15 tokens or exceeding 1,024 tokens thereby creating a dataset that aligns with the typical maximum sequence length constraints of 512 tokens or more commonly employed by modern transformer-based architectures, with all retained sentences being subsequently tokenized according to each model's specific maximum length parameters during the training process to ensure consistent input formatting and optimal learning performance.
+
+% To validate the quality of our ESG classification and examine the linguistic patterns across both languages, we conducted an exploratory data analysis using WordCloud visualization techniques. This analysis aimed to verify whether sentences labeled with ESG categories contained appropriate thematic content and to compare the extraction results between English and Vietnamese dataset parts.
+
+% {\bf English Dataset Analysis} Figures 6(a), 6(b), and 6(c) present the word frequency visualization results for Environmental (E), Social (S), and Governance (G) categories respectively in the English portion of our dataset. 
+
+% For the Environmental category, the analysis revealed high-frequency terms directly associated with environmental concerns: "environment," "energy," "emission," and "greenhouse gases" dominated the word cloud. Supporting terms included "natural gas," "fuel," "reduce," "water," "plant," "product," and "climate change," demonstrating clear thematic coherence with environmental sustainability topics.
+
+% The Social category exhibited prominent words such as "employee," "customer," "social," "support," "company," "training," and "service." Additional relevant terms encompassed "safety," "administration," "work," "business," "quality," and "contribution," indicating appropriate classification of socially-oriented content.
+
+% In the Governance category, the most frequent terms were "board," "management," "committee," "ethics," and "compliance." The word cloud also featured governance-specific vocabulary including "stakeholder," "corporate," "policy," "internal control," "audit," "risk," and "ethical management," confirming accurate identification of governance-related content.
+
+% {\bf Vietnamese Dataset Analysis} Figures 6(d), 6(e), and 6(f) display the corresponding word frequency analysis for the Vietnamese portion of our dataset, revealing similar thematic patterns with language-specific characteristics.
+
+% % \selectlanguage{vietnamese}
+% For the Vietnamese Environmental category, "môi trường" (environment) appeared as the dominant term, followed by "năng lượng" (energy), "khí thải" (emissions), and "sử dụng"(usage). Other environmentally relevant terms included "chất thải" (waste), "khí hậu" (climate), "tái tạo" (renewable), "bền vững" (sustainable), "tiêu thụ" (consumption), and "giảm thiểu" (reduction), demonstrating comprehensive coverage of environmental themes in Vietnamese.
+
+% The Vietnamese Social category was characterized by "xã hội" (social) as the primary term, accompanied by "nhân viên" (employees), "hỗ trợ" (support), and "cộng đồng" (community). Additional social-focused vocabulary comprised "phát triển" (development), "làm việc" (work), "sức khỏe" (health), "lao động" (labor), "đa dạng"(diversity), "giáo dục" (education), "đào tạo" (training), and "nhân quyền" (human rights), indicating proper classification of socially-oriented Vietnamese content.
+
+% For the Vietnamese Governance category, "quản trị" (management) emerged as the most frequent term, followed by "hội đồng" (board), "báo cáo"(report), and "quản lý"(management). The analysis also revealed governance-specific terms such as "rủi ro"(risk), "cam kết" (commitment), "kiểm toán" (audit), "tuân thủ" (compliance), "trách nhiệm" (responsibility), "chính sách" (policy), and "đạo đức" (ethics), confirming accurate identification of governance content in Vietnamese.
+% % \selectlanguage{english}
+
+% Notably, both language datasets exhibited semantically equivalent high-frequency terms that transcend linguistic boundaries, such as concepts related to cooperation, support, and service provision. This cross-linguistic consistency validates the robustness of our ESG classification approach across different languages and cultural contexts.
+
+% The word frequency analysis conclusively demonstrates that sentences classified into each ESG category contain thematically appropriate information for both English and Vietnamese portions of our bilingual dataset, supporting the reliability of our classification methodology.
+
+\section{Experiments and Analysis}\label{exp}
+
+This section details the experimental design and results of our proposed ESG classification model. We outline the implementation settings, including hardware specifications, training configurations, and evaluation protocols. Subsequently, we present a comprehensive performance analysis on both English and Vietnamese subsets of the ViEn-ESG dataset, along with an assessment of the bilingual models and the ESG scoring mechanism.
+
+\subsection{Experimental Setup and Implementation Details}
+
+To comprehensively address the ESG classification task, we adopted a multi-faceted modeling strategy, training four distinct types of classifiers based on the fine-tuned BERT architecture. Three binary classifiers were developed, each dedicated to identifying the relevance of a sentence to one specific ESG pillar: Environmental (E), Social (S), or Governance (G). This binary approach allows for focused assessment within each dimension and aligns with methodologies used in prior literature for relevance or impact identification. Complementing these, we developed a multi-class classifier, termed ViBERT-ESG (and its variants based on other backbones), designed to categorize a sentence into one of four mutually exclusive classes: E, S, G, or Neutral (N). The Neutral class serves as a crucial catch-all category for sentences that are either irrelevant to ESG or potentially span multiple dimensions ambiguously. This four-class model provides a holistic classification across the primary ESG pillars.
+
+{\textit{1) Implementation Details:} The experiments were conducted with the following specifications. For all work, the authors utilize an Intel Core i7–13700 processor, 48 GB of RAM, and 2 RTX 3060 GPUs for training, testing, and evaluation of the models. The dataset was split into 70\% training, 15\% validation, and 15\% test data. Key hyperparameters were kept consistent across models to ensure fair comparison, based on common practices for fine-tuning BERT-like models. The training process employs full-parameter fine-tuning with DeepSpeed ZeRO-3 optimization \citep{deepspeed-zero3}. All models are trained with BFloat16 precision for 3000 steps, including 200 warm-up steps. We use a learning rate of $5 \times 10^{-5}$ with cosine learning rate scheduling, weight decay of 0.01, a batch size of 48 and a maximum gradient norm of 2.5. The optimizer is AdamW \citep{adamw}, and the maximum input sequence length is set to 512 tokens. For reproducibility, we set the random seed to 42 in all experiments.}
+
+\textit{2) Evaluation Metrics:} In our experimental setup, we primarily report the macro-averaged F1 score ($F1_{\text{macro}}$) as it provides a balanced view of performance across classes with varying frequencies. We also include accuracy as a complementary metric to capture the overall correctness of the prediction. This combination ensures that both class-level balance and overall classification performance are properly assessed.
+
+\begin{equation}
+F1_{\text{macro}} = \frac{\sum_{i=0}^{N} F1_i}{N}
+\end{equation}
+
+where $F1_i$ denotes the F1-score of class $i$, and $N$ is the total number of classes. We report macro-F1 as the primary metric since it equally weights all classes, making it particularly suitable for imbalanced ESG datasets. In addition, we also provide accuracy to offer a more comprehensive view of model performance.
+
+% Please note that the first paragraph of a section or subsection is
+% not indented. The first paragraph that follows a table, figure,
+% equation etc. does not need an indent, either.
+
+% Subsequent paragraphs, however, are indented.
+
+% \subsubsection{Sample Heading (Third Level)} Only two levels of
+% headings should be numbered. Lower level headings remain unnumbered;
+% they are formatted as run-in headings.
+
+% \paragraph{Sample Heading (Fourth Level)}
+% The contribution should contain no more than four levels of
+% headings. Table~\ref{tab1} gives a summary of all heading levels.
+
+% \begin{table}
+% \caption{Table captions should be placed above the
+% tables.}\label{tab1}
+% \begin{tabular}{|l|l|l|}
+% \hline
+% Heading level &  Example & Font size and style\\
+% \hline
+% Title (centered) &  {\Large\bfseries Lecture Notes} & 14 point, bold\\
+% 1st-level heading &  {\large\bfseries 1 Introduction} & 12 point, bold\\
+% 2nd-level heading & {\bfseries 2.1 Printing Area} & 10 point, bold\\
+% 3rd-level heading & {\bfseries Run-in Heading in Bold.} Text follows & 10 point, bold\\
+% 4th-level heading & {\itshape Lowest Level Heading.} Text follows & 10 point, italic\\
+% \hline
+% \end{tabular}
+% \end{table}
+
+\subsection{Performance on Vietnamese ESG Classification}
+
+We applied a fine-tuning method to the model using sentence and ESG label pairs, utilizing a pretrained language model. In the experiment, we used multilingual BERT models, the multilingual version of BERT, and Vietnamese models such as PhoBert-Base, PhoBert-Large, viBert, viELECTRA, and ViSoBERT.
+
+\hspace{2em}The results of multi-class classification for ESG-related sentences with 4 labels in the ESG dataset are presented in Table \ref{tab:table5}. In the experiment, each model was trained 5 times, and the average accuracy and accuracy for each class were calculated by excluding the highest and lowest accuracy values.
+
+\begin{table}[h]
+\centering
+\caption{Comparison of Transformer-based models for Vietnamese language}
+\label{tab:table5}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{\makecell{Overall\\accuracy}} & \textbf{\makecell{Env\\F1 score}} & \textbf{\makecell{Gov\\F1 score}} & \textbf{\makecell{Soc\\F1 score}} & \textbf{\makecell{Neu\\F1 score}} \\
+\midrule
+\textbf{viDEBERTA} & 93.1 & 97.15 & 91.17 & 92.22 & 89.1 \\
+\textbf{viELECTRA} & 94.66 & 98.30 & 93.13 & 94.36 & 92.09 \\
+\textbf{PhoBERT-Base} & 93.7 & 97.42 & 92.29 & 93.25 & 91.04 \\
+\textbf{ViSoBERT} & 93.83 & 97.83 & 91.94 & 92.94 & 91.93 \\
+\textbf{BERT-Base-Multilingual} & 94.36 & 97.61 & 93.49 & 94.49 & 90.95 \\
+\textbf{RoBERTa} & 91.8 & 96.92 & 90.12 & 92.08 & 86.79 \\
+\textbf{DistilBERT-Multilingual} & 93.86 & 98.01 & 92.13 & 94.03 & 90.43 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\hspace{2em}The comparative analysis of Transformer-based models for Vietnamese language processing reveals viELECTRA as the top-performing model, achieving superior results across all evaluation metrics. With an overall accuracy of 94.66\%, viELECTRA demonstrates exceptional performance in all classification categories: Environment (98.30\% F1), Governance (93.13\% F1), Social (94.36\% F1), and Irrelevant (92.09\% F1). While other models show competitive results - ViSoBERT (93.83\%) and DistilBERT-Multilingual (93.86\%) - none surpass the balanced performance of PhoBERT-Base (93.7\% accuracy). The evaluation also highlights the relatively weaker performance of viDEBERTA (93.1\%) and BERT-Base-Multilingual (94.36\%), with RoBERTa showing the lowest overall accuracy (91.8\%), particularly struggling with Irrelevant content classification (86.79\% F1). These findings establish viELECTRA as the most robust model for Vietnamese language processing tasks, especially for nuanced ESG (Environmental, Social, and Governance) text classification. viELECTRA is the optimal choice for classifying ESG information in Vietnamese, with outstanding performance across key classification categories.
+
+\subsection{Performance on Bilingual ESG Classification}
+
+For the English portion of the dataset, we benchmarked several publicly available ESG models, including \texttt{FinBERT-ESG}, \texttt{SEC-BERT-ft}, \texttt{ESGify}, and three binary classification models. These models differ in label granularity: \texttt{FinBERT-ESG-9-class} predicts 9 ESG-related categories, \texttt{SEC-BERT-ft} supports 33 fine-grained issue types, and \texttt{ESGify} handles 47 labels. To enable consistent comparison, we mapped all predicted labels into a unified 4-class format E/S/G/N. 
+
+\begin{figure*}[!h]
+\centering
+\subfloat[]{\includegraphics[width=2.0in]{figures/loss_bert-base-multilingual-cased.pdf}%
+\label{fig_bert}}
+\hfil % used as a separator to get equal spacing.
+\subfloat[]{\includegraphics[width=2.0in]{figures/loss_roberta-base.pdf}%
+\label{fig_roberts}}
+\hfil
+\subfloat[]{\includegraphics[width=2.0in]{figures/loss_xlm-roberta-base.pdf}%
+\label{fig_xlm_roberta}}
+\hfil
+\subfloat[]{\includegraphics[width=2.0in]{figures/loss_deberta-v3-base.pdf}%
+\label{fig_deberta_base}}
+\hfil
+\subfloat[]{\includegraphics[width=2.0in]{figures/loss_deberta-v3-small.pdf}%
+\label{fig_deberta_small}}
+\hfil
+\subfloat[]{\includegraphics[width=2.0in]{figures/loss_distilbert-base-multilingual-cased.pdf}%
+\label{fig_distilbert}}
+\caption{Training loss of ESG classification results on bilingual dataset. That denote (a) bert-base-multilingual-cased (b) roberta-base (c) xlm-roberta-base (d) deberta-v3-base (e) deberta-v3-small (f) distilbert-base-multilingual-cased.}
+\label{wordcloud}
+\end{figure*}
+
+\begin{table}[h]
+\centering
+\caption{F1 scores of models on each ESG category in the English ViEn-ESG dataset.}
+
+\resizebox{1.00\linewidth}{!}{
+\begin{tabular}{llrrrrr}
+    \hline
+    {\bf Model} & \bf{\# Param} & \bf{Env} & \bf{Soc} & \bf{Gov} & \bf{Neu} & \bf{Overall}\\
+    \hline
+    {SEC-BERT-ft} & 109M & 83.12 & 66.77 & 66.53 & 60.30 & 68.12\\
+    {FinBERT-ESG} & 109M & 92.67 & 84.90 & 86.25 & 87.26 & 87.51\\
+    {FinBERT-ESG-9-class} & 109M & 92.16 & 89.01 & 91.35 & 86.89 & 89.80\\
+    {ESGify}  & 109M & 67.72 & 30.20 & 50.76 & 43.44 & 48.33\\
+    {EnvironmentBERT} & {82M} & 92.15 & - & - & 92.76 & -\\
+    {SocialBERT} & {82M} & - & 76.81 & - & 81.23 & -\\
+    {GovernanceBERT} & {82M} & - & - & 64.46 & 80.06 & -\\
+    \midrule
+    {BERT-base-multilingual-cased} & 168M & 93.76 & 94.53 & 94.98 & \textbf{94.15} & 94.75\\
+    {BERT-base-multilingual-uncased} & 168M & 94.62 & 93.81 & 94.26 & 92.13 & 93.83\\
+    {RoBERTa-base} & 124M & 95.43 & 94.06 & 95.01 & 91.32 & 94.11\\
+    {XLMRoBERTa-base} & 278M & 95.00 & 95.00 & \textbf{95.47} & 92.19 & \textbf{94.83}\\
+    {DeBERTa-base} & 184M & \textbf{95.50} & 94.49 & 94.81 & 91.48 & 94.70\\
+    {DeBERTa-small} & 141M & 94.55 & 94.85 & 94.58 & 90.19 & 93.72\\
+    
+    {DistilBERT-multilingual-cased} & 135M & 95.15 & \textbf{95.19} & 94.33 & 91.75 & 94.60\\
+    {FinBERT} & 109M &  94.62 & 93.16 & 94.10 & 92.13 & 93.50\\
+    \hline
+\end{tabular}
+}
+\label{tab:performance_model_en}
+\end{table}
+
+Since existing ESG models are primarily designed for English and do not support Vietnamese input, our models are fine-tuned jointly on both English and Vietnamese samples from the ViEn-ESG dataset. This bilingual training setup allows the models to generalize better across languages and benefit from the shared semantic space of ESG-related concepts. We evaluate our fine-tuned models on both English and Vietnamese test sets. 
+
+Table~\ref{tab:performance_model_en} summarizes the performance of existing English-based ESG models alongside our bilingual fine-tuned models on the English portion of the ViEn-ESG dataset. Among the baseline models, \texttt{FinBERT-ESG} and its 9-class variant exhibit strong performance, with overall F1 scores of 87.51\% and 89.80\%, respectively, reflecting their domain-specific pretraining on financial text. However, models such as \texttt{SEC-BERT-ft} and \texttt{ESGify} show significantly lower scores (68.12\% and 48.33\%, respectively), indicating that fine-grained classification schemes or excessive label granularity can reduce effectiveness when labels are mapped into a unified 4-class format (E/S/G/N). Similarly, the binary models (\texttt{EnvironmentBERT}, \texttt{SocialBERT}, and \texttt{GovernanceBERT}) perform well on their respective domains but lack comprehensive coverage across all ESG categories.
+
+In contrast, our bilingual fine-tuned models consistently outperform existing baselines across all ESG dimensions. Notably, \texttt{XLMRoBERTa-ESG-base} achieves the highest overall F1 score (94.83\%), closely followed by \texttt{DeBERTa-ESG-base} (94.70\%) and \texttt{BERT-multilingual-cased-ESG} (94.75\%). These results underscore the advantages of leveraging multilingual architectures and joint bilingual fine-tuning, which enhances generalization and mitigates domain shift between English and Vietnamese data. Interestingly, while \texttt{DeBERTa-ESG-base} slightly outperforms others on the Environmental category (95.50\%), \texttt{DistilBERT-multilingual-cased-ESG} achieves the best score on Social (95.19\%), suggesting that certain architectures may capture different ESG dimensions more effectively.
+
+\begin{table}[h]
+\centering
+\caption{F1 scores of models on each ESG category in the Vietnamese ViEn-ESG dataset.
+}
+\resizebox{1.00\linewidth}{!}{
+\begin{tabular}{llrrrrr}
+    \hline
+    {\bf Model} & \bf{\# Param} & \bf{Env} & \bf{Soc} & \bf{Gov} & \bf{Neu} & \bf{Overall}\\
+    \hline
+    {BERT-base-multilingual-cased} & 168M & 93.50 & 89.73 & 91.77 & \textbf{91.78} & 91.80\\
+    {BERT-base-multilingual-uncased} & 168M & 80.18 & 58.36 & 68.66 & 57.44 & \textcolor{red}{66.54}\\
+    {RoBERTa} & 124M & 93.41 & 91.49 & 89.93 & 84.32 & 89.96\\
+    {XLMRoBERTa} & 278M & 93.45 & 91.02 & 91.69 & 90.41 & \textbf{91.94}\\
+    {DeBERTa-base}& 184M & \textbf{95.24} & 89.36 & \textbf{93.18} & 85.23 & 90.89\\
+    {DeBERTa-small} & 141M & 92.90 & 87.79 & 90.63 & 81.48 & 88.70\\
+    {DistilBERT-multilingual-cased} & 135M & 93.87 & \textbf{91.98} & 90.63 & 87.17 & 91.02\\
+    {FinBERT} & 109M &  75.28 & 54.02 & 68.21 & 56.91 & \textcolor{red}{63.70}\\
+    \hline
+\end{tabular}
+}
+\label{tab:performance_model_vi}
+\end{table}
+
+
+Turning to the Vietnamese results in Table~\ref{tab:performance_model_vi}, we observe a slight performance drop compared to English, which is expected given the lower availability of pretraining resources for Vietnamese. Nevertheless, all bilingual models maintain high overall F1 scores above 88\%, demonstrating robust cross-lingual transfer. \texttt{BERT-base-multilingual-cased} and \texttt{XLMRoBERTa} achieve the highest overall scores (91.80\% and 91.94\%, respectively), confirming their strong multilingual capability. \texttt{DeBERTa-base} shows superior performance on the Environmental (95.24\%) and Governance (93.18\%) categories, while \texttt{DistilBERT-multilingual-cased} excels on Social (91.98\%), again highlighting the variation in backbone strengths across ESG dimensions. We have a significant performance drop in \texttt{BERT-base-multilingual-uncased} and \texttt{FinBERT} that will be discussed in subsection \ref{cased-uncased}.
+
+Overall, these results validate the effectiveness of joint bilingual training and the use of large multilingual pre-trained models for ESG classification in low-resource languages. The relatively small gap between English and Vietnamese performance further demonstrates that our approach successfully narrows the linguistic disparity in ESG analytics. These models establish a new multilingual benchmark for ESG classification in both English and Vietnamese contexts.
+
+\subsection{The Impact of `uncased` Models on Vietnamese Performance} \label{cased-uncased}
+
+The results presented in Table~\ref{tab:performance_model_vi} reveal a notable performance degradation for uncased models such as \texttt{BERT-base-multilingual-uncased} and \texttt{FinBERT} when applied to the Vietnamese dataset. This observation is further illustrated in Figure~\ref{fig:loss-vs}, which shows the training loss curves of three representative models. Both uncased models exhibit significantly higher loss and slower convergence compared to their cased counterparts, underscoring their inability to effectively capture Vietnamese linguistic characteristics.
+
+\begin{figure}[!h]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/loss_vs.pdf}
+% \vspace{-5in}
+\caption{Training loss comparison between `cased` and `uncased` model}
+\label{fig:loss-vs}
+\end{figure}
+
+This performance gap can be attributed to the preprocessing strategy adopted by uncased models. Specifically, these models convert all text to lowercase and, more critically for tonal languages like Vietnamese, remove diacritical markers (accents). While lowercasing may have minimal semantic impact in English, it introduces severe distortions in Vietnamese, where diacritics are essential to distinguish between words and convey meaning. Stripping these markers effectively introduces systematic noise, resulting in a substantial loss of semantic information. 
+
+To illustrate this effect, Figure ~\ref{fig:code-example} presents examples of Vietnamese words before and after uncasing, highlighting the ambiguity and meaning collapse caused by diacritic removal. For instance, the Vietnamese word can lead to incorrect tokenization and misclassification in ESG contexts when accents are removed. Consequently, these findings emphasize the importance of preserving case and diacritics in multilingual models for low-resource, morphologically rich, or tonal languages such as Vietnamese.
+
+% \begin{figure}[!h]
+% \hspace*{-0.2in} % Shift image 0.5 inch to the left
+% \centering
+% \includegraphics[width=0.85\columnwidth]{figures/code_example.png}
+% % \vspace{-5in}
+% \caption{Impact of uncasing on Vietnamese text, showing diacritic removal when tokenizing with an uncased model \texttt{ProsusAI/finbert}.}
+% \label{fig:code-example}
+% \end{figure}
+
+This analysis demonstrates that model architecture alone is insufficient to guarantee strong cross-lingual performance; preprocessing strategies must account for language-specific orthographic and phonological features. These findings underscore the need for careful consideration when selecting multilingual models for languages such as Vietnamese. Practitioners should prioritize cased models or those that preserve diacritical markers, as uncased models can introduce severe semantic distortions and significantly degrade performance.
+
+\subsection{ESG Score Evaluate}
+
+\begin{table}[htbp]
+\centering
+\caption{Sentiment Classification Performance for Environment}
+\label{tab:env_sentiment}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{\makecell{Overall\\accuracy}} & \textbf{\makecell{Negative\\F1 Score}} & \textbf{\makecell{Neutral\\F1 Score}} & \textbf{\makecell{Positive\\F1 Score}} \\
+\midrule
+PhoBERT & 93.31 & 95.00 & 92.56 & 93.31 \\
+Vi-Electra & \textbf{93.87} & 93.16 & 94.60 & 93.82 \\
+Visobert & 92.47 & 92.36 & 92.92 & 92.18 \\
+DistilBERT-multilingual & 92.20 & 91.86 & 92.64 & 92.11 \\
+DeBERTa & 91.36 & 90.53 & 92.30 & 91.28 \\
+ViBERT & 91.08 & 91.66 & 90.98 & 90.61 \\
+BERT-base & 89.13 & 88.42 & 88.69 & 90.24 \\
+RoBERTa & 87.46 & 87.28 & 88.98 & 86.17 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+From an environmental perspective, pre-trained language models such as Vi-Electra, PhoBERT, and Visobert demonstrate outstanding performance. Vi-Electra achieves the highest accuracy at 93.87\%, along with superior F1 scores across all three classes (Negative, Neutral, Positive), indicating a well-balanced classification capability. PhoBERT also records an impressive accuracy (93.31\%) and attains the highest F1 score for the “Negative” class (95.00\%), showcasing strong ability in detecting environmentally negative content. DistilBERT-multilingual and Visobert follow closely with accuracies of 92.2\% and 92.47\%, respectively, while maintaining stable F1 scores across classes. Although DeBERTa achieves a very high F1 score for the Neutral class (92.30\%), it shows a noticeable drop in accuracy (91.36\%), placing it only in the moderately performing group. Meanwhile, BERT-base and especially RoBERTa, which is not multilingual-trained, demonstrate relatively low performance, making them unsuitable for complex environmental classification tasks.
+
+\begin{table}[htbp]
+\centering
+\caption{Sentiment Classification Performance for Governance}
+\label{tab:gov_sentiment}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{\makecell{Overall\\accuracy}} & \textbf{\makecell{Negative\\F1 Score}} & \textbf{\makecell{Neutral\\F1 Score}} & \textbf{\makecell{Positive\\F1 Score}} \\
+\midrule
+PhoBERT & \textbf{92.04} & 95.32 & 92.56 & 93.31 \\
+Vi-Electra & 88.99 & 91.89 & 85.10 & 89.34 \\
+Visobert & 88.68 & 93.21 & 84.65 & 87.70 \\
+DistilBERT-multilingual & 86.85 & 90.90 & 83.41 & 85.95 \\
+DeBERTa & 86.23 & 91.07 & 83.87 & 86.99 \\
+ViBERT & 85.93 & 90.74 & 82.23 & 84.64 \\
+BERT-base & 79.20 & 88.11 & 73.63 & 76.72 \\
+RoBERTa & 65.74 & 75.12 & 61.75 & 61.20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In the governance domain, PhoBERT continues to lead with an accuracy of 92.04\% and very high F1 scores across all three classes (Negative: 95.32, Neutral: 92.56, Positive: 93.31). This model proves to be highly effective in capturing governance-related semantics and accurately classifying opinions. Vi-Electra and Visobert also show strong performance, with accuracies of 88.99\% and 88.68\%, respectively, particularly excelling in the "Negative" class with F1 scores above 91. DistilBERT-multilingual and DeBERTa yield fairly good results (accuracy around 86\%) and remain viable options when a lightweight or multilingual-supporting model is needed. ViBERT performs at an average level (85.93\%) and is slightly less competitive compared to newer models. Although BERT-base achieves a high F1 score for the Negative class (88.11), it suffers significant drops in the Neutral (73.63) and Positive (76.72) classes, resulting in an overall accuracy of just 79.2\%. Lastly, RoBERTa continues to have the lowest performance with an accuracy of only 65.74\%, clearly reflecting its unsuitability for governance classification tasks.
+
+\begin{table}[htbp]
+\centering
+\caption{Sentiment Classification Performance for Social}
+\label{tab:soc_sentiment}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{\makecell{Overall\\accuracy}} & \textbf{\makecell{Negative\\F1 Score}} & \textbf{\makecell{Neutral\\F1 Score}} & \textbf{\makecell{Positive\\F1 Score}} \\
+\midrule
+PhoBERT & \textbf{92.75} & 95.23 & 90.21 & 92.75 \\
+Vi-Electra & 91.72 & 96.25 & 88.77 & 90.29 \\
+Visobert & 88.58 & 92.39 & 83.23 & 86.99 \\
+DistilBERT-multilingual & 86.55 & 90.05 & 83.06 & 86.40 \\
+DeBERTa & 86.55 & 91.97 & 82.16 & 85.57 \\
+ViBERT & 83.79 & 89.36 & 77.45 & 84.02 \\
+BERT-base & 75.86 & 84.20 & 69.10 & 74.10 \\
+RoBERTa & 73.79 & 78.16 & 69.84 & 73.91 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In the social domain, which often involves more diverse content and subtler nuances. PhoBERT continues to affirm its position by achieving the highest accuracy (92.75\%) along with outstanding F1 scores across all classes, especially the Negative class (95.23). Vi-Electra closely follows with an accuracy of 91.72\%, standing out for its ability to detect negative content (96.25 F1), the highest among all models across all domains. Visobert, DeBERTa, and DistilBERT-multilingual show stable performance (accuracy above 86\%) and demonstrate strong classification capabilities in the highly flexible linguistic context of social discourse. ViBERT maintains an average position with an accuracy of 83.79\%, lower than the leading group. Older models like BERT-base and RoBERTa, which were not pretrained in Vietnamese or in a multilingual setting, continue to perform poorly, with accuracies of only 75.86\% and 73.79\%, respectively. Their F1 scores for the Neutral class are particularly low, indicating difficulty in distinguishing between neutral and positive social nuances.
+
+\section{Software} \label{software}
+
+The process of generating ESG analysis results begins with uploading a PDF document through the file uploader located in the left column of the interface. Once the PDF is uploaded, users can proceed with text extraction using one of two available methods. The first method involves manually selecting specific text sections within the PDF viewer by highlighting relevant content, which automatically saves the selected text to temporary files. The second method utilizes the "Get all PDF text" button to automatically extract the entire document content and normalize it for analysis. After text extraction, users must select the appropriate company from the dropdown menu or input a new company name, as this selection determines the industry-specific ESG weight factors that will be applied during scoring calculations according to the SASB Materiality Map standards. Our tool interface illustrator in Figure \ref{fig:esg-web-input}.
+
+\begin{figure}[!h]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/hinh_1.png}
+% \vspace{-5in}
+\caption{Interface for ESG classification and score system}
+\label{fig:esg-web-input}
+\end{figure}
+
+Following text preparation, users review the extracted content in the analysis area to ensure it meets the minimum requirement of 10 characters for analysis. The system automatically displays text statistics including word count, line count, and sentence count, and provides a status indicator showing when the text is ready for analysis. Once validation is complete, users initiate the ESG analysis by clicking the "Analyze ESG" button, which triggers the automated processing system to categorize text into Environmental, Social, Governance, and Irrelevant categories while performing sentiment analysis for each ESG dimension.
+
+\begin{figure}[!h]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/hinh_2.png}
+% \vspace{-5in}
+\caption{Output for ESG classification and score system}
+\label{fig:esg-web-output}
+\end{figure}
+
+The final step involves reviewing the comprehensive analysis results, which are presented through multiple visualization formats including bar charts showing sentence counts per category, pie charts displaying percentage distributions, and sentiment distribution charts illustrating the Positive/Neutral/Negative breakdown across ESG categories. The system automatically calculates weighted ESG scores based on sentiment analysis and industry-specific weight factors, presenting the results in a detailed table format that shows sentiment averages and weighted contributions for each ESG dimension, ultimately providing a complete ESG performance assessment. All input analysis is shown in Figure  \ref{fig:esg-web-output}.
+
+\section{Conclusion and Future Work}\label{con}
+
+This thesis addresses the critical gap in NLP resources and tools for Environmental, Social, and Governance (ESG) analysis in Vietnamese, a low-resource language that has been largely overlooked in prior research. To bridge this gap, we introduced the \textbf{ViEn-ESG} dataset, a large-scale bilingual (Vietnamese–English) resource comprising 130,798 sentence-level samples labeled across four classes (Environmental, Social, Governance, and Neutral). To the best of our knowledge, this is the first publicly available dataset designed for ESG text classification in Vietnamese, providing a valuable foundation for future research in sustainability analytics for emerging markets.
+
+Building on this dataset, we fine-tuned a series of BERT-based models for ESG classification, demonstrating the effectiveness of transfer learning for domain-specific and low-resource settings. Our best-performing bilingual model achieved an F1 score of 94.83\% on English and 91.94\% on Vietnamese, while the Vietnamese-only model attained an accuracy of 94.66\%. These results establish a strong multilingual benchmark for ESG classification and underscore the capability of large pre-trained language models to deliver robust cross-lingual performance.
+
+In addition to classification, we introduced an ESG scoring mechanism that aggregates sentiment signals across Environmental, Social, and Governance dimensions. This approach provides interpretable, quantitative assessments of corporate sustainability, offering practical utility for researchers, rating agencies, and industry stakeholders. Collectively, our contributions advance both the methodological and practical landscape for ESG analysis in low-resource languages.
+
+This thesis addresses the critical gap in Natural Language Processing (NLP) resources and tools for Environmental, Social, and Governance (ESG) analysis in Vietnamese, a low-resource language that has been largely overlooked in prior research. 
+
+
+Building on the findings and contributions of this thesis, we identify several directions for future research to advance ESG classification in Vietnamese and multilingual contexts:
+
+\begin{itemize} 
+    \item \textbf{Dataset Enrichment and Extension:} With ViEn-ESG released in this work, future efforts can expand the dataset with additional ESG sources such as CSR disclosures and sustainability reports. Augmentation techniques and integration of structured data (e.g., emissions, workforce metrics) can further enhance model performance and applicability.
+
+    \item \textbf{Extending to Broader ESG Tasks:} Beyond classification, future research could explore tasks such as ESG entity recognition, impact type and duration detection, and hierarchical topic modeling for deeper insight extraction from sustainability reports.
+
+    \item \textbf{Cross-Lingual and Multilingual Extensions:} Expanding to additional languages and leveraging advanced cross-lingual transfer learning techniques can enable scalable ESG analytics in diverse linguistic contexts, supporting global sustainability assessments.
+    
+    \item \textbf{Real-World Applications:} The classified ESG information could be used to track companies' non-financial performance in near real-time or to enhance ESG rating systems with timely and explainable insights.
+\end{itemize}
+
+By addressing these directions, future research can further strengthen scalable, multilingual ESG analytics and contribute to more transparent, data-driven sustainability evaluation frameworks.
+
+\clearpage
+\bibliography{arxiv}
+
+\clearpage
+\appendix
+
+\section{Translate Prompt for EraX-Translator-V1.0} \label{translate-prompt}
+
+To enrich the Vietnamese portion of our dataset, we applied a translation-based labeling strategy that converts high-quality English sentences with gold-standard ESG labels into Vietnamese. This approach provides a scalable method for generating labeled data in a low-resource language, ensuring semantic alignment across both languages.
+
+For this process, we used the official system prompt recommended by the authors of the \texttt{erax-ai/EraX-Translator-V1.0} model to ensure accurate and domain-preserving translations:
+
+\begin{figure}[!h]
+\hspace*{-0.2in} % Shift image 0.5 inch to the left
+\centering
+\includegraphics[width=1.\columnwidth]{figures/prompt.png}
+% \vspace{-5in}
+\caption{Prompt for EraX-Translator-V1.0 models.}
+\label{fig:trans-prompt}
+\end{figure}
+
+% \begin{table*}[!ht]
+% \centering
+% \caption{Prompt for EraX-Translator-V1.0 models.}
+% \begin{tcolorbox}[
+%     colframe=black,
+%     colback=white,
+%     boxrule=1pt,
+%     arc=0pt,
+%     fontupper=\small\ttfamily,
+%     boxsep=3pt,
+%     left=5pt,
+%     right=0pt,
+%     parbox=false
+% ]
+% \selectlanguage{vietnamese}
+% \begin{lstlisting}[
+%     breaklines,
+%     basicstyle=\small\ttfamily,
+%     frame=none,
+%     backgroundcolor=\color{white},
+%     escapeinside={(*}{*)},
+%     captionpos=b,
+%     columns=fullflexible,
+%     keepspaces=true,
+%     xleftmargin=0pt,
+%     xrightmargin=0pt
+% ]
+% Bạn là Trợ lý AI xuất sắc về dịch thuật nhiều ngôn ngữ, đặc biệt tiếng Anh, tiếng Trung Hoa, tiếng Việt.
+% Bạn cũng là 1 Hoà thượng Phật giáo uyên thâm về dịch thuật Cổ văn Trung Quốc. Người dùng sẽ giao nhiệm vụ dịch thuật cho bạn từ ngôn ngữ bất kỳ sang một ngôn ngữ được chỉ định.
+% Nhiệm vụ của bạn là dịch thật sát nghĩa, thể hiện đúng ý của bài gốc và không chế tác hay bịa đặt gì thêm. Đặc biệt lưu ý danh xưng phải giữ nguyên vẹn, dịch đúng tên người, tên địa danh phải tuyệt đối chính xác. Không được bình luận, không được cung cấp lời giới thiệu hay mở bài hay kết luận gì, chỉ dịch thật sát nghĩa và không bỏ qua bất kỳ ý hay từ nào.
+
+% "{sentence}. Dịch sang tiếng Việt"
+% \end{lstlisting}
+% \end{tcolorbox}
+% \label{tab:gpt4o_prompt}
+% \end{table*}
+% \begin{figure}
+%     \centering
+%     \subfloat[]{\includegraphics[width=0.48\linewidth]{figures/word_cloud_en.pdf}} 
+%     \subfloat[]{\includegraphics[width=0.48\linewidth]{figures/word_cloud_vi.pdf}} 
+%     \caption{Comparison of English and Vietnamese word clouds.}
+%     \label{fig:word_cloud_comparison}
+% \end{figure}
+
+
+% \section{Prompt Template for Code Execution Pipeline in future work}\label{app:cases}
+
+% In the future, a structured prompt template can be designed to extract executable code from problem descriptions, enabling a \textbf{Code Execution Pipeline} for validation. This prompt should guide the model to identify code snippets accurately while distinguishing between problem statements, explanations, and non-executable text.
+
+
+% \begin{table*}[!ht]
+% \centering
+% \caption{Prompt for extract codes from problem.}
+% \begin{tcolorbox}[
+%     colframe=black,
+%     colback=white,
+%     boxrule=1pt,
+%     arc=0pt,
+%     fontupper=\small\ttfamily,
+%     boxsep=3pt,
+%     left=5pt,
+%     right=0pt,
+%     parbox=false
+% ]
+% \begin{lstlisting}[
+%     breaklines,
+%     basicstyle=\small\ttfamily,
+%     frame=none,
+%     backgroundcolor=\color{white},
+%     escapeinside={(*}{*)},
+%     captionpos=b,
+%     columns=fullflexible,
+%     keepspaces=true,
+%     xleftmargin=0pt,
+%     xrightmargin=0pt
+% ]
+% You are an AI assistant that extracts programming code and its language from a natural language question. The question may contain code in multiple languages, such as C, C++, Java, JavaScript, Python, or PHP...
+
+% Your task:
+% 1. Identify the programming language of the code in the question.
+% 2. Extract the relevant code and wrap it in a structured format with XML-style tags.
+
+% **Output Format:**
+% <code lang="LANGUAGE"> CODE CONTENT </code> ``` Replace `LANGUAGE` with language in problem.
+
+% Problem:
+% {question}
+% \end{lstlisting}
+% \end{tcolorbox}
+% \label{tab:llama_prompt}
+% \end{table*}
+% \clearpage
+% \begin{table*}[!h]
+% \centering
+% \caption{Prompt for Qwen2.5 models choice answer with code execution ouput.}
+% \begin{tcolorbox}[
+%     colframe=black,
+%     colback=white,
+%     boxrule=1pt,
+%     arc=0pt,
+%     fontupper=\small\ttfamily,
+%     boxsep=3pt,
+%     left=5pt,
+%     right=0pt,
+%     parbox=false
+% ]
+% \begin{lstlisting}[
+%     breaklines,
+%     basicstyle=\small\ttfamily,
+%     frame=none,
+%     backgroundcolor=\color{white},
+%     escapeinside={(*}{*)},
+%     captionpos=b,
+%     columns=fullflexible,
+%     keepspaces=true,
+%     xleftmargin=0pt,
+%     xrightmargin=0pt
+% ]
+% Based on the following code execution output, select the correct answer to the question.
+
+% Question: {question}
+
+% Execution output: {code_output}
+
+% Choices:
+
+% {choices_formatted}
+
+% Analyze the output carefully and select the letter (A, B, C, D, etc.) that corresponds to the correct answer.
+% Put your final answer in <answer>LETTER</answer> tags.
+% \end{lstlisting}
+% \end{tcolorbox}
+% \label{tab:llama_prompt}
+% \end{table*}
+
+\end{document}

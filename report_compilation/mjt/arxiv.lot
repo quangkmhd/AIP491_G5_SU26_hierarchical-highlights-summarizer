@@ -1,0 +1,13 @@
+\contentsline {table}{\numberline {1}{\ignorespaces Model selected in our experiment}}{14}{table.caption.2}%
+\contentsline {table}{\numberline {2}{\ignorespaces Overview of datasets utilized for ESG classification and sentiment analysis.}}{15}{table.caption.3}%
+\contentsline {table}{\numberline {3}{\ignorespaces Labeling rules for the ViEn-ESG dataset}}{19}{table.caption.7}%
+\contentsline {table}{\numberline {4}{\ignorespaces Labeling rules for the sentiment dataset.}}{19}{table.caption.8}%
+\contentsline {table}{\numberline {5}{\ignorespaces Cohen's Kappa coefficients measuring inter-annotator agreement across ESG categories and languages in the ViEn-ESG dataset.}}{20}{table.caption.9}%
+\contentsline {table}{\numberline {6}{\ignorespaces Sample labeled data in the ViEn-ESG dataset.}}{20}{table.caption.10}%
+\contentsline {table}{\numberline {7}{\ignorespaces Class-wise distribution of ViEn-ESG Dataset.}}{21}{table.caption.11}%
+\contentsline {table}{\numberline {8}{\ignorespaces Comparison of Transformer-based models for Vietnamese language}}{25}{table.caption.15}%
+\contentsline {table}{\numberline {9}{\ignorespaces F1 scores of models on each ESG category in the English ViEn-ESG dataset.}}{27}{table.caption.17}%
+\contentsline {table}{\numberline {10}{\ignorespaces F1 scores of models on each ESG category in the Vietnamese ViEn-ESG dataset. }}{27}{table.caption.18}%
+\contentsline {table}{\numberline {11}{\ignorespaces Sentiment Classification Performance for Environment}}{29}{table.caption.20}%
+\contentsline {table}{\numberline {12}{\ignorespaces Sentiment Classification Performance for Governance}}{30}{table.caption.21}%
+\contentsline {table}{\numberline {13}{\ignorespaces Sentiment Classification Performance for Social}}{30}{table.caption.22}%

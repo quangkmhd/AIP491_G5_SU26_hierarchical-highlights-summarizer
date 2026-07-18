@@ -175,71 +175,212 @@ $$
 Trong đó ngưỡng quyết định $\theta_{\text{spk}}$ được thiết lập mặc định là `0.88`. Nếu độ tương đồng cao nhất vượt quá ngưỡng, đoạn thoại được gắn nhãn người nói hiện hữu $n_{i^*}$. Ngược lại, hệ thống sẽ tự động gán nhãn người nói mới $n_{\text{new}}$ (ví dụ `"Speaker 02"`) và đăng ký vector nhúng $\bar{e}_{\text{new}}$ vào danh sách để đối sánh cho các câu thoại tiếp theo. Quy trình định danh này giúp hệ thống đạt độ chính xác x, y, z.
 
 ### Thuật toán Multi-Scale Sliding TextTiling (Multi-Scale Sliding TextTiling Algorithm)
-Thuật toán Multi-Scale Sliding TextTiling được lấy ý tưởng và cải tiến từ thuật toán phân đoạn TextTiling gốc của Hearst [@Hearst1997], kết hợp thêm cơ chế cửa sổ trượt (sliding block) và tổng hợp điểm sâu đa bán kính để tối ưu hóa việc phân đoạn trong hội thoại.
 
+Giải thuật phân đoạn chủ đề Multi-Scale Sliding TextTiling được phát triển dựa trên nền tảng cải tiến thuật toán TextTiling gốc của Hearst [@Hearst1997]. Nhằm tối ưu hóa hiệu năng phân đoạn đối với dữ liệu hội thoại tiếng Việt dài và có tính chất truyền luồng liên tục (streaming audio/text), nghiên cứu này tích hợp thêm cơ chế so khớp khối từ vựng trượt (sliding block), phân hoạch cửa sổ cục bộ (sliding window partitioning) và tổng hợp điểm độ sâu thung lũng đa bán kính quan sát (multi-radius integrated depth score). Thiết kế này giúp hệ thống tự động xác định các ranh giới dịch chuyển chủ đề một cách nhạy bén và mạnh mẽ trước nhiễu ngôn ngữ nói mà không cần dựa vào các mô hình học sâu có chi phí tính toán lớn.
 
-#### Tiền xử lý và độ tương đồng khối (Preprocessing and Block-level Similarity)
-Với mỗi utterance $u_i$, hệ thống chuyển chữ thường, loại ký tự đặc biệt, lọc từ dừng tiếng Việt bằng stopwordsiso [@Stopwordsiso2024] và tạo vector tần suất $b_i(w) = \operatorname{tf}(w, u_i)$. Tại khe $i$ giữa $u_i$ và $u_{i+1}$, hai khối có kích thước $k$ được biểu diễn bởi:
+#### Tiền xử lý và vectơ hóa hội thoại (Dialogue Preprocessing and Vectorization)
+
+Để chuẩn bị dữ liệu đầu vào cho quá trình so khớp từ vựng, chuỗi hội thoại gồm $n$ câu thoại (utterances) $U = (u_1, u_2, \dots, u_n)$ trước hết được xử lý qua khâu tiền xử lý ngôn ngữ. Đối với mỗi câu thoại $u_i$, hệ thống thực hiện các bước chuẩn hóa văn bản bao gồm: chuyển đổi về dạng chữ thường (lowercasing), loại bỏ các ký tự đặc biệt và dấu câu không mang thông tin ngữ nghĩa. Tiếp theo, hệ thống tiến hành tách từ tiếng Việt và loại bỏ từ dừng (stopwords) dựa trên danh sách từ dừng của thư viện `stopwordsiso` [@Stopwordsiso2024]. 
+
+Sau khi làm sạch, mỗi câu thoại $u_i$ được biểu diễn dưới dạng một vectơ tần suất từ vựng (term frequency vector) theo mô hình túi từ (Bag-of-Words - BoW):
+$$
+b_i(w) = \operatorname{tf}(w, u_i)
+$$
+Trong đó, $b_i(w)$ biểu thị tần suất xuất hiện của từ $w$ trong câu thoại $u_i$.
+
+#### Tương đồng cosine giữa các khối cửa sổ trượt (Sliding Block Cosine Similarity)
+
+Việc so sánh trực tiếp giữa hai câu thoại ngắn đơn lẻ thường gặp hiện tượng thưa thớt dữ liệu (data sparsity) do người nói có thể sử dụng các từ đồng nghĩa hoặc các đoản ngữ ngắn khác nhau. Để khắc phục vấn đề này, thuật toán nhóm các câu thoại kề nhau thành các khối văn bản (blocks) có kích thước cố định $k$ (block_size). Tại mỗi vị trí khe ranh giới (boundary gap) $i$ nằm giữa câu thoại $u_i$ và $u_{i+1}$ ($i = 1, 2, \dots, n-1$), hai khối văn bản liên tiếp bên trái ($B_L^i$) và bên phải ($B_R^i$) được xây dựng bằng cách cộng dồn các vectơ tần suất câu thoại tương ứng:
 $$
 B_L^i(w) = \sum_{j=\max(1, i-k+1)}^{i} b_j(w)
 $$
 $$
 B_R^i(w) = \sum_{j=i+1}^{\min(n, i+k)} b_j(w)
 $$
-Độ tương đồng cosine:
+Độ tương đồng ngữ cảnh tại khe ranh giới $i$ được định lượng bằng độ tương đồng cosine (cosine similarity) giữa hai khối văn bản:
 $$
 S_i = \frac{B_L^i \cdot B_R^i}{\|B_L^i\|_2 \|B_R^i\|_2 + \varepsilon}
 $$
-Trong đó $\varepsilon=10^{-10}$ tránh phép chia cho 0 khi một khối rỗng sau tiền xử lý. Giá trị thấp cho biết hai phía chia sẻ ít từ vựng và có thể là điểm chuyển chủ đề. So sánh theo khối ổn định hơn so sánh hai câu ngắn riêng lẻ.
+Trong đó, $B_L^i \cdot B_R^i$ là tích vô hướng của hai vectơ tần suất, $\| \cdot \|_2$ đại diện cho chuẩn Euclidean ($L_2$ norm), và hằng số $\varepsilon = 10^{-10}$ được bổ sung vào mẫu số nhằm ngăn ngừa lỗi chia cho số không (division by zero) trong trường hợp một trong hai khối văn bản trống hoàn toàn sau bước lọc từ dừng. Một giá trị $S_i$ thấp biểu thị sự khác biệt lớn về phân phối từ vựng giữa hai khối kề nhau, báo hiệu một vị trí có khả năng chuyển đổi chủ đề cao.
 
-#### Điểm sâu thung lũng đa bán kính (Multi-radius Depth Scoring)
-Với bán kính $r$, đỉnh trái và phải quanh khe $i$ là:
+#### Phân hoạch cửa sổ trượt cho chế độ truyền luồng (Sliding Window Partitioning for Streaming Mode)
+
+Trong bối cảnh hệ thống vận hành theo luồng thời gian thực hoặc xử lý các cuộc hội thoại cực dài, việc tính toán độ tương đồng và ngưỡng động trên toàn bộ văn bản đầu vào sẽ gây ra độ trễ lớn và làm mất đi tính cục bộ của các chủ đề. Để giải quyết thách thức này, khi số lượng câu thoại $n$ vượt quá kích thước cửa sổ quan sát $W$ (window_size, mặc định $W = 40$), thuật toán áp dụng cơ chế phân hoạch cửa sổ trượt (sliding window partitioning). 
+
+Quy trình phân hoạch được thực hiện theo các bước sau:
+1. Chuỗi hội thoại được chia nhỏ thành các cửa sổ con chồng lặp có độ dài cố định $W$, tịnh tiến dọc theo trục thời gian với bước nhảy $S$ (stride, mặc định $S = 5$). Tập hợp các điểm bắt đầu của cửa sổ con được định nghĩa như sau:
 $$
-p_L(i, r) = \max_{\max(1, i-r) \le j \le i} S_j
+Starts = \{0, S, 2S, \dots, p \cdot S\} \cup \{n - W\}
 $$
+Trong đó, $p$ là số nguyên lớn nhất thỏa mãn $p \cdot S < n - W$, bảo đảm cửa sổ cuối cùng được ghim chặt vào phần đuôi của văn bản để không bỏ sót các câu thoại cuối.
+2. Mỗi khe ranh giới toàn cục $g \in \{1, 2, \dots, n-1\}$ được gán duy nhất cho cửa sổ con có vị trí trung tâm gần nó nhất:
 $$
-p_R(i, r) = \max_{i \le j \le \min(n-1, i+r)} S_j
+start^*(g) = \arg\min_{start \in Starts} \left| g - \left( start + \frac{W - 1}{2} \right) \right|
 $$
-Điểm sâu:
+3. Tại mỗi cửa sổ con bắt đầu từ $start$, các tính toán về độ tương đồng và điểm độ sâu thung lũng được thực hiện độc lập trên chuỗi câu thoại cục bộ của cửa sổ đó. Việc tính toán cục bộ này giúp hạn chế hiện tượng phình to độ lệch chuẩn toàn cục khi văn bản trải qua nhiều chủ đề quá khác biệt, từ đó giữ cho việc xác định ranh giới luôn nhạy bén với các thay đổi chủ đề cục bộ.
+
+#### Điểm độ sâu thung lũng đa bán kính (Multi-radius Depth Scoring)
+
+Điểm độ sâu thung lũng (depth score) tại một khe ranh giới đại diện cho mức độ sụt giảm của độ tương đồng từ vựng so với các đỉnh tương đồng lân cận. Thay vì sử dụng một bán kính tìm kiếm đỉnh đơn lẻ (dễ dẫn đến hiện tượng nhạy cảm quá mức với nhiễu cục bộ hoặc bỏ sót ranh giới lớn), nghiên cứu này đề xuất giải thuật điểm sâu thung lũng đa bán kính (multi-radius depth scoring).
+
+Với mỗi khe $i$ và bán kính tìm kiếm $r \in R$, thuật toán duyệt từ khe $i$ sang hai phía trái và phải để xác định đỉnh tương đồng cục bộ bên trái $p_L(i, r)$ và bên phải $p_R(i, r)$. Quá trình duyệt sẽ dừng lại ngay khi giá trị tương đồng bắt đầu có xu hướng giảm (gặp điểm uốn thung lũng). Cụ thể:
+- Đỉnh trái $p_L(i, r) = S_{j^*}$, với $j^*$ là chỉ số nhỏ nhất thuộc đoạn $[\max(1, i-r), i]$ thỏa mãn điều kiện chuỗi tương đồng không giảm khi duyệt về bên trái: $S_m \ge S_{m+1}$ với mọi $m \in [j^*, i-1]$.
+- Đỉnh phải $p_R(i, r) = S_{k^*}$, với $k^*$ là chỉ số lớn nhất thuộc đoạn $[i, \min(n-1, i+r)]$ thỏa mãn điều kiện chuỗi tương đồng không giảm khi duyệt về bên phải: $S_m \ge S_{m-1}$ với mọi $m \in [i+1, k^*]$.
+
+Điểm độ sâu thung lũng $D_r(i)$ tương ứng với bán kính $r$ tại khe $i$ được tính bằng khoảng cách trung bình từ khe $i$ đến hai đỉnh tương đồng kề cận:
 $$
 D_r(i) = \frac{p_L(i, r) + p_R(i, r) - 2S_i}{2}
 $$
-Đề tài sử dụng $R = \{3, 5, 10, 15, 20\}$. Mỗi mảng điểm được chuẩn hóa để bán kính lớn không chi phối:
+Nhằm chuẩn hóa các điểm độ sâu thu được từ các bán kính khác nhau về cùng một quy mô phân phối (tránh việc các bán kính lớn có giá trị điểm tuyệt đối cao chi phối kết quả), thuật toán thực hiện chuẩn hóa Z-score (Z-score normalization) độc lập cho từng bán kính $r$:
 $$
-\widehat{D}_r(i) = \frac{D_r(i) - \mu_r}{\sigma_r + 10^{-10}}
+\widehat{D}_r(i) = \frac{D_r(i) - \mu_r}{\sigma_r + \varepsilon}
 $$
-trong đó $\mu_r$ và $\sigma_r$ lần lượt là trung bình và độ lệch chuẩn của điểm sâu $D_r(i)$ trên tất cả các khe.
+Trong đó, $\mu_r$ và $\sigma_r$ lần lượt là giá trị trung bình (mean) và độ lệch chuẩn (standard deviation) của chuỗi điểm độ sâu $D_r$ tính trên toàn bộ các khe của cửa sổ hiện tại (hoặc toàn bộ văn bản ở chế độ xử lý hàng loạt), và $\varepsilon = 10^{-10}$ là hằng số chống chia cho không.
+
+Cuối cùng, biểu đồ điểm độ sâu tích hợp đa quy mô (aggregated depth score) $\bar{D}(i)$ tại khe $i$ được xác định bằng cách lấy trung bình cộng các giá trị đã chuẩn hóa của tất cả các bán kính trong tập bán kính đa quy mô $R = \{3, 5, 10, 15, 20\}$:
 $$
 \bar{D}(i) = \frac{1}{|R|} \sum_{r \in R} \widehat{D}_r(i)
 $$
 
-#### Ngưỡng động và gộp phân đoạn ngắn (Dynamic Thresholding and Greedy Merging)
-Ngưỡng thích ứng được tính:
-$$
-\tau = \mu(\bar{D}) + \alpha \sigma(\bar{D})
-$$
-Khe có $\bar{D}(i) > \tau$ là ứng viên ranh giới. Cấu hình mặc định được chọn gồm `block_size = 3`, `alpha = 0.9`, `radii = [3, 5, 10, 15, 20]` và `min_segment_ratio = 0.08`. Độ dài tối thiểu là:
-$$
-m_{\min} = \max(2, \lfloor 0.08n \rfloor)
-$$
-Nếu một phân đoạn ngắn hơn $m_{\min}$, thuật toán xóa ranh giới yếu hơn trong hai ranh giới bao quanh để gộp đoạn vào láng giềng. Bước hậu xử lý làm giảm quá phân mảnh và tránh gửi quá ít ngữ cảnh cho mô hình sinh.
+#### Ngưỡng thích ứng động và gộp tham lam (Adaptive Dynamic Thresholding and Greedy Merging)
 
-#### Mã giả thuật toán (Algorithm Pseudocode)
+Để đưa ra quyết định phân đoạn chủ đề, thuật toán thiết lập một ngưỡng thích ứng động (adaptive threshold) $\tau$ dựa trên phân phối điểm độ sâu cục bộ của từng cửa sổ quan sát (hoặc toàn văn bản ở chế độ batch):
+$$
+\tau = \mu(\bar{D}) + \alpha \cdot \sigma(\bar{D})
+$$
+Trong đó, $\mu(\bar{D})$ và $\sigma(\bar{D})$ lần lượt là trung bình và độ lệch chuẩn của chuỗi điểm độ sâu tích hợp $\bar{D}$ trong phạm vi đánh giá, và $\alpha$ là hệ số điều chỉnh ngưỡng (mặc định $\alpha = 0.9$). Những vị trí khe $i$ thỏa mãn điều kiện $\bar{D}(i) > \tau$ được lựa chọn làm ranh giới chủ đề ứng viên.
+
+Sau khi tổng hợp toàn bộ các ranh giới ứng viên, hệ thống bổ sung thêm ranh giới cuối cùng của cuộc hội thoại ($n$) làm điểm chốt chặn bắt buộc (force-close boundary). Nhằm khắc phục hiện tượng quá phân mảnh (over-segmentation) — tình trạng các phân đoạn quá ngắn được sinh ra do nhiễu hoặc do các câu thoại ngắn ngắt quãng — giải thuật thực hiện quy trình gộp tham lam hậu xử lý (greedy merging post-processing). Độ dài tối thiểu của một phân đoạn (tính theo số câu thoại) được giới hạn bởi:
+$$
+m_{\min} = \max(2, \lfloor r_{\min} \cdot n \rfloor)
+$$
+Trong đó, $r_{\min}$ là tỷ lệ phân đoạn tối thiểu (mặc định $r_{\min} = 0.08$). Quy trình gộp tham lam được vận hành tuần tự như sau:
+1. Xác định phân đoạn ngắn nhất có độ dài thực tế nhỏ hơn $m_{\min}$. Nếu không còn phân đoạn nào vi phạm điều kiện độ dài tối thiểu, giải thuật kết thúc.
+2. So sánh hai ranh giới bao quanh phân đoạn ngắn này. Ranh giới có giá trị điểm độ sâu tích hợp $\bar{D}(i)$ thấp hơn (yếu hơn) sẽ bị loại bỏ khỏi danh sách ranh giới.
+3. Sáp nhập phân đoạn ngắn vào phân đoạn láng giềng kề cạnh và quay lại Bước 1.
+
+Bước hậu xử lý gộp tham lam này giúp bảo toàn ngữ cảnh liền mạch cho mỗi chủ đề trước khi chuyển giao sang các khối tóm tắt ViT5 ở giai đoạn tiếp theo.
+
+#### Sơ đồ giải thuật và Mã giả (Algorithm Flowchart and Pseudocode)
+
+Quy trình vận hành logic của giải thuật Multi-Scale Sliding TextTiling được trình bày dưới dạng mã giả chi tiết trong Thuật toán 1 và sơ đồ luồng hoạt động trong Hình 2.
+
+**Thuật toán 1: Giải thuật phân đoạn chủ đề Multi-Scale Sliding TextTiling**
 ```text
-Input: utterances U, block size k, radii R, alpha, min ratio
-1. Chuyển từng utterance thành biểu diễn BoW sau khi lọc stopword.
-2. Tính độ tương đồng cosine giữa khối trái và phải tại mọi khe.
-3. Với mỗi bán kính r trong R: tính depth score và chuẩn hóa Z-score.
-4. Lấy trung bình các mảng depth đã chuẩn hóa để có aggregated_depth.
-5. Thiết lập ngưỡng động: tau <- mean(aggregated_depth) + alpha * std(aggregated_depth).
-6. Chọn khe có aggregated_depth > tau và thêm điểm chốt chặn kết thúc.
-7. Gộp tham lam các phân đoạn ngắn hơn tỷ lệ min_segment_ratio.
-8. Trả về ranh giới các phân đoạn chủ đề.
+Input:
+  - U: Danh sách các câu thoại đầu vào U = [u_1, u_2, ..., u_n]
+  - k: Kích thước khối văn bản (block_size, mặc định k = 3)
+  - R: Tập hợp các bán kính đa quy mô (radii, mặc định R = [3, 5, 10, 15, 20])
+  - alpha: Hệ số điều chỉnh ngưỡng động (alpha, mặc định alpha = 0.9)
+  - r_min: Tỷ lệ phân đoạn tối thiểu (min_segment_ratio, mặc định r_min = 0.08)
+  - W: Kích thước cửa sổ trượt (window_size, mặc định W = 40)
+  - S: Bước tịnh tiến cửa sổ trượt (stride, mặc định S = 5)
+
+Output:
+  - B: Danh sách các ranh giới phân đoạn chủ đề cuối cùng
+
+Khởi tạo:
+  - B_BoW <- []  // Lưu trữ biểu diễn BoW của các câu thoại
+  - boundaries_cand <- []  // Ranh giới ứng viên
+  - boundary_depths <- {}   // Lưu trữ điểm độ sâu tại các ranh giới ứng viên
+
+Giai đoạn 1: Tiền xử lý và Vectơ hóa BoW
+1:  Với mỗi câu thoại u_i thuộc U (i = 1 đến n):
+2:      u_i' <- Chuẩn hóa, chuyển chữ thường, lọc ký tự đặc biệt của u_i
+3:      Từ_tách <- Tách từ tiếng Việt và lọc từ dừng từ u_i' bằng stopwordsiso
+4:      b_i <- Tạo vectơ tần suất tf(w, u_i') từ Từ_tách
+5:      B_BoW.append(b_i)
+
+Giai đoạn 2: Phân hoạch cửa sổ và Đánh giá cục bộ
+6:  Nếu n <= W:  // Chế độ xử lý hàng loạt (Batch Mode)
+7:      Mảng_S <- Tính độ tương đồng cosine giữa các khối kích thước k tại mọi khe i thuộc [1, n-1]
+8:      Mảng_D_multi <- []
+9:      Với mỗi bán kính r thuộc R:
+10:         D_r <- Tính điểm độ sâu thung lũng từ Mảng_S theo bán kính r
+11:         D_r_norm <- Chuẩn hóa Z-score của D_r (với epsilon = 1e-10)
+12:         Mảng_D_multi.append(D_r_norm)
+13:     D_agg <- Lấy trung bình cộng các mảng trong Mảng_D_multi theo chiều dọc
+14:     Ngưỡng_tau <- mean(D_agg) + alpha * std(D_agg)
+15:     boundaries_cand <- { i | D_agg[i] > Ngưỡng_tau }
+16:     Với mỗi i thuộc boundaries_cand: boundary_depths[i] <- D_agg[i]
+17:  Nếu n > W:   // Chế độ xử lý truyền luồng (Streaming Mode)
+18:      Starts <- {0, S, 2S, ..., p*S} U {n - W}
+19:      Khởi tạo gap_to_window mapping rỗng
+20:      Với mỗi khe g thuộc [1, n-1]:
+21:          Xác định start*(g) là cửa sổ có tâm gần g nhất trong Starts
+22:          gap_to_window[g] <- start*(g)
+23:      Với mỗi start thuộc Starts:
+24:          Window_BoW <- B_BoW[start : start + W]
+25:          Mảng_S_local <- Tính tương đồng cosine giữa các khối kích thước k tại mọi khe cục bộ
+26:          Mảng_D_local_multi <- []
+27:          Với mỗi bán kính r thuộc R:
+28:              D_r_local <- Tính điểm độ sâu thung lũng từ Mảng_S_local theo bán kính r
+29:              D_r_local_norm <- Chuẩn hóa Z-score của D_r_local
+30:              Mảng_D_local_multi.append(D_r_local_norm)
+31:          D_agg_local <- Lấy trung bình cộng các mảng trong Mảng_D_local_multi
+32:          Ngưỡng_local_tau <- mean(D_agg_local) + alpha * std(D_agg_local)
+33:          Với mỗi khe g tương ứng với cửa sổ start:
+34:              j <- g - start (chỉ số cục bộ trong cửa sổ)
+35:              Nếu D_agg_local[j] > Ngưỡng_local_tau:
+36:                  boundaries_cand.append(g)
+37:                  boundary_depths[g] <- D_agg_local[j]
+
+Giai đoạn 3: Hậu xử lý gộp tham lam phân đoạn ngắn
+38: B <- Sắp xếp và loại trùng lặp (boundaries_cand) U {n}
+39: m_min <- max(2, floor(r_min * n))
+40: Lặp lại liên tục:
+41:     Tìm phân đoạn ngắn nhất [prev_b + 1, curr_b] trong B có độ dài (curr_b - prev_b) < m_min
+42:     Nếu không tìm thấy phân đoạn nào thỏa mãn, thoát lặp
+43:     Nếu phân đoạn ngắn nhất ở biên đầu hoặc cuối và không thể gộp thêm:
+44:         Loại bỏ ranh giới biên tương ứng ra khỏi B
+45:     Ngược lại:
+46:         So sánh boundary_depths[prev_b] và boundary_depths[curr_b]
+47:         Loại bỏ ranh giới có độ sâu nhỏ hơn (yếu hơn) ra khỏi B
+48: Trả về danh sách ranh giới phân đoạn chủ đề cuối cùng B
 ```
 
-![Các bước của Multi-Scale Sliding TextTiling](assets/fig2_steps.png)
+```mermaid
+graph TD
+    %% Input
+    Input["Đầu vào: Chuỗi lượt lời U, Kích thước khối k, Tập bán kính R, Hệ số alpha, Tỷ lệ gộp tối thiểu, Kích thước cửa sổ W, Bước tịnh tiến S"] --> Raw
 
-**Hình 2. Các bước của Multi-Scale Sliding TextTiling**
+    subgraph Step1["Bước 1: Tiền xử lý & Vectơ hóa (Preprocessing & Vectorization)"]
+        Raw["Lượt thoại thô"] --> Tokenize["Chuẩn hóa & Tách từ tiếng Việt"]
+        Tokenize --> Stopwords["Lọc từ dừng (Stopwordsiso)"]
+        Stopwords --> BoW["Biểu diễn túi từ (Bag-of-Words)"]
+    end
+
+    BoW --> ModeDecision{Số câu thoại n > W?}
+
+    subgraph ModeStreaming["Chế độ xử lý truyền luồng (Streaming Mode)"]
+        ModeDecision -->|"Đúng"| Partition["Phân hoạch cửa sổ trượt (Overlapping Windows)"]
+        Partition --> LocalSimilarity["Tính tương đồng cosine cục bộ (Local Similarity)"]
+        LocalSimilarity --> LocalDepth["Tính điểm sâu đa bán kính cục bộ (Local Depth Scores)"]
+        LocalDepth --> LocalThreshold["Tính ngưỡng động cục bộ tau_local = mean + alpha * std"]
+        LocalThreshold --> LocalSelect["Chọn khe vượt ngưỡng cục bộ làm ranh giới ứng viên"]
+    end
+
+    subgraph ModeBatch["Chế độ xử lý hàng loạt (Batch Mode)"]
+        ModeDecision -->|"Sai"| GlobalSimilarity["Tính tương đồng cosine toàn cục (Global Similarity)"]
+        GlobalSimilarity --> GlobalDepth["Tính điểm sâu đa bán kính toàn cục (Global Depth Scores)"]
+        GlobalDepth --> GlobalThreshold["Tính ngưỡng động toàn cục tau = mean + alpha * std"]
+        GlobalThreshold --> GlobalSelect["Chọn khe vượt ngưỡng toàn cục làm ranh giới ứng viên"]
+    end
+
+    LocalSelect --> MergeCandidates["Gộp tất cả các ranh giới ứng viên & Thêm điểm khóa chốt n"]
+    GlobalSelect --> MergeCandidates
+
+    subgraph Step7["Bước 7: Gộp tham lam hậu xử lý (Greedy Merging Post-processing)"]
+        MergeCandidates --> Check["Kiểm tra độ dài phân đoạn nhỏ hơn m_min"]
+        Check -->|"Đúng"| Merge["Loại bỏ ranh giới yếu hơn có độ sâu thung lũng nhỏ hơn"]
+        Check -->|"Sai"| Keep["Giữ nguyên ranh giới phân đoạn"]
+        Merge --> Check
+    end
+
+    Keep --> Output["Đầu ra: Ranh giới phân đoạn chủ đề cuối cùng"]
+```
+
+**Hình 2. Sơ đồ các bước thuật toán của giải thuật Multi-Scale Sliding TextTiling**
 
 ### Tóm tắt khối bằng ViT5 (Chunk Summarization via ViT5)
 Mỗi phân đoạn được chia tuần tự, không chồng lấn, thành các chunk tối đa 8 utterance. Đầu vào giữ người nói và thêm tiền tố tác vụ:
