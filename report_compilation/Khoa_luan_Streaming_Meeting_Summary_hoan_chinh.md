@@ -410,8 +410,6 @@ Trong đó $P$ là tiêu đề do mô hình dự đoán và $C$ đại diện ch
 
 Sơ đồ mô tả quy trình luồng xử lý phân cấp và tích hợp của hai mô hình trong đường ống tóm tắt cuộn phân cấp được biểu diễn cụ thể dưới đây:
 
-[Hình ảnh Sơ đồ quy trình tích hợp của các mô hình ViT5 và BARTpho trong đường ống tóm tắt cuộn phân cấp.] 
-
 ```mermaid
 graph TD
     A["Phân đoạn chủ đề<br>(Topic Segment)"] --> B["Cắt phân mảnh cố định<br>(8-Utterance Chunking)"]
@@ -430,6 +428,8 @@ graph TD
     style J fill:#f6ffed,stroke:#52c41a,stroke-width:1.5px
     style K fill:#fff7e6,stroke:#ffa940,stroke-width:2px
 ```
+
+**Hình 3. Sơ đồ quy trình tích hợp của các mô hình ViT5 và BARTpho trong đường ống tóm tắt cuộn phân cấp**
 
 ---
 
@@ -457,13 +457,13 @@ Quá trình benchmark phân đoạn chủ đề sử dụng 6 bộ dữ liệu h
 
 **Thống kê quy mô các bộ dữ liệu phân đoạn chủ đề hội thoại**
 
-| Bộ dữ liệu          | Số lượng hội thoại | Tổng số utterance | TB utterance/đoạn | Số phân đoạn | Đặc trưng                                             |
-| ------------------- | ------------------ | ----------------- | ----------------- | ------------ | ----------------------------------------------------- |
-| `dialseg_711`       | 711                | 19.350            | 27,2              | 3.465        | Bản dịch từ AMI [@Carletta2005], các utterance ngắn.  |
-| `doc2dial`          | 3.270              | 42.585            | 13,0              | 11.400       | Bản dịch dịch vụ công nhiệm vụ [@Feng2020].           |
-| `meeting_ami`       | 137                | 73.379            | 535,6             | 601          | Bản dịch từ AMI [@Carletta2005], họp dài phức tạp.    |
-| `meeting_committee` | 36                 | 7.477             | 207,7             | 254          | Bản dịch thảo luận ủy ban chuyên sâu, trang trọng.    |
-| `meeting_icsi`      | 59                 | 48.321            | 819,0             | 268          | Bản dịch từ ICSI [@Janin2003], họp học thuật cực dài. |
+| Bộ dữ liệu          | Số lượng hội thoại | Tổng số utterance | TB utterance/đoạn | Số phân đoạn | Đặc trưng                                                      |
+| ------------------- | ------------------ | ----------------- | ----------------- | ------------ | -------------------------------------------------------------- |
+| `dialseg_711`       | 711                | 19.350            | 27,2              | 3.465        | Bản dịch từ AMI [@Carletta2005], các utterance ngắn.           |
+| `doc2dial`          | 3.270              | 42.585            | 13,0              | 11.400       | Bản dịch dịch vụ công nhiệm vụ [@Feng2020].                    |
+| `meeting_ami`       | 137                | 73.379            | 535,6             | 601          | Bản dịch từ AMI [@Carletta2005], họp dài phức tạp.             |
+| `meeting_committee` | 36                 | 7.477             | 207,7             | 254          | Bản dịch thảo luận ủy ban chuyên sâu, trang trọng.             |
+| `meeting_icsi`      | 59                 | 48.321            | 819,0             | 268          | Bản dịch từ ICSI [@Janin2003], họp học thuật cực dài.          |
 | `tiage`             | 500                | 7.802             | 15,6              | 2.013        | Bản dịch dữ liệu đối thoại có nhãn chuyển chủ đề [@TIAGE2021]. |
 
 
@@ -621,7 +621,7 @@ Các kết quả thực nghiệm khẳng định hiệu năng vượt trội c�
 
 ![So sánh hiệu năng phân đoạn của các giải thuật](assets/segmenter_comparison_v2.png)
 
-**Hình 3. So sánh hiệu năng phân đoạn của các giải thuật (Điểm Composite, Pk trung bình và F1-score trung bình)**
+**Hình 4. So sánh hiệu năng phân đoạn của các giải thuật (Điểm Composite, Pk trung bình và F1-score trung bình)**
 
 ### Kết quả huấn luyện bộ tóm tắt khối ViT5 (ViT5 Chunk Summarizer Training Results)
 
@@ -641,7 +641,7 @@ Các kết quả thực nghiệm khẳng định hiệu năng vượt trội c�
 |    10 |     1,1964 | **0,7352** |  0,4968 |     0,5545 | Overfit nặng                      |
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch](assets/vit5_training_history.png)
 
-**Hình 4. Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch**
+**Hình 5. Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch**
 
 Mặc dù hàm mất mát đạt cực tiểu ở epoch 3, chỉ số ROUGE-L lại đạt đỉnh ở epoch 6. Quyết định chọn checkpoint epoch 6 giúp bảo toàn khả năng sinh từ ngữ có tính liên kết cấu trúc tốt hơn.
 
@@ -684,7 +684,7 @@ ROUGE-Max đo độ tương đồng với tiêu đề tham chiếu có điểm c
 
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch](assets/bartpho_training_history_new.png)
 
-**Hình 5. Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch**
+**Hình 6. Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch**
 
 ### Phân tích toàn diện pipeline phân cấp (Hierarchical Pipeline Analysis)
 Các kết quả định lượng khẳng định tính khả thi của kiến trúc phân cấp:
