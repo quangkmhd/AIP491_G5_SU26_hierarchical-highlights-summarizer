@@ -435,37 +435,85 @@ graph TD
 
 ## Bộ dữ liệu (Dataset)
 
-### Dữ liệu cho các mô hình tạo sinh (Generative Model Datasets)
-Dữ liệu chính được sử dụng là `AliMeeting4MUG_vi`, một bản dịch tiếng Việt do chúng tôi thực hiện từ bộ data AliMeeting4MUG [@Zhang2023MUG]. Quá trình dịch sử dụng `tencent/Hy-MT2-1.8B`, sau đó có bước rà soát thủ công. Tập huấn luyện nguồn chứa 295 bản ghi hội thoại; trường `chunk_summaries` cung cấp khoảng `start_id`–`end_id` và tóm tắt tương ứng. Quá trình trích xuất tạo ra 28.079 cặp `(chunk, summary)`. 
+Trong phần này, chúng tôi trình bày chi tiết các bộ dữ liệu được sử dụng để phát triển, huấn luyện và đánh giá hệ thống tóm tắt hội thoại phân cấp tiếng Việt thời gian thực của chúng tôi. Việc xây dựng một hệ thống tóm tắt phân cấp (hierarchical meeting recap) kết hợp phân đoạn chủ đề (topic segmentation) đòi hỏi nguồn dữ liệu phong phú, chất lượng cao, có khả năng nắm bắt được các đặc tính phức tạp của ngôn ngữ đối thoại tự nhiên. Do các bộ dữ liệu cuộc họp chuẩn hóa gốc hầu hết được biên soạn bằng tiếng Anh và tiếng Trung, chúng tôi đã thực hiện quy trình dịch thuật máy thích ứng miền kết hợp hiệu đính thủ công nghiêm ngặt để xây dựng các tài nguyên dữ liệu tiếng Việt tương đương.
+
+**Tổng quan về các bộ dữ liệu được sử dụng cho nhiệm vụ tóm tắt phân cấp và phân đoạn chủ đề.**
+
+| Tên bộ dữ liệu      | Tác vụ chính               | Quy mô                            | Đặc trưng miền & Độ dài                      | Nguồn gốc                      | Phương pháp xây dựng |
+| :------------------ | :------------------------- | :-------------------------------- | :------------------------------------------- | :----------------------------- | :------------------- |
+| `AliMeeting4MUG_vi` | Tóm tắt khối & Tạo tiêu đề | 425 hội thoại (37.980 chunk)      | Cuộc họp dự án đa người nói (Dài)            | AliMeeting MUG [@Zhang2023MUG] | Dịch máy & Hiệu đính |
+| `dialseg_711`       | Phân đoạn chủ đề           | 711 hội thoại (19.350 lượt lời)   | Thảo luận thiết kế nhóm (Ngắn)               | AMI Corpus [@Carletta2005]     | Dịch máy & Hiệu đính |
+| `doc2dial`          | Phân đoạn chủ đề           | 3.270 hội thoại (42.585 lượt lời) | Đối thoại hướng nhiệm vụ dịch vụ công (Ngắn) | Doc2Dial [@Feng2020]           | Dịch máy & Hiệu đính |
+| `meeting_ami`       | Phân đoạn chủ đề           | 137 hội thoại (73.379 lượt lời)   | Cuộc họp thiết kế sản phẩm (Rất dài)         | AMI Corpus [@Carletta2005]     | Dịch máy & Hiệu đính |
+| `meeting_committee` | Phân đoạn chủ đề           | 36 hội thoại (7.477 lượt lời)     | Phiên thảo luận ủy ban chính trị (Dài)       | Thảo luận ủy ban               | Dịch máy & Hiệu đính |
+| `meeting_icsi`      | Phân đoạn chủ đề           | 59 hội thoại (48.321 lượt lời)    | Cuộc họp học thuật nhóm nghiên cứu (Rất dài) | ICSI Corpus [@Janin2003]       | Dịch máy & Hiệu đính |
+| `tiage`             | Phân đoạn chủ đề           | 500 hội thoại (7.802 lượt lời)    | Đàm thoại đời thường chuyển chủ đề (Ngắn)    | TIAGE [@TIAGE2021]             | Dịch máy & Hiệu đính |
+
+### Mô tả bộ dữ liệu (Dataset Description)
+
+Một viên đá tảng trong khâu huấn luyện các mô hình tạo sinh của nghiên cứu này là bộ dữ liệu `AliMeeting4MUG_vi`, phiên bản tiếng Việt được chúng tôi xây dựng từ bộ dữ liệu AliMeeting MUG gốc [@Zhang2023MUG]. Bộ dữ liệu này được thiết kế chuyên biệt cho tác vụ tóm tắt hội thoại phân cấp. Tập dữ liệu huấn luyện nguồn chứa 425 bản ghi hội thoại cuộc họp thực tế, trong đó trường thông tin tóm tắt khối hội thoại (chunk_summaries) cung cấp các khoảng chỉ mục lượt lời bắt đầu và kết thúc (`start_id`–`end_id`) kèm theo văn bản tóm tắt tương ứng. Quy trình trích xuất đã tạo ra tổng cộng 37.980 cặp dữ liệu dạng (khối hội thoại, văn bản tóm tắt) (`(chunk, summary)`). Về mặt thống kê chi tiết, mỗi cuộc họp trong `AliMeeting4MUG_vi` có thời lượng trung bình là 722,8 lượt lời (tương ứng khoảng 8.465,1 từ tiếng Việt), số lượng người nói dao động từ 2 đến 4 người (trung bình là 2,7 người nói mỗi cuộc họp). Mỗi khối hội thoại (chunk) được trích xuất có độ dài trung bình là 7,6 lượt lời (khoảng 88,7 từ), và văn bản tóm tắt mục tiêu (target summary) tương ứng có độ dài trung bình là 39,3 từ. Điều này cho thấy tỷ lệ nén thông tin trung bình đạt khoảng 44,3% (tương đương tỷ lệ nén 1:2,26), phản ánh tính cô đọng ngữ nghĩa của nhãn tóm tắt phân cấp.
+
+Bên cạnh đó, để phục vụ quá trình benchmark và đánh giá thuật toán phân đoạn chủ đề (topic segmentation), chúng tôi sử dụng 6 bộ dữ liệu hội thoại tiếng Việt được chuyển ngữ và chuẩn hóa bao gồm:
+1. `dialseg_711`: Gồm 711 cuộc hội thoại với tổng cộng 19.350 lượt lời (utterances), trung bình 27,2 lượt lời mỗi cuộc hội thoại và chia thành 3.465 phân đoạn chủ đề (trung bình 5,6 lượt lời mỗi phân đoạn), được dịch từ bộ dữ liệu AMI [@Carletta2005].
+2. `doc2dial`: Gồm 3.270 cuộc hội thoại, tổng cộng 42.585 lượt lời, trung bình 13,0 lượt lời mỗi cuộc hội thoại và chia thành 11.400 phân đoạn chủ đề (trung bình 3,7 lượt lời mỗi phân đoạn), được dịch từ dữ liệu đối thoại hướng nhiệm vụ [@Feng2020].
+3. `meeting_ami`: Gồm 137 cuộc họp thực tế với quy mô lớn, tổng cộng 73.379 lượt lời, trung bình 535,6 lượt lời mỗi cuộc hội thoại và chia thành 601 phân đoạn chủ đề (trung bình 122,1 lượt lời mỗi phân đoạn), được dịch từ bộ dữ liệu AMI gốc [@Carletta2005].
+4. `meeting_committee`: Gồm 36 cuộc hội thoại với tổng cộng 7.477 lượt lời, trung bình 207,7 lượt lời mỗi cuộc hội thoại và chia thành 254 phân đoạn chủ đề (trung bình 29,4 lượt lời mỗi phân đoạn), được dịch từ các phiên thảo luận của ủy ban.
+5. `meeting_icsi`: Gồm 59 cuộc họp với tổng cộng 48.321 lượt lời, trung bình 819,0 lượt lời mỗi cuộc hội thoại và chia thành 268 phân đoạn chủ đề (trung bình 180,3 lượt lời mỗi phân đoạn), được dịch từ bộ dữ liệu ICSI gốc [@Janin2003].
+6. `tiage`: Gồm 500 cuộc hội thoại với 7.802 lượt lời, trung bình 15,6 lượt lời mỗi cuộc hội thoại và chia thành 2.013 phân đoạn chủ đề (trung bình 3,9 lượt lời mỗi phân đoạn), được dịch từ bộ dữ liệu đối thoại nhận biết chuyển dịch chủ đề TIAGE [@TIAGE2021].
+
+Sự phân bổ về số lượng hội thoại và số lượng câu thoại (utterance) giữa các bộ dữ liệu được minh họa chi tiết trong Hình 4. Biểu đồ cho thấy sự khác biệt rõ rệt về mặt quy mô giữa các bộ dữ liệu đối thoại thông thường (như `dialseg_711`, `doc2dial`, `tiage` vốn có số lượng cuộc hội thoại lớn nhưng mỗi cuộc thoại tương đối ngắn) và các bộ dữ liệu cuộc họp thực tế chuyên sâu (như `meeting_ami`, `meeting_icsi` và bộ dữ liệu tạo sinh `AliMeeting4MUG_vi` vốn có tổng quy mô câu thoại vượt trội nhất lên tới 287.569 câu). Sự đa dạng và phân hóa sâu sắc về mặt cấu trúc này đóng vai trò quyết định trong việc đánh giá khả năng tổng quát hóa và độ ổn định của các thuật toán phân đoạn chủ đề phi giám sát và mô hình tóm tắt khi đối mặt với mật độ thông tin khác nhau.
+
+![Phân bổ quy mô các bộ dữ liệu phân đoạn chủ đề](assets/segmentation_dataset_dist.png)
+
+**Hình 4. Thống kê quy mô cuộc hội thoại và câu thoại trên các bộ dữ liệu**
+
+Hình 5 mô tả sự tương phản về đặc trưng độ dài trung bình ở hai cấp độ: cấp độ cuộc hội thoại (số lượng lượt lời trung bình trên mỗi cuộc hội thoại, biểu đồ bên trái) và cấp độ câu thoại (số lượng từ trung bình trên mỗi lượt lời, biểu đồ bên phải). Nhìn vào biểu đồ bên trái, các cuộc họp học thuật như `meeting_icsi` (trung bình 819,0 lượt lời), các cuộc họp thuộc `AliMeeting4MUG_vi` (trung bình 676,6 lượt lời) và các cuộc họp nhóm như `meeting_ami` (trung bình 535,6 lượt lời) thể hiện quy mô ngữ cảnh thảo luận rất lớn, trái ngược hoàn toàn với các cuộc đối thoại hướng nhiệm vụ ngắn gọn như `doc2dial` (trung bình 13,0 lượt lời) hay `tiage` (trung bình 15,6 lượt lời). Ở chiều ngược lại (biểu đồ bên phải), mặc dù `meeting_committee` có số lượng lượt lời ở mức trung bình, độ dài mỗi câu thoại của bộ dữ liệu này lại cực kỳ cao (trung bình 73,9 từ mỗi câu), phản ánh văn phong nghị sự trang trọng với các câu thoại dài và cấu trúc lập luận phức tạp. Ngược lại, các cuộc họp của `AliMeeting4MUG_vi` và `meeting_ami` chỉ có trung bình lần lượt là 11,7 và 11,2 từ mỗi câu thoại, đặc trưng bởi các câu nói ngắn, đối thoại nhanh và nhiều từ đệm tự nhiên. Đặc trưng phân hóa này giúp hệ thống được thử nghiệm đa dạng dưới nhiều mô hình mật độ từ vựng khác nhau.
+
+![So sánh độ dài trung bình của hội thoại và lượt lời](assets/dataset_length_comparison.png)
+
+**Hình 5. Độ dài trung bình của cuộc hội thoại và câu thoại trên các bộ dữ liệu**
+
+### Thu thập dữ liệu (Data Collection)
+
+Việc thu thập dữ liệu gốc được tiến hành từ các nguồn ngữ liệu đối thoại và cuộc họp chuẩn hóa đã được công bố trong cộng đồng học thuật quốc tế. Dữ liệu phục vụ mô hình tạo sinh được thu thập từ điểm chuẩn AliMeeting MUG [@Zhang2023MUG], vốn ghi lại các cuộc họp đa người nói trong môi trường thực tế với cấu trúc hội thoại tự nhiên. Đối với tác vụ phân đoạn chủ đề, chúng tôi thu thập dữ liệu từ các nguồn tài nguyên kinh điển như AMI Meeting Corpus [@Carletta2005] chứa các cuộc họp thiết kế sản phẩm giả lập, ICSI Meeting Corpus [@Janin2003] ghi lại các cuộc họp học thuật của các nhóm nghiên cứu, và các bộ dữ liệu đối thoại hiện đại như Doc2Dial [@Feng2020] và TIAGE [@TIAGE2021].
+
+### Tiền xử lý dữ liệu (Data Preprocessing)
+
+Quy trình tiền xử lý dữ liệu được thiết lập chặt chẽ nhằm chuyển đổi dữ liệu hội thoại phi cấu trúc thành các định dạng chuẩn hóa phù hợp cho mô hình huấn luyện và kiểm thử.
+Đối với bộ dữ liệu tạo sinh `AliMeeting4MUG_vi`, các khối hội thoại (chunks) được giới hạn độ dài với số lượng token đầu vào trung bình là 137 token, trung vị là 132 token, phân vị P99 là 296 token và token lớn nhất đạt 2.045 token. Văn bản tóm tắt mục tiêu (target summary) có độ dài trung bình khoảng 175 ký tự (tương đương khoảng 50 token), tối đa là 382 ký tự. Nhãn tiêu đề chủ đề (topic titles) được gán tối đa ba phương án tham chiếu do con người biên soạn để tăng cường tính khách quan khi đánh giá.
+Đối với các bộ dữ liệu phân đoạn chủ đề, sau khi hoàn tất quy trình dịch máy, chúng tôi tiến hành đánh giá chất lượng dịch thuật bằng cách trích xuất ngẫu nhiên 5% mẫu dữ liệu (5% random sample) trên mỗi bộ để kiểm chứng chéo qua mô hình **Gemini 1.5 Flash**. Quy trình này áp dụng cơ chế đánh giá nhị phân (binary evaluation): gán điểm 1 cho các cặp câu dịch chính xác, bảo toàn ngữ nghĩa gốc và gán điểm 0 cho các bản dịch sai lệch. Độ chính xác dịch thuật trung bình (average translation accuracy) ghi nhận đạt tới **99,0%**. Sau đó, dữ liệu được đưa qua bước tiền xử lý chuẩn hóa bao gồm tách câu, chuẩn hóa định dạng số, loại bỏ các ký tự phi văn bản, chuẩn hóa ranh giới lượt lời và loại bỏ các câu quá ngắn không mang giá trị ngữ nghĩa.
+
+### Phương pháp luận dịch thuật và Đảm bảo chất lượng (Translation Methodology and Quality Assurance)
+
+#### Gán nhãn dựa trên dịch thuật máy thích ứng miền (Domain-Adapted Translation-Based Labeling)
+
+Do các bộ dữ liệu gốc được biên soạn bằng tiếng Anh hoặc tiếng Trung, chúng tôi đã áp dụng chiến lược dịch thuật máy thích ứng miền để chuyển ngữ toàn bộ các tài nguyên này sang tiếng Việt. Chúng tôi sử dụng mô hình dịch thuật song ngữ chất lượng cao `tencent/Hy-MT2-1.8B` để thực hiện quá trình dịch. Mô hình này được lựa chọn nhờ khả năng bảo toàn cấu trúc ngữ nghĩa hội thoại và chuyển ngữ chính xác các thuật ngữ chuyên ngành. Quy trình dịch thuật giúp kế thừa trực tiếp các nhãn ranh giới phân đoạn chủ đề và nhãn tóm tắt phân cấp từ các bộ dữ liệu gốc sang các bản dịch tiếng Việt tương ứng mà không làm thay đổi cấu trúc lô-gíc của cuộc họp.
+
+#### Hiệu đính thủ công và Kiểm soát chất lượng (Manual Correction and Quality Control)
+
+Sau khi hoàn thành khâu dịch máy tự động, chúng tôi triển khai quy trình hiệu đính thủ công (manual correction) nghiêm ngặt để đảm bảo chất lượng và độ chính xác tối đa của dữ liệu. Đội ngũ hiệu đính gồm các chuyên gia có kinh nghiệm trong lĩnh vực xử lý ngôn ngữ tự nhiên tiến hành rà soát từng bản ghi để phát hiện và sửa đổi các lỗi ngữ pháp, lỗi phân đoạn từ tự động, ranh giới câu thoại không chính xác hoặc các đoạn dịch tối nghĩa. Các từ ghép và thuật ngữ hội thoại đặc thù tiếng Việt được chuẩn hóa để đảm bảo tính tự nhiên của ngôn ngữ nói. Mọi sự bất đồng về mặt ngữ nghĩa trong quá trình hiệu đính đều được thảo luận tập thể để đạt được sự đồng thuận nhất trí trước khi đưa vào tập dữ liệu cuối cùng.
+
+Để kiểm chứng chéo một cách khách quan trước khi hiệu đính thủ công, quy trình đánh giá chất lượng dịch thuật tự động (LLM-based automatic evaluation) cũng được triển khai trên 5% mẫu dữ liệu trích xuất ngẫu nhiên từ mỗi bộ dữ liệu bằng mô hình **Gemini 3.5 Flash**. Mô hình AI thực hiện chấm điểm tự động theo thang đo nhị phân (binary scoring): gán điểm 1 cho các cặp dịch thuật chính xác, bảo toàn trọn vẹn ngữ nghĩa gốc và cấu trúc tự nhiên của tiếng Việt; gán điểm 0 cho các trường hợp dịch thuật gặp lỗi thông tin hoặc diễn đạt nghiêm trọng. Kết quả đánh giá trên tập mẫu thử nghiệm cho thấy độ chính xác dịch thuật trung bình (average translation accuracy) đạt tới **99,0%** (tỷ lệ điểm 1 đạt 99%), khẳng định tính nhất quán và chất lượng nền tảng cao của dữ liệu dịch trước khi tiến hành bước hiệu đính thủ công (manual correction) chi tiết.
+
+#### Phân chia dữ liệu chống rò rỉ (Data Splitting and Leakage Prevention)
+
+Để đảm bảo tính khách quan và ngăn ngừa hiện tượng rò rỉ dữ liệu (data leakage) khi huấn luyện các mô hình tạo sinh, chúng tôi thực hiện phân chia dữ liệu huấn luyện và đánh giá ở mức độ cuộc họp (meeting-level group split). Cụ thể, thay vì phân chia ngẫu nhiên ở mức độ khối (chunk-level), việc phân chia được cố định theo mã định danh cuộc họp (`meeting_id`) với tỷ lệ 90/10 (hạt nhóm cố định với hạt giống ngẫu nhiên `seed = 42`). Cách tiếp cận này đảm bảo các khối hội thoại thuộc cùng một cuộc họp sẽ không xuất hiện đồng thời ở cả tập huấn luyện (training set) và tập kiểm định (validation set), giúp đánh giá chính xác khả năng tổng quát hóa của mô hình trên các cuộc họp mới chưa từng xuất hiện trong quá trình huấn luyện.
 
 **Thống kê tập dữ liệu huấn luyện và đánh giá mô hình tạo sinh**
 
-| Tập dữ liệu          | Số bản ghi (Hội thoại) | Đơn vị đánh giá | Quy mô trích xuất |
-| -------------------- | ---------------------- | --------------- | ----------------- |
-| Train nguồn          | 295                    | 28.079 chunk    | -                 |
-| Train sau chia (90%) | 265                    | 25.051 chunk    | -                 |
-| Validation (10%)     | 30                     | 3.028 chunk     | -                 |
-| Dev benchmark        | 65                     | 6.038 chunk     | 736 chủ đề        |
+| Tập dữ liệu                       | Số bản ghi (Hội thoại) | Đơn vị đánh giá | Quy mô trích xuất      | Số lượng câu thoại |
+| :-------------------------------- | :--------------------- | :-------------- | :--------------------- | :----------------- |
+| Tập huấn luyện nguồn (Train)      | 295                    | 28.079 chunk    | 3.263 phân đoạn chủ đề | 213.235 câu        |
+| ├ *Tập huấn luyện sau chia (90%)* | 265                    | 25.051 chunk    | 2.925 phân đoạn chủ đề | 190.257 câu        |
+| └ *Tập kiểm định sau chia (10%)*  | 30                     | 3.028 chunk     | 338 phân đoạn chủ đề   | 22.978 câu         |
+| Tập kiểm định phát triển (Dev)    | 65                     | 6.038 chunk     | 736 phân đoạn chủ đề   | 45.869 câu         |
+| Tập kiểm thử benchmark (Test)     | 65                     | 3.863 chunk     | 696 phân đoạn chủ đề   | 28.465 câu         |
 
+Đặc trưng phân phối độ dài từ (word-level length distribution) của các khối hội thoại đầu vào và bản tóm tắt mục tiêu trong tập huấn luyện của bộ dữ liệu tạo sinh `AliMeeting4MUG_vi` được thể hiện trong Hình 6. Biểu đồ bên trái chỉ ra phân phối độ dài từ của các khối hội thoại (chunk input) với độ dài trung bình đạt 88,7 từ và phân bố tập trung nhiều nhất trong khoảng từ 50 đến 150 từ, đảm bảo phù hợp với giới hạn ngữ cảnh 512 token của mô hình ViT5. Trong khi đó, biểu đồ bên phải cho thấy độ dài từ của bản tóm tắt mục tiêu (target summary) được phân bố chuẩn hóa xung quanh giá trị trung bình là 39,3 từ (tập trung chủ yếu trong khoảng 30 đến 50 từ), thể hiện tính súc tích, cô đọng thông tin tối đa của các nhãn tóm tắt được gán.
 
-Train/validation được chia 90/10 với seed 42. Đầu vào trung bình 137 token, trung vị 132, P99 là 296 và lớn nhất 2.045 token. Tóm tắt đích trung bình khoảng 175 ký tự (~50 token), tối đa 382 ký tự. Nhãn tiêu đề có tối đa ba phương án do con người gán.
+![Phân phối độ dài từ của khối hội thoại và bản tóm tắt](assets/alimeeting_len_dist.png)
 
-Để giải quyết nguy cơ rò rỉ dữ liệu (data leakage) khi các chunk thuộc cùng một cuộc họp xuất hiện đồng thời trong tập train và validation, chúng tôi phân chia dữ liệu huấn luyện và đánh giá ở mức độ cuộc họp (meeting-level group split) với tỷ lệ 90/10 cố định theo cuộc họp (seed 42). Việc chia nhóm theo `meeting_id` này giúp cố định validation theo cuộc họp và đảm bảo tính khách quan tối đa cho kết quả đánh giá.
-
-### Dữ liệu cho phân đoạn chủ đề (Topic Segmentation Datasets)
-Quá trình benchmark phân đoạn chủ đề sử dụng 6 bộ dữ liệu hội thoại. Tương tự như tập dữ liệu phục vụ mô hình tạo sinh, do các bộ dữ liệu gốc đều được biên soạn bằng tiếng Anh, chúng tôi đã tiến hành dịch toàn bộ các bộ dữ liệu này sang tiếng Việt bằng mô hình dịch thuật song ngữ `tencent/Hy-MT2-1.8B`, sau đó tiến hành rà soát và kiểm soát chất lượng thủ công:
-
-**Thống kê quy mô các bộ dữ liệu phân đoạn chủ đề hội thoại**
-
-| Bộ dữ liệu          | Số lượng hội thoại | Tổng số utterance | TB utterance/đoạn | Số phân đoạn | Đặc trưng                                                      |
-| ------------------- | ------------------ | ----------------- | ----------------- | ------------ | -------------------------------------------------------------- |
-| `dialseg_711`       | 711                | 19.350            | 27,2              | 3.465        | Bản dịch từ AMI [@Carletta2005], các utterance ngắn.           |
-| `doc2dial`          | 3.270              | 42.585            | 13,0              | 11.400       | Bản dịch dịch vụ công nhiệm vụ [@Feng2020].                    |
-| `meeting_ami`       | 137                | 73.379            | 535,6             | 601          | Bản dịch từ AMI [@Carletta2005], họp dài phức tạp.             |
-| `meeting_committee` | 36                 | 7.477             | 207,7             | 254          | Bản dịch thảo luận ủy ban chuyên sâu, trang trọng.             |
-| `meeting_icsi`      | 59                 | 48.321            | 819,0             | 268          | Bản dịch từ ICSI [@Janin2003], họp học thuật cực dài.          |
-| `tiage`             | 500                | 7.802             | 15,6              | 2.013        | Bản dịch dữ liệu đối thoại có nhãn chuyển chủ đề [@TIAGE2021]. |
-
+**Hình 6. Phân phối số lượng từ trong khối hội thoại đầu vào và bản tóm tắt mục tiêu trên bộ dữ liệu AliMeeting4MUG_vi**
 
 ---
 
@@ -621,7 +669,7 @@ Các kết quả thực nghiệm khẳng định hiệu năng vượt trội c�
 
 ![So sánh hiệu năng phân đoạn của các giải thuật](assets/segmenter_comparison_v2.png)
 
-**Hình 4. So sánh hiệu năng phân đoạn của các giải thuật (Điểm Composite, Pk trung bình và F1-score trung bình)**
+**Hình 7. So sánh hiệu năng phân đoạn của các giải thuật (Điểm Composite, Pk trung bình và F1-score trung bình)**
 
 ### Kết quả huấn luyện bộ tóm tắt khối ViT5 (ViT5 Chunk Summarizer Training Results)
 
@@ -641,7 +689,7 @@ Các kết quả thực nghiệm khẳng định hiệu năng vượt trội c�
 |    10 |     1,1964 | **0,7352** |  0,4968 |     0,5545 | Overfit nặng                      |
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch](assets/vit5_training_history.png)
 
-**Hình 5. Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch**
+**Hình 8. Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch**
 
 Mặc dù hàm mất mát đạt cực tiểu ở epoch 3, chỉ số ROUGE-L lại đạt đỉnh ở epoch 6. Quyết định chọn checkpoint epoch 6 giúp bảo toàn khả năng sinh từ ngữ có tính liên kết cấu trúc tốt hơn.
 
@@ -684,7 +732,7 @@ ROUGE-Max đo độ tương đồng với tiêu đề tham chiếu có điểm c
 
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch](assets/bartpho_training_history_new.png)
 
-**Hình 6. Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch**
+**Hình 9. Diễn biến hàm mất mát Loss và chỉ số ROUGE của BARTpho qua các epoch**
 
 ### Phân tích toàn diện pipeline phân cấp (Hierarchical Pipeline Analysis)
 Các kết quả định lượng khẳng định tính khả thi của kiến trúc phân cấp:
@@ -739,7 +787,7 @@ Thực nghiệm cho thấy khâu nhận dạng và định danh hoạt động �
 
 ![Trình tự phát sự kiện trong một segment đã được xác nhận](assets/fig7_sequence.png)
 
-**Hình 7. Trình tự phát sự kiện trong một segment đã được xác nhận**
+**Hình 10. Trình tự phát sự kiện trong một segment đã được xác nhận**
 
 Bộ điều phối lõi định nghĩa chuỗi truyền nhận dữ liệu qua 5 cột mốc tương đương với các trạng thái xử lý hội thoại:
 
