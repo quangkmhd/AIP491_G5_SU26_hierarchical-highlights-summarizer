@@ -35,6 +35,17 @@
 - Known risk or unresolved issue: 3 plan corrections were applied during execution -- (1) ConfigError implemented as module-level alias of pydantic.ValidationError (not Python subclass, because Pydantic v2's ValidationError is Rust-implemented and bypasses **init_subclass**); (2) sub-configs use bare field names for env override (no nested delimiter, no prefix -- only MeetingRecapConfig uses MEETING*RECAP*<SUB>\_\_<FIELD>); (3) extra='forbid' applies to model kwargs only, not to env vars (Pydantic-Settings treats unknown env vars as 'ignore'). All three are now reflected in the spec and README.
 - Next best step: Either merge feat/config-001-centralized-config to main, or proceed to data-001 (Multi-corpus Evaluation Data Loader) which can now consume MeetingRecapConfig.data_dir.
 
+### Session 003
+
+- Date: 2026-07-19
+- Goal: Rewrite the "Thực nghiệm và Phân tích" (Experiments and Analysis) section of the thesis report to match the professional academic style of arxiv.md and paper_mau.md.
+- Completed: Rewrote lines 516-776 of Khoa_luan_Streaming_Meeting_Summary_hoan_chinh.md. Applied bilingual definitions in parentheses, reformatted tables with bold headers, defined LaTeX equations for $P_k$ and WindowDiff ($WD$), integrated ASR and Speaker Identification placeholders (`x, y, z`) in academic narrative sentences, re-structured the Threats to Validity and Research Questions sections into detailed academic prose, and ensured markdown formatting logic aligns exactly with the model paper.
+- Verification run: Inspected changes using view_file to confirm clean markdown rendering and delimiter checks.
+- Evidence captured: task.md, implementation_plan.md, walkthrough.md.
+- Files or artifacts updated: report_compilation/Khoa_luan_Streaming_Meeting_Summary_hoan_chinh.md, progress.md.
+- Known risk or unresolved issue: None. All formatting constraints met.
+- Next best step: Review the thesis report for other sections that could benefit from academic style alignment.
+
 ## model-002 — AI Model Loader & File Repository (2026-07-04)
 
 **Status:** passing
