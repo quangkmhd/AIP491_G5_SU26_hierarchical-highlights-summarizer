@@ -42,8 +42,8 @@ Hệ thống triển khai và đánh giá 4 thuật toán phân đoạn thuộc 
    - **`sliding_texttiling`**: Thuật toán đa thang đo đề xuất của chúng tôi. Thay vì đo độ dốc sâu ở một kích thước cửa sổ cố định, thuật toán chạy song song nhiều bán kính trượt khác nhau để bắt được cả chuyển dịch chủ đề mịn (micro-shift) lẫn thô (macro-shift).
 
 2. **Supervised (Có giám sát - Học sâu)**:
-   - **`vibert_texttiling`**: Được chúng tôi tinh chỉnh (fine-tune) dựa trên phương pháp của Xing và Carenini (2021) [@Xing2021] trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm. Mô hình thay thế vector BoW tĩnh bằng vector nhúng ngữ nghĩa dày đặc sinh ra từ mô hình `Sentence-BERT` (`models/vibert/cpt_3818.pth`).
-   - **`bamibert_1dod`**: Được chúng tôi tinh chỉnh (fine-tune) dựa trên phương pháp phát hiện vật thể một chiều (1D Object Detection) của He và cộng sự (2024) [@He2024] trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm, phân loại trực tiếp biên lượt thoại (`models/bamibert-1dod-vi-v1`).
+   - **`vibert_texttiling`**: Được chúng tôi tinh chỉnh (fine-tune) dựa trên phương pháp của Xing và Carenini (2021) [@Xing2021] trên tập huấn luyện (train set) của các bộ dữ liệu tiếng Việt thực nghiệm tương ứng. Mô hình thay thế vector BoW tĩnh bằng vector nhúng ngữ nghĩa dày đặc sinh ra từ mô hình `Sentence-BERT` (`models/vibert/cpt_3818.pth`).
+   - **`bamibert_1dod`**: Được chúng tôi tinh chỉnh (fine-tune) dựa trên phương pháp phát hiện vật thể một chiều (1D Object Detection) của He và cộng sự (2025) [@He2025] trên tập huấn luyện (train set) của các bộ dữ liệu tiếng Việt thực nghiệm tương ứng, phân loại trực tiếp biên lượt thoại (`models/bamibert-1dod-vi-v1`).
 
 ---
 
@@ -103,10 +103,10 @@ $$\tau = \mu(\bar{D}) + \alpha \cdot \sigma(\bar{D}) \quad (\text{Mặc định 
 
 | Hạng | Thuật toán | Điểm Composite (↑) | Avg Pk (↓) | Avg WD (↓) | Avg F1 (↑) | Nhận xét hiệu năng thực tế |
 | :---: | :--- | :---: | :---: | :---: | :---: | :--- |
-| **1** | **`sliding_texttiling`** (Ours) | **0.7013** | **0.4731** | **0.4869** | 0.1340 | Đạt Composite cao nhất, cân bằng giữa độ chính xác biên (Pk, WD tốt nhất) và tốc độ xử lý vượt trội trên CPU. |
-| **2** | **`bamibert_1dod`** | **0.4787** | 0.5288 | 0.6519 | 0.0360 | Phân đoạn tốt trên tập ngắn, kém ổn định trên họp dài. |
-| **3** | **`vibert_texttiling`** | **0.3689** | 0.5552 | 0.7991 | **0.2461** | Đạt F1-score tốt nhất, nhưng có sai lệch biên lớn (Pk, WD kém nhất) và chi phí tính toán GPU rất cao. |
-| **4** | **`nltk_texttiling`** | **0.3035** | 0.5441 | 0.7029 | 0.1108 | Hiệu năng kém nhất do không được tối ưu hóa cho tiếng Việt. |
+| **1** | **`sliding_texttiling`** (Ours) | **0.7052** | **0.5259** | **0.6531** | **0.6089** | Đạt Composite cao nhất, cân bằng tốt giữa độ chính xác biên và tối ưu hóa phân đoạn trong streaming. |
+| **2** | **`bamibert_1dod`** | **0.4284** | 0.5288 | 0.6519 | 0.0360 | Phân đoạn tốt trên tập ngắn, kém ổn định trên họp dài. |
+| **3** | **`nltk_texttiling`** | **0.3558** | 0.5441 | 0.7029 | 0.1108 | Thấp do không tối ưu hóa từ vựng và đặc thù ngôn ngữ tiếng Việt. |
+| **4** | **`vibert_texttiling`** | **0.1929** | 0.5552 | 0.7991 | 0.2461 | Hiệu năng phân đoạn bị ảnh hưởng nhiều do trôi lệch ranh giới khi tính toán toàn cục trên văn bản dài. |
 
 ---
 

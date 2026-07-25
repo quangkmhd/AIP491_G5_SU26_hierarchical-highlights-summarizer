@@ -89,7 +89,7 @@ Hội thoại đầu vào được định nghĩa là chuỗi 1-indexed: $U = (u
 
 ### 3.3. Đối chiếu chỉ số hiệu năng
 Các chỉ số tự động được xác minh là nhất quán về mặt số liệu giữa báo cáo luận văn và file tóm tắt hệ thống `system_summary_report.md`:
-* **Sliding TextTiling** (trung bình trên 6 tập dữ liệu): $P_k = 0.4731$, $WD = 0.4869$, $F_1 = 0.1340$ (trên tập tiếng Việt `dialseg_711` đạt $P_k = 0.3651$, $WD = 0.3813$, $F_1 = 0.3423$).
+* **Sliding TextTiling** (trung bình trên 6 tập dữ liệu): $P_k = 0.5259$, $WD = 0.6531$, $F_1 = 0.6089$ (trên tập tiếng Việt `dialseg_711` đạt $P_k = 0.3633$, $WD = 0.3685$, $F_1 = 0.7018$).
 * **ViT5 Chunk Summarizer** (trên tập dev): ROUGE-1/2/L = $0.7265 / 0.4854 / 0.5486$.
 * **BARTpho Topic Titler** (trên tập dev): RougeMax-1/2/L = $0.5304 / 0.2837 / 0.4443$.
 
@@ -107,7 +107,7 @@ Dưới đây là bảng tổng hợp các điểm cần chỉnh sửa trong vă
 | **Dòng 126** | `\max(0, i-r)` | `\max(1, i-r)` | Đồng bộ chỉ mục 1-indexed của chuỗi hội thoại. |
 | **Dòng 129** | `\min(n-2, i+r)` | `\min(n-1, i+r)` | Đồng bộ số lượng khe phân đoạn tối đa trong chuỗi là $n-1$. |
 | **Dòng 137** | Thiếu định nghĩa cho $\mu_r$ và $\sigma_r$ trong công thức Z-score. | Thêm giải thích: `trong đó $\mu_r$ và $\sigma_r$ lần lượt là trung bình và độ lệch chuẩn của $D_r(i)$ trên tất cả các khe.` | Tăng tính chặt chẽ khoa học cho mô hình toán. |
-| **Dòng 148** | Siêu tham số: `block_size = 2, alpha = 1.5, min_segment_ratio = 0.1` | Siêu tham số mặc định của mã nguồn: `block_size = 3, alpha = 0.9, min_segment_ratio = 0.08` | Đảm bảo tính nhất quán giữa công bố học thuật và cấu hình triển khai mặc định trong code. |
+| **Dòng 302 / Phụ lục** | Siêu tham số cũ: `block_size = 3, alpha = 0.9, min_segment_ratio = 0.08` | Siêu tham số tối ưu mới: `block_size = 2, alpha = 1.2, min_segment_ratio = 0.20` | Đồng bộ hóa với cấu hình tối ưu hóa thực tế thu được từ quá trình chạy Grid Search trên tập dữ liệu tiếng Việt. |
 | **Dòng 272** | Hệ thống: `PyTorch 2.13.0+cu130; Transformers 5.13.1` | Hệ thống thực tế: `PyTorch 2.6.0+cu121; Transformers 5.12.0` | Loại bỏ các phiên bản thư viện học sâu hư cấu, cập nhật đúng thông tin thực tế. |
 | **Dòng 413** | Tiêu đề tối đa: `64 tokens` | Tiêu đề tối đa: `200 tokens` | Sửa lại giới hạn sinh tiêu đề của adapter BARTpho ở bước suy luận (inference). |
 | **Dòng 499** | Lời cảm ơn trong một số bản thảo cũ bị cắt ngắn. | (Đã xác minh bản hoàn chỉnh chứa đầy đủ văn bản cảm ơn TS. Nguyễn Văn A và Đại học FPT.) | Bảo toàn cấu trúc trình bày khoa học đầy đủ. |

@@ -54,7 +54,7 @@ Supervised segmenters leverage deep transformer models fine-tuned to recognize d
     *   Inherits similarity alignment features from TextTiling.
 
 ### 2. `bamibert_1dod` (`src/segmenters/bamibert_1dod.py`)
-*   **Concept**: Re-envisions dialogue segmenting as a **1D Object Detection task (1DOD)**, inspired by the paper *One-Dimensional Object Detection for Streaming Text Segmentation of Meeting Dialogue* [@He2024].
+*   **Concept**: Re-envisions dialogue segmenting as a **1D Object Detection task (1DOD)**, inspired by the paper *One-Dimensional Object Detection for Streaming Text Segmentation of Meeting Dialogue* [@He2025].
 *   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm dựa trên phương pháp phát hiện biên của He và cộng sự (2024).
 *   **How it works**:
     *   Utilizes a local fine-tuned model (`models/bamibert-1dod-vi-v1`).

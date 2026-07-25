@@ -68,7 +68,7 @@ def run_param_search(dev_data):
                                 for dialogue in dev_data:
                                     segs = [e.utterances_end - e.utterances_start + 1
                                             for e in tiler.process(dialogue['utterances'])]
-                                    pk = segeval.pk(segs, dialogue['segments'])
+                                    pk = float(segeval.pk(segs, dialogue['segments']))
                                     total_pk += pk
                                 mean_pk = total_pk / max(len(dev_data), 1)
                                 if mean_pk < best_pk:

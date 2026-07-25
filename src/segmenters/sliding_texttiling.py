@@ -300,7 +300,7 @@ def find_boundaries(
     boundaries.append(n - 1)
     boundaries = sorted(set(boundaries))
 
-    min_seg = max(2, int(n * min_segment_ratio))
+    min_seg = max(2, int(window_size * min_segment_ratio))
     if min_seg > 2 and len(boundaries) > 2:
         boundaries = merge_small_segments(boundaries, boundary_depths, min_seg)
 

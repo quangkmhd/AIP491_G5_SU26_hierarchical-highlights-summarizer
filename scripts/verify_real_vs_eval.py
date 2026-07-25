@@ -26,7 +26,14 @@ def main():
         eval_outputs = json.load(f)
 
     # This verification is segmentation-only; recap models are intentionally not loaded.
-    config = SlidingTextTilingConfig(alpha=1.0)
+    config = SlidingTextTilingConfig(
+        block_size=2,
+        radii=[3, 5, 10, 15, 20],
+        alpha=1.2,
+        agg="mean",
+        normalize="zscore",
+        min_segment_ratio=0.2
+    )
     tiler = SlidingTextTilingService(config=config)
 
     print("\nStarting 'real' production runs for dial_id 1 to 10...")
