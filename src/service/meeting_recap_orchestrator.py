@@ -247,18 +247,15 @@ class StreamingOrchestrator:
         self._incremental_meeting_id = uuid4()
         self._incremental_t0 = time.perf_counter()
         self._last_processed_count = 0
+        self.tiler.reset()
 
     def accept_utterance(
         self, text: str, speaker: str, index: int,
     ) -> Iterator[OrchestratorEvent]:
         """Accept a single utterance from realtime ASR output.
 
-        Accumulates utterances internally. When the buffer reaches
-        window_size (default 40), runs SlidingTextTilingService on the
-        accumulated utterances to detect segment boundaries.
-
-        Yields OrchestratorEvents (segment-closed, chunk-closed,
-        title-emitted) whenever new boundaries are found.
+        Feeds the utterance into SlidingTextTilingService (Code B streaming mode).
+        Yields OrchestratorEvents whenever new boundaries are committed.
         """
         if not hasattr(self, "_incremental_utterances"):
             self.reset_incremental()
@@ -271,32 +268,24 @@ class StreamingOrchestrator:
             data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
         )
 
-        # Check if we have enough utterances for a TextTiling window
-        window_size = self.tiler.config.window_size
-        n = len(self._incremental_utterances)
+        new_events = self.tiler.update(utt.text)
+        if new_events:
+            yield from self._process_streaming_segment_events(new_events)
 
-        if n >= window_size and (n - self._last_processed_count) >= self.tiler.config.stride:
-            yield from self._run_incremental_tiling()
-
-    def _run_incremental_tiling(self) -> Iterator[OrchestratorEvent]:
-        """Run TextTiling on accumulated utterances and emit new segments."""
+    def _process_streaming_segment_events(
+        self, seg_events: list[SegmentEvent],
+    ) -> Iterator[OrchestratorEvent]:
+        """Process newly committed SegmentEvents into chunks, abstractive summaries, and titles."""
         all_utterances = self._incremental_utterances
-        utterance_texts = [u.text for u in all_utterances]
 
-        seg_events = self.tiler.process(utterance_texts)
-        seg_ranges = [(e.utterances_start, e.utterances_end) for e in seg_events]
+        for e in seg_events:
+            seg_idx = len(self._incremental_segments)
+            start_utt, end_utt = e.utterances_start, e.utterances_end
 
-        # Only process segments that are fully new (not the tail/unclosed one)
-        n_existing = len(self._incremental_segments)
+            segment_utts = [u for u in all_utterances if start_utt <= u.index <= end_utt]
+            if not segment_utts:
+                segment_utts = all_utterances[start_utt : end_utt + 1]
 
-        for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
-            if seg_idx < n_existing:
-                continue  # Already emitted
-            # Skip the last range -- it is the force-close tail, not yet final
-            if seg_idx == len(seg_ranges) - 1:
-                break
-
-            segment_utts = all_utterances[start_utt:end_utt + 1]
             seg = SegmentResult(
                 title=f"Chapter {seg_idx + 1}",
                 utterances_start=start_utt,
@@ -304,7 +293,7 @@ class StreamingOrchestrator:
             )
 
             for i in range(0, len(segment_utts), self.chunker.CHUNK_SIZE):
-                chunk_utts = segment_utts[i:i + self.chunker.CHUNK_SIZE]
+                chunk_utts = segment_utts[i : i + self.chunker.CHUNK_SIZE]
                 chunk = Chunk(utterances=chunk_utts)
                 chunk.rolling_summary = self.summarizer.abstractive(
                     chunk, chapter_number=seg_idx + 1, chunk_index=i // self.chunker.CHUNK_SIZE,
@@ -338,15 +327,8 @@ class StreamingOrchestrator:
                 data={"segment_id": str(seg.segment_id), "title": title},
             )
 
-        self._last_processed_count = len(self._incremental_utterances)
-
     def flush_and_finalize(self) -> Iterator[OrchestratorEvent]:
-        """Process remaining utterances and emit meeting-completed.
-
-        Called when the user stops recording. Runs final TextTiling on
-        all accumulated utterances, processes any remaining segments,
-        and emits the final HierarchicalRecap.
-        """
+        """Process remaining utterances and emit meeting-completed."""
         if not hasattr(self, "_incremental_utterances"):
             return
 
@@ -354,65 +336,14 @@ class StreamingOrchestrator:
         if not all_utterances:
             return
 
-        # Run final tiling on all utterances
-        utterance_texts = [u.text for u in all_utterances]
-        seg_events = self.tiler.process(utterance_texts)
-        seg_ranges = [(e.utterances_start, e.utterances_end) for e in seg_events]
-
-        segments = list(self._incremental_segments)
-        n_existing = len(segments)
-
-        # Process remaining segments (including the tail)
-        for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
-            if seg_idx < n_existing:
-                continue
-
-            segment_utts = all_utterances[start_utt:end_utt + 1]
-            seg = SegmentResult(
-                title=f"Chapter {seg_idx + 1}",
-                utterances_start=start_utt,
-                utterances_end=end_utt,
-            )
-
-            for i in range(0, len(segment_utts), self.chunker.CHUNK_SIZE):
-                chunk_utts = segment_utts[i:i + self.chunker.CHUNK_SIZE]
-                chunk = Chunk(utterances=chunk_utts)
-                chunk.rolling_summary = self.summarizer.abstractive(
-                    chunk, chapter_number=seg_idx + 1, chunk_index=i // self.chunker.CHUNK_SIZE,
-                )
-                seg.chunks.append(chunk)
-                yield OrchestratorEvent(
-                    type=RecapEventType.CHUNK_CLOSED,
-                    data={
-                        "chunk_id": str(chunk.chunk_id),
-                        "segment_id": str(seg.segment_id),
-                        "utterances_start": chunk_utts[0].index,
-                        "utterances_end": chunk_utts[-1].index,
-                        "rolling_summary": chunk.rolling_summary,
-                    },
-                )
-
-            yield OrchestratorEvent(
-                type=RecapEventType.SEGMENT_CLOSED,
-                data={
-                    "segment_id": str(seg.segment_id),
-                    "utterances_start": seg.utterances_start,
-                    "utterances_end": seg.utterances_end,
-                },
-            )
-
-            title = self.summarizer.title(seg, chapter_number=seg_idx + 1)
-            seg.title = title
-            segments.append(seg)
-            yield OrchestratorEvent(
-                type=RecapEventType.TITLE_EMITTED,
-                data={"segment_id": str(seg.segment_id), "title": title},
-            )
+        tail_events = self.tiler.flush()
+        if tail_events:
+            yield from self._process_streaming_segment_events(tail_events)
 
         processing_time_ms = int((time.perf_counter() - self._incremental_t0) * 1000)
         recap = HierarchicalRecap(
             meeting_id=self._incremental_meeting_id,
-            segments=segments,
+            segments=self._incremental_segments,
             generated_at=datetime.now(timezone.utc),
             processing_time_ms=processing_time_ms,
         )

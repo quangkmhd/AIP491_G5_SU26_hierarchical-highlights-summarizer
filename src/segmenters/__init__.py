@@ -23,6 +23,7 @@ from .sliding_texttiling import (
     multiscale_depth,
     normalize,
     similarity_scores,
+    StreamingTextTilingSegmenter,
 )
 
 __all__ = [
@@ -34,4 +35,5 @@ __all__ = [
     "multiscale_depth",
     "normalize",
     "similarity_scores",
+    "StreamingTextTilingSegmenter",
 ]

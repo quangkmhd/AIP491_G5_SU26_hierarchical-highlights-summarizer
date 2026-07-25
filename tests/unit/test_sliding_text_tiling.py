@@ -272,3 +272,20 @@ class SlidingTextTilingServiceTests(unittest.TestCase):
         )
         self.assertGreaterEqual(len(events), 1)
         self.assertEqual(events[-1].utterances_end, 3)
+
+    def test_streaming_update_and_flush(self) -> None:
+        cfg = SlidingTextTilingConfig(block_size=2, radii=[3, 5], alpha=0.5, window_size=10, stride=2)
+        service = SlidingTextTilingService(cfg)
+        service.reset()
+
+        utts = ["chủ đề một"] * 10 + ["chủ đề hai"] * 10
+        emitted_events = []
+        for u in utts:
+            evs = service.update(u)
+            emitted_events.extend(evs)
+
+        tail_evs = service.flush()
+        emitted_events.extend(tail_evs)
+
+        self.assertGreater(len(emitted_events), 0)
+        self.assertEqual(emitted_events[-1].utterances_end, len(utts) - 1)

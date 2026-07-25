@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 from src.config.text_tiling import SlidingTextTilingConfig
 from src.logging import get_logger
-from src.segmenters import find_boundaries
+from src.segmenters import StreamingTextTilingSegmenter, find_boundaries
 
 
 @dataclass(frozen=True)
@@ -47,9 +47,8 @@ class SegmentEvent:
 class SlidingTextTilingService:
     """Multi-scale Sliding TextTiling on raw utterance text.
 
-    Stateless across calls: each `process()` invocation produces a fresh
-    segment-id sequence starting from `seg-0`, so the same service
-    instance can be reused across many dialogues.
+    Supports both batch mode (`process()`) and true incremental streaming mode
+    (`reset()`, `update()`, `flush()`).
     """
 
     def __init__(self, config: SlidingTextTilingConfig | None = None) -> None:
@@ -62,20 +61,74 @@ class SlidingTextTilingService:
         else:
             self._stopwords = set()
 
+        self._streamer = StreamingTextTilingSegmenter(
+            block_size=self.config.block_size,
+            radii=self.config.radii,
+            alpha=self.config.alpha,
+            stopwords=self._stopwords,
+            agg=self.config.agg,
+            normalize_mode=self.config.normalize,
+            min_segment_ratio=self.config.min_segment_ratio,
+            window_size=self.config.window_size,
+            stride=self.config.stride,
+        )
+        self.reset()
+
     def _new_segment_id(self) -> str:
         sid = f"seg-{self._segment_counter}"
         self._segment_counter += 1
         return sid
 
+    def reset(self) -> None:
+        """Reset internal streaming state for a new session."""
+        self._segment_counter = 0
+        self._streamer.reset()
+        self._last_emitted_boundary: int = -1
+
+    def update(self, utterance: str) -> list[SegmentEvent]:
+        """Ingest a single utterance in streaming mode.
+
+        Returns newly committed SegmentEvents once boundaries pass the commit zone.
+        """
+        committed = self._streamer.update(utterance)
+        events: list[SegmentEvent] = []
+        for b, d in committed:
+            events.append(
+                SegmentEvent(
+                    segment_id=self._new_segment_id(),
+                    utterances_start=self._last_emitted_boundary + 1,
+                    utterances_end=b,
+                    depth_score=d,
+                    boundary_index=b,
+                )
+            )
+            self._last_emitted_boundary = b
+        return events
+
+    def flush(self) -> list[SegmentEvent]:
+        """Flush tail buffer at end of streaming meeting."""
+        committed = self._streamer.flush()
+        events: list[SegmentEvent] = []
+        for b, d in committed:
+            events.append(
+                SegmentEvent(
+                    segment_id=self._new_segment_id(),
+                    utterances_start=self._last_emitted_boundary + 1,
+                    utterances_end=b,
+                    depth_score=d,
+                    boundary_index=b,
+                )
+            )
+            self._last_emitted_boundary = b
+        return events
+
     def process(self, utterances: list[str]) -> list[SegmentEvent]:
         """Detect topic boundaries on a list of utterance strings.
 
         Returns a list of SegmentEvent covering the full utterance range
-        in non-overlapping segments. The last event is always a
-        force-close at the final utterance index.
+        in non-overlapping segments.
         """
-        # Reset per-call state so this service instance is reusable.
-        self._segment_counter = 0
+        self.reset()
 
         n = len(utterances)
         if n == 0:
@@ -104,16 +157,11 @@ class SlidingTextTilingService:
             stride=self.config.stride,
         )
 
-        # find_boundaries guarantees boundaries[-1] == n - 1; assert to
-        # surface drift if the segmenter contract ever changes.
         assert boundaries and boundaries[-1] == n - 1, (
             "find_boundaries must append n-1 as the force-close tail"
         )
 
-        # Count real (non-tail) boundaries for logging clarity.
         n_boundaries = sum(1 for b in boundaries if b != n - 1)
-        # Mirror the n > window_size branch inside find_boundaries so the
-        # log line truthfully reflects which path was taken.
         used_streaming = n > self.config.window_size
         if used_streaming:
             self.logger.info(

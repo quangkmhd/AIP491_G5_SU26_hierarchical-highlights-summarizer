@@ -305,3 +305,165 @@ def find_boundaries(
         boundaries = merge_small_segments(boundaries, boundary_depths, min_seg)
 
     return boundaries, boundary_depths
+
+
+class StreamingTextTilingSegmenter:
+    """True incremental streaming TextTiling segmenter (Code B).
+
+    Maintains state across UPDATE calls, evaluates local sliding windows as
+    utterances arrive, and commits immutable boundaries once they lùi
+    sau mốc lookahead (Commit Zone).
+    """
+
+    def __init__(
+        self,
+        block_size: int = 2,
+        radii: list[int] | None = None,
+        alpha: float = 1.2,
+        stopwords: set[str] | None = None,
+        agg: str = "mean",
+        normalize_mode: str = "zscore",
+        min_segment_ratio: float = 0.08,
+        window_size: int = 40,
+        stride: int = 5,
+        lookahead: int = 20,
+    ) -> None:
+        self.block_size = block_size
+        self.radii = list(radii) if radii is not None else list(DEFAULT_RADII)
+        self.alpha = alpha
+        self.stopwords = stopwords if stopwords is not None else set()
+        self.agg = agg
+        self.normalize_mode = normalize_mode
+        self.min_segment_ratio = min_segment_ratio
+        self.window_size = window_size
+        self.stride = stride
+        self.lookahead = lookahead
+        self.reset()
+
+    def reset(self) -> None:
+        """INITIALIZE() - Reset all state for a new streaming session."""
+        self.buffer: list[str] = []
+        self.next_window_start: int = 0
+        self.committed_boundaries: list[int] = []
+        self.boundary_depths: dict[int, float] = {}
+        self.pending_candidates: dict[int, float] = {}
+        self.last_committed_index: int = -1
+
+    def update(self, utterance: str) -> list[tuple[int, float]]:
+        """UPDATE(u_t) - Ingest one utterance and return newly committed boundaries."""
+        self.buffer.append(utterance)
+        n = len(self.buffer)
+        W = self.window_size
+        S = self.stride
+
+        newly_committed: list[tuple[int, float]] = []
+
+        while n - self.next_window_start >= W:
+            start = self.next_window_start
+            win_utts = self.buffer[start : start + W]
+
+            sim = similarity_scores(win_utts, block_size=self.block_size, stopwords=self.stopwords)
+            if len(sim) >= 2:
+                depth = multiscale_depth(
+                    sim,
+                    radii=self.radii,
+                    agg=self.agg,
+                    normalize_mode=self.normalize_mode,
+                )
+                threshold = float(depth.mean() + self.alpha * depth.std())
+
+                for j in range(len(depth)):
+                    g = start + j
+                    if g <= self.last_committed_index:
+                        continue
+                    if depth[j] > threshold:
+                        self.pending_candidates[g] = float(depth[j])
+
+            commit_cutoff = start + W - self.lookahead
+            eligible = sorted([g for g in self.pending_candidates if g <= commit_cutoff])
+
+            if eligible:
+                min_seg = max(2, int(W * self.min_segment_ratio))
+                b_list = list(eligible)
+                d_map = {g: self.pending_candidates[g] for g in b_list}
+
+                merged = merge_small_segments(b_list, d_map, min_seg)
+
+                for g in merged:
+                    if g > self.last_committed_index:
+                        depth_val = d_map[g]
+                        self.committed_boundaries.append(g)
+                        self.boundary_depths[g] = depth_val
+                        self.last_committed_index = g
+                        newly_committed.append((g, depth_val))
+                        if g in self.pending_candidates:
+                            del self.pending_candidates[g]
+
+                to_remove = [g for g in self.pending_candidates if g <= commit_cutoff]
+                for g in to_remove:
+                    del self.pending_candidates[g]
+
+            self.next_window_start += S
+
+        return newly_committed
+
+    def flush(self) -> list[tuple[int, float]]:
+        """FLUSH() - End of stream: evaluate tail buffer and force-close tail boundary."""
+        n = len(self.buffer)
+        newly_committed: list[tuple[int, float]] = []
+        if n == 0:
+            return []
+
+        W = self.window_size
+
+        if n <= W:
+            sim = similarity_scores(self.buffer, block_size=self.block_size, stopwords=self.stopwords)
+            if len(sim) >= 2:
+                depth = multiscale_depth(
+                    sim,
+                    radii=self.radii,
+                    agg=self.agg,
+                    normalize_mode=self.normalize_mode,
+                )
+                threshold = float(depth.mean() + self.alpha * depth.std())
+                for j in range(len(depth)):
+                    if depth[j] > threshold:
+                        self.pending_candidates[j] = float(depth[j])
+        else:
+            start = n - W
+            win_utts = self.buffer[start:n]
+            sim = similarity_scores(win_utts, block_size=self.block_size, stopwords=self.stopwords)
+            if len(sim) >= 2:
+                depth = multiscale_depth(
+                    sim,
+                    radii=self.radii,
+                    agg=self.agg,
+                    normalize_mode=self.normalize_mode,
+                )
+                threshold = float(depth.mean() + self.alpha * depth.std())
+                for j in range(len(depth)):
+                    g = start + j
+                    if g > self.last_committed_index and depth[j] > threshold:
+                        self.pending_candidates[g] = float(depth[j])
+
+        uncommitted = sorted([g for g in self.pending_candidates if g > self.last_committed_index])
+        if uncommitted:
+            min_seg = max(2, int(min(n, W) * self.min_segment_ratio))
+            d_map = {g: self.pending_candidates[g] for g in uncommitted}
+            merged = merge_small_segments(uncommitted, d_map, min_seg)
+            for g in merged:
+                if g > self.last_committed_index:
+                    depth_val = d_map[g]
+                    self.committed_boundaries.append(g)
+                    self.boundary_depths[g] = depth_val
+                    self.last_committed_index = g
+                    newly_committed.append((g, depth_val))
+
+        tail_index = n - 1
+        if not self.committed_boundaries or self.committed_boundaries[-1] != tail_index:
+            self.committed_boundaries.append(tail_index)
+            self.boundary_depths[tail_index] = 0.0
+            newly_committed.append((tail_index, 0.0))
+
+        return newly_committed
+
