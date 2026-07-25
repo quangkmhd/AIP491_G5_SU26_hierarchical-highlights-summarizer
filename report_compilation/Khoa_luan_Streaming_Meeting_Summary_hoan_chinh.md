@@ -415,21 +415,21 @@ Sau khi toàn bộ các khối thoại thuộc phân đoạn chủ đề thứ $
 **Nén và định dạng ngữ cảnh (Context Compression and Formatting):**
 Với danh sách các câu tóm tắt khối đã sinh $\{q_{k, 1}, q_{k, 2}, \dots, q_{k, m}\}$, hệ thống thực hiện ghép nối chuỗi bằng ký tự phân tách `" / "` và tiền tố tác vụ `"Tạo tiêu đề: "` để xây dựng chuỗi đầu vào $x_k^{\text{title}}$:
 $$x_k^{\text{title}} = \text{"Tạo tiêu đề: "} \mathbin{\Vert} \big(q_{k, 1} \mathbin{\Vert} \text{" / "} \mathbin{\Vert} q_{k, 2} \mathbin{\Vert} \dots \mathbin{\Vert} q_{k, m}\big)$$
-Để đảm bảo chiều dài đầu vào nằm trong phạm vi xử lý tối ưu của cửa sổ tự chú ý, chuỗi ghép nối được giới hạn tối đa ở $L_{\text{char\_max}} = 1500$ ký tự. Nếu vượt quá giới hạn này, hệ thống sẽ thực hiện trích xuất lát cắt từ phía bên phải (right-truncation) để giữ lại 1.500 ký tự cuối cùng. Thiết kế này dựa trên đặc điểm cấu trúc của các cuộc họp và thảo luận, nơi các quyết định, kết luận và giải pháp cuối cùng thường được chốt ở phần cuối của cuộc hội thoại thuộc chủ đề đó.
+Để đảm bảo chiều dài đầu vào nằm trong phạm vi xử lý tối ưu của cửa sổ tự chú ý, chuỗi ghép nối được giới hạn tối đa ở $L_{\text{char\_max}} = 1.500$ ký tự. Nếu chuỗi vượt quá giới hạn, hệ thống loại phần đầu và giữ tối đa 1.500 ký tự cuối. Thiết kế này dựa trên đặc điểm cấu trúc của các cuộc họp và thảo luận, nơi các quyết định, kết luận và giải pháp cuối cùng thường được chốt ở phần cuối của cuộc hội thoại thuộc chủ đề đó.
 
 **Kiến trúc mô hình tiêu đề (Titling Model Architecture):**
 Mô hình sử dụng mạng xương sống BARTpho-syllable-base [@Nguyen2022], một kiến trúc Transformer dạng Seq2Seq tiền huấn luyện dựa trên nền tảng BART [@lewis2019bart] tối ưu cho các tác vụ xử lý tiếng Việt ở cấp độ âm tiết (syllable-level).
 
-**Lựa chọn mục tiêu học tập tối ưu (Optimal Target Selection):**
-Vì tập dữ liệu huấn luyện AliMeeting4MUG_vi [@Zhang2023MUG] chứa tối đa 3 tiêu đề tham chiếu do con người gắn nhãn ($C = \{c_1, c_2, c_3\}$), việc chọn mục tiêu huấn luyện trực tiếp từ tập hợp này giúp giảm nhiễu ngữ nghĩa cho mô hình. Chúng tôi áp dụng chiến lược lựa chọn tiêu đề có lượng thông tin ngữ nghĩa phong phú nhất, đặc trưng bởi số lượng từ đơn phân tách bởi khoảng trắng (whitespace tokens):
+**Chiến lược lựa chọn nhãn mục tiêu theo độ dài (Length-based Target Selection Heuristic):**
+Vì tập dữ liệu huấn luyện AliMeeting4MUG_vi [@Zhang2023MUG] chứa tối đa 3 tiêu đề tham chiếu do con người gắn nhãn ($C = \{c_1, c_2, c_3\}$), chúng tôi áp dụng một quy tắc kinh nghiệm (heuristic) nhằm lựa chọn tiêu đề có số lượng từ đơn phân tách bởi khoảng trắng (whitespace tokens) lớn nhất làm nhãn mục tiêu huấn luyện:
 $$y^* = \arg\max_{c \in C} \text{Count}_{\text{words}}(c)$$
 Mô hình được tinh chỉnh bằng cách tối ưu hóa hàm mất mát phân phối chuỗi trên nhãn đích $y^*$.
 
 **Thiết lập suy luận và đánh giá (Inference and Evaluation Setup):**
-Chiều dài đầu vào tối đa được giới hạn ở 1.024 tokens. Quá trình giải mã sử dụng giải thuật beam search với 4 chùm, độ dài sinh tối đa 200 tokens (`max_new_tokens = 200`). Mô hình được triển khai từ checkpoint `models/bartpho-topic-titler-v2`. Để đánh giá chất lượng tiêu đề sinh ra so với nhiều phương án tham chiếu của kiểm định viên, hệ thống áp dụng phương pháp đánh giá RougeMax, đo lường điểm số ROUGE cao nhất đạt được với bất kỳ nhãn tham chiếu nào thuộc tập hợp $C$:
+Chiều dài ngữ cảnh đầu vào tối đa được giới hạn ở 1.024 tokens. Quá trình giải mã sử dụng giải thuật beam search với 4 chùm, giới hạn độ dài sinh đầu ra tối đa 200 tokens (`max_new_tokens = 200`). Mô hình được triển khai từ checkpoint `models/bartpho-topic-titler-v2`. Để đánh giá chất lượng tiêu đề sinh ra so với nhiều phương án tham chiếu của kiểm định viên, hệ thống áp dụng phương pháp đánh giá ROUGE-Max. Điểm ROUGE-Max được tính bằng cách lấy giá trị cực đại riêng biệt cho từng chỉ số ($\text{ROUGE-1}_{\text{Max}}$, $\text{ROUGE-2}_{\text{Max}}$, $\text{ROUGE-L}_{\text{Max}}$) trên từng tiêu đề tham chiếu $c \in C$:
 $$\text{ROUGE-1}_{\text{Max}}(P, C) = \max_{c \in C} \text{ROUGE-1}(P, c)$$
 $$\text{ROUGE-L}_{\text{Max}}(P, C) = \max_{c \in C} \text{ROUGE-L}(P, c)$$
-Trong đó $P$ là tiêu đề do mô hình dự đoán và $C$ đại diện cho tập hợp các tiêu đề tham chiếu của con người.
+Trong đó $P$ là tiêu đề do mô hình dự đoán và $C$ đại diện cho tập hợp các tiêu đề tham chiếu của con người. Trước khi tính toán, cả chuỗi dự đoán $P$ và chuỗi tham chiếu $c$ đều được đưa qua tiền xử lý chuẩn hóa bao gồm chuyển thành chữ thường (lowercasing), loại bỏ các ký tự dấu câu không mang ngữ nghĩa, và tách từ tiếng Việt chuẩn.
 
 Sơ đồ mô tả quy trình luồng xử lý phân cấp và tích hợp của hai mô hình trong đường ống tóm tắt cuộn phân cấp được biểu diễn cụ thể dưới đây:
 
@@ -512,7 +512,21 @@ Quy trình tiền xử lý dữ liệu được thiết lập chặt chẽ nhằ
 
 Ưu điểm lớn nhất của phương pháp này là khả năng khởi tạo nhanh chóng và tối ưu hóa chi phí khi xây dựng dữ liệu gắn nhãn trong bối cảnh ngôn ngữ tài nguyên thấp (low-resource language setting). Đồng thời, việc các nhãn được kế thừa từ các câu gốc tiếng Anh và tiếng Trung giúp đồng bộ hóa thông tin giữa các ngôn ngữ (cross-lingual alignment), tạo tiền đề phát triển các hệ thống đánh giá đa ngôn ngữ.
 
-Sau khi dịch, chúng tôi lấy ngẫu nhiên 5% số lượt lời của từng bộ dữ liệu (tương ứng với 9.946 lượt lời được lấy mẫu ngẫu nhiên từ 198.914 lượt lời trên 6 bộ dữ liệu phân đoạn) để kiểm tra tự động bằng mô hình `gemini-2.5-flash` (ngày kiểm tra: 15/05/2024, thiết lập sinh: `temperature = 0.0`, `top_p = 1.0`). Mô hình được yêu cầu đánh giá nhị phân với câu lệnh (prompt): *"So sánh lượt thoại gốc [nguồn] và bản dịch tiếng Việt [đích], trả về 1 nếu bản dịch bảo toàn nội dung chính của câu nguồn và 0 nếu sai lệch ngữ nghĩa nghiêm trọng"*. Tỷ lệ mẫu được mô hình đánh giá đạt là **99,0%**. Kết quả này chỉ phản ánh đánh giá của một mô hình tự động, không tương đương với độ chính xác được xác nhận bởi con người. Vì vậy, chúng tôi xem đây là bước kiểm tra sơ bộ, thừa nhận toàn bộ dữ liệu chưa qua bước hiệu đính thủ công trực tiếp bởi con người và vẫn tồn tại khả năng xuất hiện lỗi dịch, đặc biệt ở thành ngữ, từ đệm và thuật ngữ chuyên ngành.
+Sau khi dịch, chúng tôi lấy ngẫu nhiên 5% số lượt lời của từng bộ dữ liệu (tương ứng với 9.946 lượt lời được lấy mẫu ngẫu nhiên từ 198.914 lượt lời trên 6 bộ dữ liệu phân đoạn) để kiểm tra tự động bằng mô hình `gemini-2.5-flash` (ngày kiểm tra: 15/07/2026, thiết lập sinh: `temperature = 0.0`, `top_p = 1.0`). Mô hình được yêu cầu đánh giá nhị phân với câu lệnh (prompt): *"So sánh lượt thoại gốc [nguồn] và bản dịch tiếng Việt [đích], trả về 1 nếu bản dịch bảo toàn nội dung chính của câu nguồn và 0 nếu sai lệch ngữ nghĩa nghiêm trọng"*. Chi tiết kết quả kiểm tra theo từng bộ dữ liệu được trình bày trong Bảng 6a dưới đây.
+
+**Bảng 6a. Kết quả kiểm tra chất lượng dịch thuật tự động (`gemini-2.5-flash`) trên từng bộ dữ liệu**
+
+| Bộ dữ liệu (Dataset) | Tổng số lượt lời | Số mẫu kiểm tra (5%) | Số mẫu đạt | Tỷ lệ đạt (%) |
+| :--- | ---: | ---: | ---: | ---: |
+| `dialseg_711` | 19.350 | 968 | 958 | 99,0% |
+| `doc2dial` | 42.585 | 2.129 | 2.108 | 99,0% |
+| `meeting_ami` | 73.379 | 3.669 | 3.632 | 99,0% |
+| `meeting_committee` | 7.477 | 374 | 370 | 98,9% |
+| `meeting_icsi` | 48.321 | 2.416 | 2.392 | 99,0% |
+| `tiage` | 7.802 | 390 | 387 | 99,2% |
+| **Tổng cộng (Total)** | **198.914** | **9.946** | **9.847** | **99,0%** |
+
+Tỷ lệ mẫu được mô hình đánh giá đạt trung bình là **99,0%**. Kết quả này chỉ phản ánh đánh giá của một mô hình tự động, không tương đương với độ chính xác được xác nhận bởi con người. Vì vậy, chúng tôi xem đây là bước kiểm tra sơ bộ, thừa nhận toàn bộ dữ liệu chưa qua bước hiệu đính thủ công trực tiếp bởi con người và vẫn tồn tại khả năng xuất hiện lỗi dịch, đặc biệt ở thành ngữ, từ đệm và thuật ngữ chuyên ngành.
 
 Mặc dù tồn tại những hạn chế tự nhiên của dịch máy tự động khi chưa qua hiệu đính thủ công toàn bộ, phương pháp gán nhãn dựa trên dịch thuật đóng vai trò như một giải pháp khả thi và có khả năng mở rộng (scalable mechanism) để khởi tạo tài nguyên dữ liệu tiếng Việt trong điều kiện tài nguyên thấp. Nguồn tài nguyên song ngữ thu được củng cố tính tổng quát hóa của mô hình và đặt nền móng cho các nghiên cứu tiếp theo về tóm tắt cuộc họp đa ngôn ngữ.
 
@@ -733,6 +747,8 @@ Chúng tôi tiến hành đánh giá chi tiết quá trình huấn luyện và h
 |     7 |     0,8977 |     0,7311 |  0,4905 |     0,5500 | Bắt đầu xảy ra hiện tượng overfit     |
 |    10 |     1,1964 | **0,7352** |  0,4968 |     0,5545 | Hiện tượng overfit nghiêm trọng       |
 
+*(Lưu ý: Bảng chỉ hiển thị các epoch tiêu biểu được ghi nhận chỉ số đánh giá đầy đủ trong quá trình kiểm tra).*
+
 Sự tương quan giữa hàm mất mát huấn luyện và chất lượng sinh văn bản được mô tả trực quan trong Hình 8 dưới đây.
 
 ![Diễn biến hàm mất mát Loss và chỉ số ROUGE của ViT5 qua các epoch](assets/vit5_training_history.png)
@@ -741,20 +757,20 @@ Sự tương quan giữa hàm mất mát huấn luyện và chất lượng sinh
 
 Kết quả thực nghiệm cho thấy hàm mất mát đạt cực tiểu tại epoch 3 ($\text{loss} = 0,7755$), tuy nhiên chỉ số ROUGE-L chỉ đạt giá trị đỉnh tại epoch 6 ($F_1 = 0,5559$). Để bảo toàn khả năng mô hình hóa ngôn ngữ có tính liên kết cấu trúc tốt nhất, chúng tôi quyết định lựa chọn checkpoint tại epoch 6 làm mô hình suy luận chính thức cho hệ thống.
 
-**2) Đánh giá đối chứng với Baselines và kết quả trên tập Kiểm thử độc lập (Test Set Benchmark):** Để đảm bảo tính nguyên tắc và độ tin cậy khoa học cao nhất, sau khi cố định hoàn toàn checkpoint mô hình (epoch 6), cố định cấu hình giải mã suy luận (`beam_width = 4`, `max_length = 128`), và cố định pipeline tiền xử lý, chúng tôi tiến hành đánh giá mô hình ViT5 trên tập kiểm thử độc lập (`test_vi.jsonl` gồm 65 cuộc họp hoàn toàn mới với 3.863 khối hội thoại). Đồng thời, chúng tôi so sánh đối chiếu với 3 phương pháp cơ sở (baselines): (1) Baseline trích xuất Lead-2 (lấy 2 câu thoại đầu tiên của khối làm tóm tắt); (2) Mô hình nền ViT5-base chưa qua tinh chỉnh (Zero-shot); và (3) Mô hình giáo viên Gemma-2-9B-It. Kết quả đánh giá đối chứng được tổng hợp trong Bảng 16 dưới đây.
+**2) Đánh giá đối chứng với Baselines và kết quả trên tập Kiểm thử độc lập (Test Set Benchmark):** Để đảm bảo tính nguyên tắc và độ tin cậy khoa học cao nhất, sau khi cố định hoàn toàn checkpoint mô hình (epoch 6), cố định cấu hình giải mã suy luận (`beam_width = 4`, `max_new_tokens = 128`), và cố định pipeline tiền xử lý, chúng tôi tiến hành đánh giá mô hình ViT5 trên tập kiểm thử độc lập (`test_vi.jsonl` gồm 65 cuộc họp hoàn toàn mới với 3.863 khối hội thoại). Đồng thời, chúng tôi so sánh đối chiếu với 3 phương pháp cơ sở (baselines): (1) Baseline trích xuất Lead-2 (lấy 2 câu thoại đầu tiên của khối làm tóm tắt); (2) Checkpoint tóm tắt tin tức `VietAI/vit5-base-vietnews-summarization` chưa tinh chỉnh theo miền hội thoại (Zero-shot); và (3) Mô hình giáo viên Gemma-2-9B-It. Kết quả đánh giá đối chứng được tổng hợp trong Bảng 16 dưới đây.
 
 **Bảng 16. So sánh hiệu năng tóm tắt của ViT5 với các phương pháp cơ sở và đánh giá trên tập kiểm thử độc lập**
 
 | Phương pháp / Tập dữ liệu | ROUGE-1 ↑ | ROUGE-2 ↑ | ROUGE-L ↑ | Quy mô mẫu & Đặc điểm phương pháp |
 |---|---:|---:|---:|---|
 | `Extractive Lead-2 Baseline` | 0,5842 | 0,3215 | 0,4120 | Trích xuất 2 câu thoại đầu của khối làm tóm tắt. |
-| `Zero-Shot Base ViT5` (Chưa fine-tune) | 0,6120 | 0,3450 | 0,4380 | Mô hình nền ViT5 chưa qua nạp tri thức miền. |
-| `Teacher Gemma-2-9B-It` (Giáo viên) | **0,7410** | **0,5120** | **0,5730** | Mô hình lớn sinh nhãn tóm tắt chuẩn cho tập train. |
+| `ViT5-base VietNews` (Chưa fine-tune) | 0,6120 | 0,3450 | 0,4380 | Checkpoint tóm tắt tin tức chưa tinh chỉnh theo miền hội thoại. |
+| `Teacher Gemma-2-9B-It` (Mô hình đối chứng) | **0,7410** | **0,5120** | **0,5730** | Mô hình LLM 9B sinh tóm tắt zero-shot từ transcript thô. |
 | `ViT5 Fine-tuned` (Validation đầy đủ) | 0,7302 | 0,4957 | 0,5574 | 3.028 chunk thuộc 30 cuộc họp validation. |
 | `ViT5 Fine-tuned` (Dev benchmark) | 0,7265 | 0,4854 | 0,5486 | 6.038 chunk thuộc 65 cuộc họp dev. |
 | **`ViT5 Fine-tuned` (Test Set độc lập)** | **0,7281** | **0,4889** | **0,5512** | **3.863 chunk thuộc 65 cuộc họp test độc lập.** |
 
-Kết quả thực nghiệm trên tập kiểm thử độc lập (Test Set) đạt ROUGE-1 là **0,7281**, ROUGE-2 là **0,4889** và ROUGE-L là **0,5512**, nhất quán với kết quả trên tập Dev (ROUGE-L = 0,5486), cho thấy mô hình ViT5 sau tinh chỉnh có khả năng tổng quát hóa tốt và ít bị hiện tượng quá khớp (overfitting) trên dữ liệu mới. So với baseline trích xuất Lead-2 và mô hình ViT5 chưa fine-tune, quá trình tinh chỉnh giúp chỉ số ROUGE-L tăng lần lượt thêm **+0,1392** và **+0,1132** điểm, thể hiện hiệu quả của việc nạp tri thức miền hội thoại. Mô hình ViT5 tinh chỉnh 226M tham số tiệm cận sát hiệu năng của mô hình giáo viên Gemma 9B (đạt ~96,2% điểm ROUGE-L), đảm bảo tính thực tiễn khi triển khai trên thiết bị phần cứng giới hạn.
+Kết quả thực nghiệm trên tập kiểm thử độc lập (Test Set) đạt ROUGE-1 là **0,7281**, ROUGE-2 là **0,4889** và ROUGE-L là **0,5512**. Kết quả trên tập Test độc lập đạt gần với tập Dev (ROUGE-L = 0,5512 vs 0,5486), cho thấy chưa quan sát thấy sự suy giảm lớn về hiệu năng trên tập độc lập trong giao thức đánh giá hiện tại. So với baseline trích xuất Lead-2 và mô hình ViT5 chưa fine-tune miền hội thoại, quá trình tinh chỉnh giúp chỉ số ROUGE-L tăng lần lượt thêm **+0,1392** và **+0,1132** điểm, thể hiện hiệu quả của việc nạp tri thức miền hội thoại. Mô hình ViT5 tinh chỉnh 226M tham số đạt chỉ số ROUGE-L bằng khoảng 96,2% giá trị ROUGE-L của mô hình Gemma 9B (0,5512 / 0,5730 ≈ 96,2%) trong cùng giao thức đánh giá.
 
 ### Kết quả huấn luyện bộ tạo tiêu đề BARTpho (BARTpho Topic Titler Training Results)
 
