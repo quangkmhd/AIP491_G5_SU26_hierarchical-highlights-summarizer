@@ -54,72 +54,212 @@ Tóm tắt hội thoại (dialogue summarization) hướng tới việc tạo ra
 
 Tuy nhiên, khi đối mặt với các tài liệu hội thoại dài, các mô hình ngôn ngữ lớn thường gặp hiện tượng suy giảm hiệu năng nghiêm trọng ở giữa ngữ cảnh (lost-in-the-middle phenomenon) [@Liu2024Lost] và chi phí tính toán tăng vọt do các cuộc hội thoại dài. Để giải quyết những hạn chế này, chúng tôi tham khảo cách tổ chức bản tóm tắt cuộc họp theo cấu trúc phân cấp của Asthana và cộng sự [@Asthana2025Recap]. Trên cơ sở đó, chúng tôi đề xuất một quy trình triển khai phù hợp với tiếng Việt, trong đó bản ghi cuộc họp được chia thành các đoạn hội thoại, mỗi đoạn gồm tối đa tám lượt lời. Từng đoạn được tóm tắt bằng mô hình ViT5 [@Phan2022]. Sau đó, các bản tóm tắt được nhóm theo chủ đề và sử dụng làm đầu vào cho mô hình BARTpho [@Nguyen2022] để tạo tiêu đề khái quát cho từng phân đoạn thảo luận.. Thiết kế phân tách này giúp hệ thống xử lý được các cuộc họp dài mà không bị giới hạn ngữ cảnh hay suy giảm chất lượng sinh văn bản.
 
-### Phân đoạn chủ đề và xử lý dữ liệu dạng luồng trong hội thoại (Topic Segmentation and Streaming Processing in Dialogue)
+### Phân đoạn chủ đề và xử lý dữ liệu dạng luồng (streaming) trong hội thoại (Topic Segmentation and Streaming Processing in Dialogue)
 
-Phân đoạn chủ đề (topic segmentation) là tác vụ chia chuỗi đơn vị ngôn ngữ liên tục thành các vùng nội dung liên tiếp có tính nhất quán tương đối về ngữ nghĩa. Thuật toán TextTiling kinh điển của Hearst [@Hearst1997] vận hành dựa trên giả định rằng các phân đoạn có cùng chủ đề sẽ chia sẻ chung một vốn từ vựng cụ thể, và độ tương đồng từ vựng (lexical similarity) sẽ suy giảm rõ rệt tại các điểm chuyển giao chủ đề. Phương pháp này tính toán chuỗi điểm tương đồng giữa các khối từ vựng lân cận, xác định các điểm cực tiểu cục bộ (các "thung lũng" tương đồng) và lựa chọn vị trí có điểm sâu (depth score) cao vượt ngưỡng để thiết lập ranh giới chủ đề (topic boundaries).
+Phân đoạn chủ đề (topic segmentation) là tác vụ chia một văn bản hoặc cuộc hội thoại liên tục thành các đoạn nội dung kế tiếp nhau, trong đó mỗi đoạn có nội dung tương đối thống nhất về chủ đề. Thuật toán TextTiling kinh điển của Hearst [@Hearst1997] dựa trên giả định rằng các đoạn cùng chủ đề thường sử dụng một nhóm từ vựng tương tự nhau, còn độ tương đồng từ vựng (lexical similarity) sẽ giảm rõ rệt tại vị trí chuyển từ chủ đề này sang chủ đề khác. Phương pháp này tính độ tương đồng giữa các đoạn văn bản liền kề, xác định những vị trí có độ tương đồng thấp và chọn các điểm có dấu hiệu chuyển chủ đề rõ rệt để xác định ranh giới giữa các chủ đề.
 
-Các phương pháp phân đoạn dựa trên từ vựng sở hữu ưu điểm nổi bật về tốc độ xử lý nhanh, khả năng giải thích rõ ràng và không yêu cầu dữ liệu gán nhãn để huấn luyện. Tuy nhiên, hạn chế lớn nhất là khó nhận biết các từ đồng nghĩa hoặc các cách diễn đạt khác nhau nhưng cùng hướng về một thực thể ngữ nghĩa, đồng thời dễ bị ảnh hưởng bởi nhiễu trong các câu thoại ngắn của hội thoại thường nhật. Để khắc phục vấn đề này, Xing và Carenini [@Xing2021] đã đề xuất phương pháp phân đoạn hội thoại bằng cách huấn luyện mô hình chấm điểm độ mạch lạc (coherence score) giữa các cặp câu thoại từ dữ liệu được tạo tự động, sau đó sử dụng điểm số này cho quá trình phân đoạn không giám sát. Việc tích hợp các mô hình học sâu (deep learning) như Sentence-BERT giúp cải thiện ngữ nghĩa đáng kể nhưng lại làm gia tăng chi phí suy luận (inference cost) tại thời gian thực. Gần đây hơn, He và các cộng sự [@He2025] đã đề xuất chuyển đổi nhiệm vụ phân đoạn hội thoại thành bài toán phát hiện vật thể một chiều (One-Dimensional Object Detection - 1DOD) dành riêng cho xử lý dạng luồng (streaming text segmentation), giúp nâng cao độ chính xác đáng kể nhờ tối ưu hóa trực tiếp trên các ranh giới chủ đề.
+Các phương pháp phân đoạn dựa trên từ vựng có ưu điểm là tốc độ xử lý nhanh, dễ giải thích và không đòi hỏi dữ liệu gán nhãn để huấn luyện. Tuy nhiên, hạn chế lớn nhất của nhóm phương pháp này là khó nhận biết các từ đồng nghĩa hoặc những cách diễn đạt khác nhau nhưng cùng đề cập đến một nội dung. Ngoài ra, chúng cũng dễ bị ảnh hưởng bởi nhiễu xuất hiện trong các câu thoại ngắn của hội thoại tự nhiên.
 
-Xây dựng trên những nền tảng này, phương pháp xử lý dữ liệu dạng luồng (streaming data processing) cho phép hệ thống liên tục tính toán và xuất các kết quả tóm tắt trung gian trước khi phiên họp kết thúc. So với cơ chế xử lý theo lô (batch processing) truyền thống vốn yêu cầu toàn bộ dữ liệu âm thanh phải được thu thập đầy đủ trước khi xử lý, cơ chế dạng luồng giúp giảm thiểu đáng kể độ trễ phản hồi (latency) của hệ thống. Người dùng có thể tiếp cận trực tiếp các cấu trúc thông tin cập nhật tăng dần (incremental updates) ngay khi các khối hội thoại (chunks) hoặc phân đoạn (segments) vừa được hình thành trong tiến trình thời gian thực. Tuy nhiên, trong tác vụ phân đoạn hội thoại, một ranh giới chủ đề chỉ có thể được xác nhận một cách tin cậy sau khi hệ thống đã quan sát đủ một lượng ngữ cảnh nhất định ở phía sau (look-ahead context). Do đó, khái niệm "dạng luồng" (streaming) trong nghiên cứu này được định nghĩa là quá trình xử lý và xuất kết quả tăng dần theo dòng chảy thông tin, chứ không phải là việc phát hiện ranh giới chủ đề ngay lập tức tại thời điểm phát sinh lượt lời (utterance). Hệ thống sẽ thực hiện truyền tải dữ liệu và công bố kết quả khi phân đoạn hoặc khối hội thoại đã chính thức đóng lại, đảm bảo tính bất biến (immutability) của các thông tin trung gian đã công bố.
+Để khắc phục hạn chế trên, Xing và Carenini [@Xing2021] đề xuất một phương pháp phân đoạn hội thoại dựa trên mô hình đánh giá mức độ mạch lạc (coherence score) giữa các cặp câu thoại. Mô hình được huấn luyện bằng dữ liệu tạo tự động, sau đó điểm mạch lạc được sử dụng để xác định ranh giới chủ đề theo hướng không giám sát. Việc sử dụng các mô hình học sâu như Sentence-BERT giúp nâng cao khả năng biểu diễn ngữ nghĩa, nhưng đồng thời làm tăng chi phí suy luận khi hệ thống hoạt động theo thời gian thực.
+
+Gần đây, He và cộng sự [@He2025] chuyển bài toán phân đoạn hội thoại thành bài toán phát hiện đối tượng một chiều (One-Dimensional Object Detection – 1DOD) dành cho phân đoạn văn bản liên tục. Phương pháp này cải thiện độ chính xác nhờ tối ưu trực tiếp quá trình xác định các ranh giới chủ đề.
+
+Dựa trên các nền tảng nêu trên, cơ chế xử lý dữ liệu liên tục (streaming data processing) cho phép hệ thống tính toán và cung cấp các bản tóm tắt tạm thời ngay trong khi cuộc họp đang diễn ra. Khác với xử lý theo lô (batch processing), vốn yêu cầu thu thập đầy đủ dữ liệu âm thanh trước khi xử lý, cơ chế xử lý liên tục cho phép hệ thống cung cấp kết quả ngay trong khi cuộc họp đang diễn ra, nhờ đó người dùng không phải chờ đến khi toàn bộ cuộc họp kết thúc mới nhận được kết quả.
+
+Người dùng có thể theo dõi các nội dung tóm tắt được cập nhật liên tục ngay sau khi từng đoạn hội thoại hoặc phân đoạn chủ đề được hoàn tất. Tuy nhiên, trong bài toán phân đoạn hội thoại, một ranh giới chủ đề chỉ có thể được xác định đáng tin cậy sau khi hệ thống quan sát thêm một lượng ngữ cảnh nhất định ở phía sau (look-ahead context).
+
+Vì vậy, khái niệm “xử lý liên tục” trong nghiên cứu này được hiểu là quá trình tiếp nhận dữ liệu và cập nhật kết quả theo từng giai đoạn, chứ không phải xác định ranh giới chủ đề ngay tại thời điểm một lượt lời vừa xuất hiện. Hệ thống chỉ công bố kết quả sau khi đoạn hội thoại hoặc phân đoạn tương ứng đã được xác nhận hoàn tất, nhằm bảo đảm các thông tin đã công bố không bị thay đổi về sau.
 
 ### Các bộ dữ liệu và chỉ số đánh giá hội thoại (Dialogue Corpora and Evaluation Metrics)
 
-Việc phát triển các bộ dữ liệu chuyên biệt phục vụ cho các tác vụ hội thoại đóng vai trò quyết định trong việc tinh chỉnh và đánh giá các hệ thống AI. Trong khi các nghiên cứu trước đây chủ yếu dựa vào các bộ dữ liệu cuộc họp tiếng Anh kinh điển như AMI Meeting Corpus [@Carletta2005] chứa các cuộc họp thiết kế sản phẩm giả lập, hoặc ICSI Meeting Corpus [@Janin2003] ghi lại các cuộc họp học thuật thực tế, thì các hệ thống tóm tắt hiện đại yêu cầu dữ liệu có tính đa miền và cấu trúc phức tạp hơn. Bộ dữ liệu QMSum [@Zhong2021] cung cấp một điểm chuẩn lớn cho tóm tắt cuộc họp dựa trên truy vấn trên nhiều lĩnh vực (học thuật, ủy ban quốc hội, sản phẩm). Để đánh giá sự dịch chuyển chủ đề và phân đoạn, các khung làm việc như Doc2Dial [@Feng2020] hay bộ dữ liệu định hướng dịch chuyển chủ đề TIAGE [@TIAGE2021] cung cấp các tài nguyên quan trọng để kiểm thử khả năng bám đuổi ngữ cảnh của mô hình. Gần đây, điểm chuẩn MUG (Meeting Understanding and Generation) [@Zhang2023MUG] đã thiết lập một hệ thống đánh giá toàn diện tích hợp cả phân đoạn, tóm tắt và trích xuất thông tin cuộc họp. Trong nghiên cứu này, chúng tôi thực hiện dịch và tiền xử lý các bộ dữ liệu này sang tiếng Việt để huấn luyện và đánh giá các mô hình phân đoạn và tóm tắt một cách nhất quán.
+[ASR và Speaker sau này viết ở đây]
 
-Để đánh giá chất lượng phân đoạn chủ đề trên các bộ dữ liệu này, chỉ số $P_k$ [@Beeferman1999] đo xác suất mà hai vị trí cách nhau một khoảng cửa sổ bị phân loại sai về quan hệ cùng hoặc khác phân đoạn chủ đề. WindowDiff [@Pevzner2002] đo sự khác biệt về số ranh giới trong cửa sổ. Cả hai chỉ số có giá trị càng thấp càng tốt. Đối với phép đo ranh giới trong thực nghiệm này, mỗi vị trí lượt lời được mã hóa thành nhãn nhị phân $y_i \in \{0,1\}$, trong đó 1 biểu thị kết thúc phân đoạn; ranh giới dự đoán chỉ được xem là khớp khi nằm đúng vị trí tham chiếu, không sử dụng cửa sổ dung sai. Từ precision và recall của từng lớp $c \in \{0,1\}$, $F_1$ của lớp được tính như sau:
+Việc phát triển các bộ dữ liệu chuyên biệt cho các bài toán hội thoại đóng vai trò quan trọng trong quá trình tinh chỉnh và đánh giá các hệ thống AI. Trong khi các nghiên cứu trước đây chủ yếu dựa trên những bộ dữ liệu cuộc họp tiếng Anh kinh điển như AMI Meeting Corpus [@Carletta2005], gồm các cuộc họp thiết kế sản phẩm giả lập, và ICSI Meeting Corpus [@Janin2003], ghi lại các cuộc họp học thuật thực tế, các hệ thống tóm tắt hiện đại đòi hỏi nguồn dữ liệu đa dạng hơn về bối cảnh, chủ đề và cấu trúc.
+
+QMSum [@Zhong2021] là một bộ dữ liệu chuẩn quy mô lớn dành cho bài toán tóm tắt cuộc họp dựa trên truy vấn, bao gồm nhiều bối cảnh như hội họp học thuật, phiên họp ủy ban và thảo luận phát triển sản phẩm. Đối với bài toán phát hiện sự chuyển đổi chủ đề và phân đoạn hội thoại, các bộ dữ liệu như Doc2Dial [@Feng2020] và TIAGE [@TIAGE2021] cung cấp nguồn dữ liệu quan trọng để đánh giá khả năng theo dõi sự thay đổi của ngữ cảnh. Gần đây, bộ tiêu chuẩn MUG (Meeting Understanding and Generation) [@Zhang2023MUG] đã xây dựng một khung đánh giá toàn diện, bao gồm các nhiệm vụ phân đoạn chủ đề, tóm tắt và trích xuất thông tin cuộc họp.
+
+Trong nghiên cứu này, chúng tôi dịch và chuẩn hóa các bộ dữ liệu được lựa chọn sang tiếng Việt, qua đó xây dựng nguồn dữ liệu thống nhất phục vụ việc huấn luyện và đánh giá các mô hình phân đoạn chủ đề và tóm tắt hội thoại.
+
+Để đánh giá chất lượng phân đoạn chủ đề trên các bộ dữ liệu, chỉ số $P_k$ [@Beeferman1999] đo xác suất một cặp vị trí cách nhau một khoảng cố định bị xác định sai là thuộc cùng hoặc khác phân đoạn chủ đề. WindowDiff [@Pevzner2002] đo mức chênh lệch giữa số lượng ranh giới dự đoán và số lượng ranh giới tham chiếu trong mỗi cửa sổ. Cả hai chỉ số có giá trị càng thấp càng tốt. Đối với phép đo ranh giới trong thực nghiệm này, mỗi vị trí lượt lời được mã hóa thành nhãn nhị phân $y_i \in \{0,1\}$, trong đó, nhãn 1 được dùng để đánh dấu vị trí kết thúc của một phân đoạn chủ đề. Một ranh giới dự đoán chỉ được xem là chính xác khi trùng hoàn toàn với vị trí ranh giới trong dữ liệu tham chiếu; nghiên cứu không áp dụng khoảng sai lệch cho phép. Từ precision và recall của từng lớp $c \in \{0,1\}$, $F_1$ của lớp được tính như sau:
 
 $$
 P_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FP}_c}, \quad R_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FN}_c}, \quad F_{1,c} = 2 \cdot \frac{P_c \cdot R_c}{P_c + R_c}
 $$
 
-Giá trị báo cáo là macro-$F_1 = (F_{1,0}+F_{1,1})/2$, tức trung bình không trọng số giữa lớp không-ranh-giới và lớp ranh-giới. Giá trị càng cao càng tốt, nhưng có thể bị chi phối một phần bởi lớp không-ranh-giới phổ biến; vì vậy phải được đọc cùng $P_k$ và WindowDiff, không được diễn giải như $F_1$ riêng của lớp ranh giới.
+Giá trị được báo cáo là macro-$F_1$, được tính theo công thức:
 
-Đối với tác vụ tóm tắt và tạo tiêu đề, chỉ số ROUGE (Recall-Oriented Understudy for Gisting Evaluation) [@Lin2004] được sử dụng để đánh giá độ trùng lặp các cụm từ hoặc chuỗi con chung dài nhất giữa văn bản sinh ra và văn bản tham chiếu. Cụ thể, chỉ số ROUGE-1 phản ánh mức độ trùng lặp của các từ đơn (unigrams), ROUGE-2 phản ánh các từ đôi (bigrams), và ROUGE-L dựa trên độ dài của chuỗi con chung dài nhất (Longest Common Subsequence - LCS). BERTScore [@Zhang2020] là một lựa chọn bổ sung dựa trên vectơ nhúng ngữ cảnh để đánh giá tương đồng ngữ nghĩa; tuy nhiên, khóa luận hiện chỉ báo cáo các kết quả ROUGE có hiện vật tái lập và không diễn giải BERTScore như một chỉ số đã được thực nghiệm. Trong bối cảnh đánh giá tiêu đề với nhiều tiêu đề tham chiếu hợp lệ của con người, đề tài sử dụng phương pháp tính ROUGE lớn nhất (ROUGE-Max): điểm số ROUGE được tính riêng biệt với từng tiêu đề tham chiếu, sau đó lấy giá trị lớn nhất. Phương pháp này chấp nhận tính đa dạng và hợp lệ của các cách đặt tiêu đề khác nhau, song có thể mang lại kết quả đánh giá lạc quan hơn so với phương pháp tính điểm trung bình.
+$$
+\text{macro-}F_1 = \frac{F_{1,0} + F_{1,1}}{2}.
+$$
+
+Chỉ số này là trung bình cộng của $F_1$ đối với lớp không phải ranh giới và lớp ranh giới, trong đó hai lớp có vai trò như nhau. Giá trị macro-$F_1$ càng cao cho thấy kết quả phân loại càng tốt. Tuy nhiên, do số lượng vị trí không phải ranh giới thường lớn hơn nhiều so với số lượng vị trí ranh giới, chỉ số này cần được xem xét kết hợp với $P_k$ và WindowDiff. Macro-$F_1$ không nên được hiểu là chỉ số $F_1$ riêng của lớp ranh giới.
+
+Đối với nhiệm vụ tóm tắt và tạo tiêu đề, nghiên cứu sử dụng ROUGE (Recall-Oriented Understudy for Gisting Evaluation) [@Lin2004] để đo mức độ tương đồng về mặt từ vựng giữa văn bản do mô hình tạo ra và văn bản tham chiếu. Cụ thể, ROUGE-1 đánh giá mức độ trùng khớp của các từ đơn (unigrams), ROUGE-2 đánh giá các cặp từ liên tiếp (bigrams), còn ROUGE-L dựa trên chuỗi con chung dài nhất (Longest Common Subsequence – LCS).
+
+BERTScore [@Zhang2020] là một chỉ số bổ sung, sử dụng biểu diễn ngữ cảnh để đánh giá mức độ tương đồng về ngữ nghĩa. Tuy nhiên, trong phạm vi khóa luận này, chúng tôi chỉ báo cáo các kết quả ROUGE có đầy đủ dữ liệu và quy trình để tái lập; BERTScore không được xem là một chỉ số đã được kiểm chứng bằng thực nghiệm trong nghiên cứu.
+
+Đối với nhiệm vụ tạo tiêu đề, mỗi mẫu có thể đi kèm nhiều tiêu đề tham chiếu hợp lệ do con người xây dựng. Vì vậy, đề tài sử dụng cách tính ROUGE-Max: điểm ROUGE được tính riêng giữa tiêu đề dự đoán và từng tiêu đề tham chiếu, sau đó chọn giá trị cao nhất. Cách đánh giá này phù hợp với sự đa dạng trong cách đặt tiêu đề, nhưng có thể cho kết quả lạc quan hơn so với việc lấy điểm trung bình trên toàn bộ các tiêu đề tham chiếu.
 
 
 ## Phương pháp luận (Methodology)
 
 ### Quy trình tổng thể (Overall Pipeline)
 
-Quy trình hoạt động tổng thể của hệ thống tóm tắt cuộc họp phân cấp từ luồng âm thanh đầu vào (audio stream) đến cấu trúc tóm tắt phân cấp đầu ra được thiết kế theo cơ chế tổng hợp từ các đơn vị nhỏ lên các cấp nội dung lớn hơn. Hệ thống phân tách toàn bộ quá trình thành 5 giai đoạn chức năng liên kết chặt chẽ với nhau:
+Quy trình tổng thể của hệ thống tóm tắt cuộc họp phân cấp bắt đầu từ luồng âm thanh đầu vào (audio stream) và kết thúc bằng bản tóm tắt có cấu trúc. Hệ thống lần lượt chuyển đổi âm thanh thành các lượt lời, nhóm các lượt lời thành từng đoạn hội thoại, tóm tắt nội dung của mỗi đoạn, sau đó tổ chức các bản tóm tắt theo từng chủ đề để hình thành bản tổng hợp cuối cùng. Toàn bộ quy trình gồm năm giai đoạn chức năng có mối liên hệ chặt chẽ với nhau:
 
 ![Quy trình tổng thể của hệ thống tóm tắt phân cấp dạng luồng](assets/fig01_overall_pipeline.png)
-
 **Hình 1. Quy trình tổng thể của hệ thống tóm tắt phân cấp**
 
 Mỗi giai đoạn trong đường ống xử lý (pipeline) tổng thể ở Hình 1 vận hành như một module độc lập với các đặc tả về chức năng, đầu vào và đầu ra rõ ràng:
 
 **Giai đoạn 1: Nhận dạng tiếng nói và phân định người nói (Automatic Speech Recognition and Speaker Diarization)**
-Quy trình tiếp nhận và xử lý âm thanh hội thoại liên tục được thực hiện nhằm chuyển đổi giọng nói thành văn bản gắn nhãn người phát ngôn tương ứng. Đầu vào của giai đoạn này là luồng âm thanh liên tục $A(t)$ được thu nhận trực tiếp từ thiết bị. Luồng âm thanh sau đó được xử lý bởi mô hình phát hiện hoạt động giọng nói (Voice Activity Detection - VAD) sử dụng công cụ Silero VAD để phân tách thành chuỗi các đoạn âm thanh chứa tiếng nói $A = (a_1, a_2, \dots, a_n)$. Mỗi đoạn âm thanh $a_i$ sau đó được đưa vào hai nhánh giải mã song song. Nhánh thứ nhất thực hiện nhận dạng tiếng nói tự động (Automatic Speech Recognition - ASR) bằng kiến trúc Zipformer để trích xuất nội dung văn bản tương ứng $t_i = \text{ASR}(a_i)$ ở chế độ giải mã ngoại tuyến cấp phân đoạn (segment-level offline decoding). Nhánh thứ hai thực hiện trích xuất vectơ nhúng đặc trưng người nói (speaker embedding) thông qua kiến trúc WeSpeaker ResNet34 và tiến hành đối sánh độ tương đồng cosine (cosine similarity) để gán nhãn phân cụm người phát ngôn $p_i = \text{SpeakerDiarization}(a_i)$ (ví dụ: Speaker_1, Speaker_2). Kết quả đầu ra của giai đoạn này là một phân đoạn câu thoại hoàn chỉnh có nhãn người phát ngôn, được ký hiệu dưới dạng $u_i = (p_i, t_i)$ (utterance).
+
+[Sau này ASR sẽ viết ở đây]
 
 **Giai đoạn 2: Phân đoạn chủ đề hội thoại (Unsupervised Topic Segmentation)**
-Giai đoạn này chịu trách nhiệm phát hiện các điểm dịch chuyển chủ đề trong dòng hội thoại liên tục để phân chia cuộc họp thành các phần nội dung độc lập. Đầu vào là luồng câu thoại liên tục $U = (u_1, u_2, \dots, u_N)$ thu được từ giai đoạn trước.
-Hệ thống thực hiện phân đoạn chủ đề phi giám sát (unsupervised topic segmentation) thông qua thuật toán **Sliding TextTiling** cải tiến trực tiếp từ thuật toán TextTiling gốc của Hearst [@Hearst1997]. Thuật toán đề xuất cải tiến cơ chế so khớp từ vựng truyền thống bằng cách tích hợp cơ chế cửa sổ trượt (sliding window) kết hợp tính toán điểm sâu thung lũng tích hợp đa bán kính quan sát (multi-radius integrated depth score) nhằm tối ưu hóa việc phát hiện ranh giới chủ đề trên dữ liệu hội thoại truyền luồng (streaming data). Quá trình phân tích độ tương đồng từ vựng được thực hiện giữa các khối cửa sổ trượt liên tiếp dựa trên biểu diễn túi từ (Bag-of-Words - BoW). Đầu ra của giai đoạn này là tập hợp các chỉ số ranh giới phân đoạn chủ đề $B = \{b_1, b_2, \dots, b_K\}$ (với $b_0 = 0$ và $b_K = N$). Từ tập ranh giới này, luồng câu thoại được chia thành $K$ phân đoạn chủ đề độc lập $T_k$:
-$$T_k = (u_i \mid b_{k-1} < i \le b_k), \quad k = 1, 2, \dots, K$$
 
-**Giai đoạn 3: Phân khối lượt lời (Utterance Chunking)**
-Để chuẩn bị dữ liệu đầu vào phù hợp cho mô hình tóm tắt và tránh hiện tượng vượt ngưỡng cửa sổ ngữ cảnh (context window overflow), từng phân đoạn chủ đề $T_k$ có độ dài $N_k = b_k - b_{k-1}$ câu thoại được tiến hành chia nhỏ tiếp thành các khối lượt lời (utterance chunks) liên tiếp và không chồng lấn.
-Đầu vào là phân đoạn chủ đề $T_k$, và đầu ra là các khối lượt lời $C_{k, j}$ có kích thước tối đa được giới hạn ở $L_{\text{chunk}} = 8$ câu thoại. Công thức phân chia các khối lượt lời $C_{k, j}$ được định nghĩa như sau:
-$$C_{k, j} = \{u_i \mid b_{k-1} + (j-1) \cdot L_{\text{chunk}} < i \le \min(b_{k-1} + j \cdot L_{\text{chunk}}, b_k)\}$$
-trong đó $j = 1, 2, \dots, m_k$ là chỉ số khối lượt lời và $m_k = \lceil N_k / L_{\text{chunk}} \rceil$ đại diện cho tổng số khối của chủ đề $k$.
+Giai đoạn này có nhiệm vụ phát hiện các vị trí chuyển đổi chủ đề trong luồng hội thoại liên tục, từ đó chia nội dung cuộc họp thành các phân đoạn tương đối độc lập. Đầu vào là chuỗi các lượt lời thu được từ giai đoạn 1:
 
-**Giai đoạn 4: Tóm tắt khối trừu tượng (Abstractive Chunk Summarization)**
-Giai đoạn này thực hiện tạo sinh văn bản tóm tắt ngắn gọn dưới dạng trừu tượng cho từng khối lượt lời hội thoại độc lập. Đầu vào của mô hình là khối lượt lời $C_{k, j}$ thu được từ giai đoạn trước.
-Để mô hình sinh tạo hiểu được cấu trúc hội thoại, khối lượt lời $C_{k, j}$ trước tiên được định dạng lại bằng cách ghép nối nhãn người nói và nội dung văn bản của từng câu thoại liên tiếp thành một chuỗi văn bản duy nhất $\tilde{C}_{k, j}$:
-$$\tilde{C}_{k,j}=\operatorname{Join}\!\left(\left\{p_i\mathbin{\Vert}\text{: }\mathbin{\Vert}t_i\mid u_i=(p_i,t_i)\in C_{k,j}\right\},\ \text{newline}\right)$$
-Hệ thống tự động thêm tiền tố tác vụ (task prefix) `"Tóm tắt: "` vào đầu văn bản đã định dạng, sau đó đưa chuỗi dữ liệu này qua mô hình ngôn ngữ **ViT5** (phiên bản ViT5-base) đã được tinh chỉnh (fine-tuned) trên bộ dữ liệu AliMeeting4MUG_vi để thực hiện tóm tắt trừu tượng (abstractive summarization) và sinh ra một câu tóm tắt ngắn gọn tương ứng:
-$$q_{k,j}=\operatorname{ViT5}\!\left(\text{Tóm tắt: }\mathbin{\Vert}\tilde{C}_{k,j}\right)$$
-trong đó $q_{k, j}$ đại diện cho nội dung tóm tắt đầu ra của khối thứ $j$ thuộc chủ đề $k$.
+$$
+U = (u_1, u_2, \dots, u_N)
+$$
+
+Hệ thống thực hiện phân đoạn chủ đề không giám sát (unsupervised topic segmentation) bằng thuật toán **Multi-Scale Sliding TextTiling**, được phát triển từ thuật toán TextTiling của Hearst [@Hearst1997]. Thay vì chỉ so sánh từ vựng tại một phạm vi cố định, thuật toán sử dụng cửa sổ trượt (sliding window) để phân tích độ tương đồng giữa các đoạn hội thoại liền kề. Nội dung trong mỗi cửa sổ được biểu diễn bằng mô hình túi từ (Bag-of-Words – BoW).
+
+Từ chuỗi điểm tương đồng, thuật toán xác định các vị trí mà nội dung giữa hai đoạn liền kề thay đổi rõ rệt. Mức độ thay đổi được đánh giá trên nhiều kích thước cửa sổ khác nhau (_multi-radius integrated depth score_) để lựa chọn các ranh giới chủ đề đáng tin cậy. Cách tiếp cận này giúp hệ thống phát hiện ranh giới chủ đề ổn định hơn khi xử lý dữ liệu hội thoại liên tục.
+
+Đầu ra của giai đoạn này là tập hợp các vị trí ranh giới chủ đề:
+
+$$
+B = \{b_0, b_1, \dots, b_K\},
+\qquad
+b_0 = 0,
+\qquad
+b_K = N
+$$
+
+Dựa trên các ranh giới này, chuỗi lượt lời được chia thành $K$ phân đoạn chủ đề. Phân đoạn thứ $k$ được xác định như sau:
+
+$$
+T_k = \left(u_i \mid b_{k-1} < i \le b_k\right),
+\qquad
+k = 1, 2, \dots, K
+$$
+
+Trong đó, $i$ là chỉ số của lượt lời trong chuỗi hội thoại; mỗi $T_k$ gồm các lượt lời từ vị trí $b_{k-1}+1$ đến vị trí $b_k$.
+
+**Giai đoạn 3: Phân chia lượt lời thành các khối  (Utterance Chunking)**
+
+Giai đoạn này có nhiệm vụ chia từng phân đoạn chủ đề thành các nhóm lượt lời có kích thước phù hợp với giới hạn đầu vào của mô hình tóm tắt. Cách xử lý này giúp tránh trường hợp số lượng lượt lời vượt quá giới hạn ngữ cảnh của mô hình.
+
+Với phân đoạn chủ đề thứ $k$, ký hiệu là $T_k$, số lượng lượt lời trong phân đoạn được xác định bởi:
+
+$$
+N_k = b_k - b_{k-1}
+$$
+
+Phân đoạn $T_k$ sau đó được chia thành các khối lượt lời liên tiếp, không chồng lấn. Mỗi khối được ký hiệu là $C_{k,j}$, trong đó $k$ là chỉ số của phân đoạn chủ đề và $j$ là chỉ số của khối trong phân đoạn đó.
+
+Kích thước tối đa của mỗi khối được giới hạn ở:
+
+$$
+L_{\text{chunk}} = 8
+$$
+
+Cụ thể, khối thứ $j$ của phân đoạn chủ đề thứ $k$ được xác định như sau:
+
+$$
+C_{k,j}
+=
+\left\{
+u_i
+\mid
+b_{k-1} + (j-1)L_{\text{chunk}} < i
+\le
+\min\left(b_{k-1} + jL_{\text{chunk}},\, b_k\right)
+\right\}
+$$
+
+Trong đó, $i$ là chỉ số của lượt lời trong toàn bộ chuỗi hội thoại, còn $j = 1,2,\dots,m_k$ là chỉ số của khối lượt lời. Tổng số khối của phân đoạn chủ đề thứ $k$ được tính bằng:
+
+$$
+m_k
+=
+\left\lceil
+\frac{N_k}{L_{\text{chunk}}}
+\right\rceil
+$$
+
+Như vậy, mỗi khối $C_{k,j}$ chứa tối đa 8 lượt lời; khối cuối cùng có thể chứa ít hơn 8 lượt lời nếu số lượt lời trong phân đoạn không chia hết cho $L_{\text{chunk}}$.
+
+**Giai đoạn 4: Tóm tắt từng khối lượt lời  (Abstractive Chunk Summarization)**
+
+Giai đoạn này có nhiệm vụ tạo một bản tóm tắt ngắn cho từng khối lượt lời. Đầu vào là khối hội thoại $C_{k,j}$ được tạo ra ở giai đoạn trước.
+
+Trước khi đưa vào mô hình, các lượt lời trong $C_{k,j}$ được chuyển thành một chuỗi văn bản duy nhất. Mỗi lượt lời được biểu diễn bằng nhãn người nói, theo sau là nội dung câu thoại; các lượt lời liên tiếp được ngăn cách bằng ký tự xuống dòng. Chuỗi văn bản sau khi định dạng được ký hiệu là $\tilde{C}_{k,j}$:
+
+$$
+\tilde{C}_{k,j}
+=
+\operatorname{Join}
+\left(
+\left\{
+p_i \mathbin{\Vert} \text{: } \mathbin{\Vert} t_i
+\mid
+u_i = (p_i,t_i) \in C_{k,j}
+\right\},
+\text{newline}
+\right)
+$$
+
+Tiếp theo, hệ thống thêm tiền tố tác vụ `"Tóm tắt: "` vào đầu chuỗi văn bản. Dữ liệu này được đưa vào mô hình ViT5-base đã được tinh chỉnh trên bộ dữ liệu AliMeeting4MUG_vi để tạo bản tóm tắt cho khối hội thoại:
+
+$$
+q_{k,j}
+=
+\operatorname{ViT5}
+\left(
+\text{Tóm tắt: }
+\mathbin{\Vert}
+\tilde{C}_{k,j}
+\right)
+$$
+
+Trong đó, $q_{k,j}$ là bản tóm tắt của khối lượt lời thứ $j$ thuộc phân đoạn chủ đề thứ $k$.
 
 **Giai đoạn 5: Tạo tiêu đề phân đoạn chủ đề (Topic Titling)**
-Tại giai đoạn cuối cùng, hệ thống tiến hành tạo nhãn tiêu đề đại diện khái quát cho toàn bộ phân đoạn chủ đề lớn. Đầu vào là tất cả các câu tóm tắt khối $q_{k, j}$ thuộc cùng một phân đoạn chủ đề $T_k$.
-Các câu tóm tắt khối này được thu thập và ghép nối tuần tự với nhau bằng chuỗi ký tự phân tách `" / "`. Nhằm bảo đảm an toàn cho cửa sổ tự chú ý (self-attention window) của mô hình sinh và loại bỏ nhiễu ngữ cảnh, văn bản ghép nối được thực hiện loại phần đầu và giữ tối đa $L_{\text{char\_max}} = 1500$ ký tự cuối cùng. Chuỗi văn bản sau khi làm sạch ngữ cảnh được đưa vào mô hình **BARTpho** đã tinh chỉnh để sinh ra tiêu đề chủ đề $h_k$ tương ứng:
-$$h_k=\operatorname{BARTpho}\!\left(\text{Tạo tiêu đề: }\mathbin{\Vert}\operatorname{Suffix}\!\left(\operatorname{Join}\!\left(\{q_{k,1},\ldots,q_{k,m_k}\},\text{ / }\right),L_{\mathrm{char\_max}}\right)\right)$$
-trong đó $\text{Suffix}(X, L)$ đại diện cho hàm lấy chuỗi con chứa $L$ ký tự cuối cùng của chuỗi $X$.
 
-Kết quả đầu ra cuối cùng của toàn bộ đường ống xử lý (pipeline) là một cấu trúc tóm tắt phân cấp hoàn chỉnh (complete hierarchical summary structure) $R$ được biểu diễn bằng một chuỗi có thứ tự thời gian của các tiêu đề và chuỗi tóm tắt khối tương ứng:
-$$R = \Big( \big( h_k, ( q_{k, 1}, q_{k, 2}, \dots, q_{k, m_k} ) \big) \Big)_{k=1}^{K}$$
-Cấu trúc này cho phép người dùng nhanh chóng nắm bắt bức tranh toàn cảnh của cuộc họp qua hệ thống tiêu đề chủ đề $h_k$, đồng thời dễ dàng truy xuất thông tin chi tiết qua chuỗi các câu tóm tắt khối $q_{k, j}$ tương ứng bên dưới.
+Ở giai đoạn cuối, hệ thống tạo một tiêu đề khái quát cho mỗi phân đoạn chủ đề. Đầu vào là toàn bộ các bản tóm tắt khối $q_{k,j}$ thuộc cùng phân đoạn chủ đề $T_k$.
+
+Các bản tóm tắt này được sắp xếp theo thứ tự xuất hiện và ghép nối bằng chuỗi phân cách `" / "`.  Chuỗi văn bản này sau đó được thêm tiền tố tác vụ `"Tạo tiêu đề: "` và đưa vào mô hình BARTpho đã được tinh chỉnh để sinh tiêu đề chủ đề $h_k$:
+
+$$
+h_k
+=
+\operatorname{BARTpho}
+\left(
+\text{Tạo tiêu đề: }
+\mathbin{\Vert}
+\operatorname{Join}
+(q_{k,1}, \dots, q_{k,m_k}),
+\text{ / }
+\right)
+$$
+
+Đầu ra cuối cùng của hệ thống là cấu trúc tóm tắt phân cấp $R$, gồm các tiêu đề chủ đề và các bản tóm tắt khối tương ứng, được sắp xếp theo trình tự thời gian của cuộc họp:
+
+$$
+R
+=
+\left(
+\left(
+h_k,
+(q_{k,1}, q_{k,2}, \dots, q_{k,m_k})
+\right)
+\right)_{k=1}^{K}
+$$
+
+Cấu trúc này giúp người dùng nhanh chóng nắm được nội dung chính của cuộc họp thông qua các tiêu đề chủ đề $h_k$, đồng thời có thể xem chi tiết hơn qua các bản tóm tắt khối $q_{k,j}$ bên dưới.
 
 ### Khâu nhận dạng tiếng nói và phân định người nói thời gian thực (Real-time Speech Recognition and Speaker Diarization)
 
