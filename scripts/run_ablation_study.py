@@ -1,19 +1,18 @@
 import logging
-logging.disable(logging.CRITICAL)
-
 import os
 import sys
-import time
-import json
+
 import segeval
 import numpy as np
 from sklearn.metrics import f1_score
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.data import Corpus, EvalLoader
-from src.service.text_tiling import SlidingTextTilingService
-from src.config.text_tiling import SlidingTextTilingConfig
+from src.data import Corpus, EvalLoader  # noqa: E402
+from src.service.text_tiling import SlidingTextTilingService  # noqa: E402
+from src.config.text_tiling import SlidingTextTilingConfig  # noqa: E402
+
+logging.disable(logging.CRITICAL)
 
 def boundaries_to_binary(boundary_indices, total_entries):
     binary_list = [0] * total_entries
@@ -33,7 +32,7 @@ def segments_to_binary(segment_sizes):
     return binary_list
 
 ABLATION_CONFIGS = {
-    "1. Basic TextTiling (Batch, r=3, no zscore, no merge)": SlidingTextTilingConfig(
+    "1. Utterance-level lexical baseline (Batch, r=3, no zscore, no merge)": SlidingTextTilingConfig(
         block_size=2,
         radii=[3],
         alpha=0.5,
@@ -51,10 +50,10 @@ ABLATION_CONFIGS = {
         window_size=40,
         stride=5
     ),
-    "3. + Single Radius (W=40, S=5, r=3, Z-score, no merge)": SlidingTextTilingConfig(
+    "3. + Local Z-score Normalization (W=40, S=5, r=3, Z-score, no merge)": SlidingTextTilingConfig(
         block_size=2,
         radii=[3],
-        alpha=1.0,
+        alpha=1.2,
         normalize="zscore",
         min_segment_ratio=0.0,
         window_size=40,
@@ -63,36 +62,18 @@ ABLATION_CONFIGS = {
     "4. + Multi-Scale Radii (W=40, S=5, r=[3,5,10,15,20], Z-score, no merge)": SlidingTextTilingConfig(
         block_size=2,
         radii=[3, 5, 10, 15, 20],
-        alpha=1.0,
+        alpha=1.2,
         normalize="zscore",
         min_segment_ratio=0.0,
         window_size=40,
         stride=5
     ),
-    "5. - Without Z-Score (W=40, S=5, r=[3,5,10,15,20], minmax, merge)": SlidingTextTilingConfig(
+    "5. + Greedy Merging (Full Proposed Model)": SlidingTextTilingConfig(
         block_size=2,
         radii=[3, 5, 10, 15, 20],
-        alpha=0.5,
-        normalize="minmax",
-        min_segment_ratio=0.08,
-        window_size=40,
-        stride=5
-    ),
-    "6. - Without Greedy Merging (W=40, S=5, r=[3,5,10,15,20], Z-score, no merge)": SlidingTextTilingConfig(
-        block_size=2,
-        radii=[3, 5, 10, 15, 20],
-        alpha=1.0,
+        alpha=1.2,
         normalize="zscore",
-        min_segment_ratio=0.0,
-        window_size=40,
-        stride=5
-    ),
-    "7. Full Proposed Model (Sliding TextTiling)": SlidingTextTilingConfig(
-        block_size=2,
-        radii=[3, 5, 10, 15, 20],
-        alpha=1.0,
-        normalize="zscore",
-        min_segment_ratio=0.08,
+        min_segment_ratio=0.20,
         window_size=40,
         stride=5
     )
@@ -141,7 +122,7 @@ def main():
         print(f" -> Pk: {pk:.4f}, WD: {wd:.4f}, F1: {f1:.4f}")
         
     print("\nSUMMARY TABLE FOR THESIS:")
-    print("| Biến thể (Ablation Variant) | $P_k$ TB ↓ | WD TB ↓ | $F_1$ TB ↑ | Nhận xét vai trò thành phần |")
+    print("| Biến thể (Ablation Variant) | $P_k$ TB ↓ | WD TB ↓ | Macro-$F_1$ TB ↑ | Nhận xét vai trò thành phần |")
     print("| :--- | ---: | ---: | ---: | :--- |")
     for name, m in results.items():
         print(f"| `{name}` | {m['Pk']:.4f} | {m['WD']:.4f} | {m['F1']:.4f} | |")

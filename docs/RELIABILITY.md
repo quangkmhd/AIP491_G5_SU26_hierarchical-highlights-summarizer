@@ -7,6 +7,7 @@ This file defines how the system proves it is healthy and restartable.
 - Bootstrap: `uv sync --extra dev`; local ignored checkpoints must exist in `models/` for runtime.
 - Fast tests: `uv run pytest tests/ -q -m 'not real_model'` (injected model doubles).
 - CUDA release check: `uv run pytest tests/manual/test_local_recap_models_smoke.py -v -m real_model`.
+- Legacy local checkpoints may encode `tokenizer_config.json.extra_special_tokens` as a list. `ModelLoader` normalizes this field at load time; `tests/unit/test_model_loader.py` locks the compatibility behavior before the CUDA smoke runs.
 - End-to-end smoke test: `python3 tests/manual/test_meeting_committee_sample.py`
 - Start API: `uv run uvicorn src.runtime.api:create_app --factory --port 8000`
 - Run CLI: `uv run python -m src.runtime.cli stream <transcript.json>`

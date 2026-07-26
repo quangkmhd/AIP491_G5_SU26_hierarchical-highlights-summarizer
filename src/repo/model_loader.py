@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 from dataclasses import dataclass
@@ -46,6 +47,15 @@ REQUIRED_FILES = {
 }
 
 
+def _tokenizer_compat_kwargs(path: Path) -> dict[str, Any]:
+    """Normalize legacy tokenizer metadata for newer Transformers loaders."""
+    config_path = path / "tokenizer_config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    if isinstance(config.get("extra_special_tokens"), list):
+        return {"extra_special_tokens": {}}
+    return {}
+
+
 def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
     if not torch.cuda.is_available():
         raise ModelLoadError(
@@ -58,7 +68,12 @@ def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
             "fix: copy the complete inference artifact set"
         )
     try:
-        tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True, use_fast=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            path,
+            local_files_only=True,
+            use_fast=True,
+            **_tokenizer_compat_kwargs(path),
+        )
         model = AutoModelForSeq2SeqLM.from_pretrained(path, local_files_only=True)
         model.to("cuda")
         model.eval()

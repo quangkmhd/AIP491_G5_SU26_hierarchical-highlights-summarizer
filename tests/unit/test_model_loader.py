@@ -1,5 +1,6 @@
 """Unit tests for the dual local seq2seq model loader."""
 
+import json
 import tempfile
 import threading
 import unittest
@@ -66,6 +67,18 @@ class ModelLoaderTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelLoadError, r"missing=.*fix"):
                 from src.repo.model_loader import _load_seq2seq_handle
                 _load_seq2seq_handle(ModelKind.TOPIC_TITLER, Path(directory))
+
+    def test_legacy_extra_special_tokens_are_normalized_for_newer_transformers(self) -> None:
+        from src.repo.model_loader import _tokenizer_compat_kwargs
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            (path / "tokenizer_config.json").write_text(
+                json.dumps({"extra_special_tokens": ["<extra_id_0>", "<extra_id_1>"]}),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(_tokenizer_compat_kwargs(path), {"extra_special_tokens": {}})
 
 
 if __name__ == "__main__":

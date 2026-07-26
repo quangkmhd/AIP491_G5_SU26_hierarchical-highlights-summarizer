@@ -5,37 +5,37 @@ import numpy as np
 # each entry: method -> [Pk, WD, F1]
 DATA = {
     "dialseg_711": {
-        "sliding_texttiling": [0.3657, 0.3743, 0.7077],
+        "sliding_texttiling": [0.3633, 0.3685, 0.7018],
         "bamibert_1dod": [0.4474, 0.4477, 0.0104],
         "nltk_texttiling": [0.4736, 0.4790, 0.1850],
         "vibert_texttiling": [0.5071, 0.7016, 0.4013]
     },
     "doc2dial": {
-        "sliding_texttiling": [0.5099, 0.5166, 0.6827],
+        "sliding_texttiling": [0.5120, 0.5213, 0.6810],
         "bamibert_1dod": [0.4593, 0.4593, 0.0007],
         "nltk_texttiling": [0.5442, 0.5463, 0.2583],
         "vibert_texttiling": [0.5069, 0.5687, 0.4720]
     },
     "meeting_ami": {
-        "sliding_texttiling": [0.6427, 0.9889, 0.4709],
+        "sliding_texttiling": [0.6415, 0.9298, 0.5287],
         "bamibert_1dod": [0.5585, 0.6968, 0.0445],
         "nltk_texttiling": [0.6199, 0.9428, 0.0244],
         "vibert_texttiling": [0.6471, 0.9993, 0.0307]
     },
     "meeting_committee": {
-        "sliding_texttiling": [0.5709, 0.8532, 0.5288],
+        "sliding_texttiling": [0.5595, 0.6335, 0.5651],
         "bamibert_1dod": [0.5967, 0.8669, 0.0757],
         "nltk_texttiling": [0.5215, 0.7887, 0.0430],
         "vibert_texttiling": [0.6037, 0.9721, 0.0884]
     },
     "meeting_icsi": {
-        "sliding_texttiling": [0.6179, 1.0542, 0.4512],
+        "sliding_texttiling": [0.6166, 0.9874, 0.5103],
         "bamibert_1dod": [0.6167, 0.9470, 0.0175],
         "nltk_texttiling": [0.6012, 0.9502, 0.0119],
         "vibert_texttiling": [0.6175, 1.0000, 0.0119]
     },
     "tiage": {
-        "sliding_texttiling": [0.4664, 0.4900, 0.6669],
+        "sliding_texttiling": [0.4624, 0.4780, 0.6667],
         "bamibert_1dod": [0.4940, 0.4940, 0.0669],
         "nltk_texttiling": [0.5044, 0.5106, 0.1424],
         "vibert_texttiling": [0.4490, 0.5531, 0.4722]
