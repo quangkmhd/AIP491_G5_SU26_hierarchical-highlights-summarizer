@@ -47,7 +47,7 @@ Supervised segmenters leverage deep transformer models fine-tuned to recognize d
 
 ### 1. `vibert_texttiling` (`src/segmenters/vibert_texttiling.py`)
 *   **Concept**: Replaces static Bag-of-Words similarities in TextTiling with dense sentence embeddings yielded by a Vietnamese Bert fine-tuned by us.
-*   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm dựa trên phương pháp tính điểm liên kết cặp câu của Xing và Carenini (2021) [@Xing2021].
+*   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên tập huấn luyện của bộ dữ liệu `AliMeeting4MUG_vi` (295 cuộc họp) dựa trên phương pháp tính điểm liên kết cặp câu của Xing và Carenini (2021) [@Xing2021], sau đó đánh giá zero-shot trên 6 bộ dữ liệu benchmark.
 *   **Details**:
     *   Loads local weights (e.g., `models/vibert/cpt_3818.pth`).
     *   Feeds sentence structures to map semantic embeddings, calculating cosine distances between embeddings to evaluate topic shifts.
@@ -55,7 +55,7 @@ Supervised segmenters leverage deep transformer models fine-tuned to recognize d
 
 ### 2. `bamibert_1dod` (`src/segmenters/bamibert_1dod.py`)
 *   **Concept**: Re-envisions dialogue segmenting as a **1D Object Detection task (1DOD)**, inspired by the paper *One-Dimensional Object Detection for Streaming Text Segmentation of Meeting Dialogue* [@He2025].
-*   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên chính 6 bộ dữ liệu tiếng Việt thực nghiệm dựa trên phương pháp phát hiện biên của He và cộng sự (2024).
+*   **Huấn luyện & Nền tảng**: Được tinh chỉnh (fine-tune) trên tập huấn luyện của bộ dữ liệu `AliMeeting4MUG_vi` (295 cuộc họp) dựa trên phương pháp phát hiện biên của He và cộng sự (2024), sau đó đánh giá zero-shot trên 6 bộ dữ liệu benchmark.
 *   **How it works**:
     *   Utilizes a local fine-tuned model (`models/bamibert-1dod-vi-v1`).
     *   Encodes speaker turns and textual context within a sliding multi-sentence window.
