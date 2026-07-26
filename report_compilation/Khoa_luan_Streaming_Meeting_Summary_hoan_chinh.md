@@ -268,52 +268,47 @@ Cấu trúc này giúp người dùng nhanh chóng nắm được nội dung ch�
 
 ### Thuật toán Multi-Scale Sliding TextTiling (Multi-Scale Sliding TextTiling Algorithm)
 
-Thuật toán TextTiling của Hearst [@Hearst1997] được xây dựng để phân đoạn văn bản tĩnh sau khi đã có toàn bộ tài liệu. Trong biến thể block comparison, văn bản được chia thành các token-sequence có độ dài cố định. Tại mỗi khe, hai khối gồm nhiều token-sequence ở hai phía được biểu diễn bằng tần suất từ và so sánh bằng cosine. Khi tính điểm sâu, thuật toán đi dần sang trái và phải theo đường điểm tương đồng cho đến khi tìm được các đỉnh cục bộ, thay vì tìm cực đại trong một bán kính cố định. Các ranh giới được chọn sau đó được đưa về vị trí ngắt đoạn gần nhất và được lọc để tránh nằm quá gần nhau. Hạn chế chính đối với bài toán của khóa luận là TextTiling chưa có cơ chế nhận từng lượt lời tăng dần, duy trì trạng thái cửa sổ và chốt ranh giới bất biến trong khi cuộc họp đang diễn ra.
+Thuật toán TextTiling của Hearst [@Hearst1997] được xây dựng để chia một tài liệu thành các phần nội dung sau khi toàn bộ văn bản đã được thu thập đầy đủ. Trong cách triển khai so sánh theo khối, văn bản được chia thành nhiều nhóm từ có độ dài bằng nhau. Tại mỗi vị trí nằm giữa hai nhóm, thuật toán lấy một số nhóm từ ở bên trái và bên phải để tạo thành hai khối văn bản. Hai khối này được biểu diễn dựa trên số lần xuất hiện của các từ, sau đó được so sánh bằng độ tương đồng cosine.
 
-Để giải quyết các hạn chế này, chúng tôi đề xuất thuật toán Multi-Scale Sliding TextTiling — một phương pháp phân đoạn chủ đề phi giám sát (unsupervised) mở rộng trực tiếp từ TextTiling gốc, tích hợp ba cải tiến chính: (i) cơ chế cửa sổ trượt (sliding window) cho phép xử lý tăng dần trên luồng hội thoại liên tục, (ii) tổng hợp điểm sâu đa bán kính (multi-radius depth scoring) kết hợp chuẩn hóa Z-score để nhận biết chuyển đổi chủ đề ở nhiều quy mô ngữ cảnh, và (iii) ngưỡng thích ứng (adaptive thresholding) kết hợp gộp tham lam (greedy merging) để giảm hiện tượng quá phân mảnh (over-segmentation).
+Để xác định mức độ thay đổi nội dung tại một vị trí, thuật toán lần lượt xem xét các điểm tương đồng ở bên trái và bên phải cho đến khi gặp các điểm cao nhất gần đó. Cách làm này giúp xác định những vị trí mà nội dung có sự thay đổi rõ rệt. Sau khi tìm được các vị trí có khả năng là ranh giới giữa các phần, thuật toán điều chỉnh chúng về vị trí xuống đoạn gần nhất. Các ranh giới nằm quá gần nhau cũng được loại bỏ.
+
+Hạn chế chính của TextTiling đối với bài toán trong khóa luận là thuật toán chỉ xử lý văn bản sau khi đã có đầy đủ nội dung. Thuật toán chưa hỗ trợ tiếp nhận lần lượt từng lượt phát biểu trong cuộc họp, chưa lưu lại thông tin của phần nội dung vừa xử lý và chưa thể xác định một ranh giới cố định ngay khi cuộc họp vẫn đang diễn ra.
+
+Để khắc phục các hạn chế này, chúng tôi đề xuất thuật toán Multi-Scale Sliding TextTiling, một phương pháp chia hội thoại theo chủ đề mà không cần dữ liệu gán nhãn, được phát triển từ TextTiling gốc với ba cải tiến chính: (i) sử dụng cửa sổ trượt để xử lý lần lượt nội dung hội thoại khi dữ liệu được thêm vào, (ii) kết hợp điểm sâu ở nhiều phạm vi và chuẩn hóa bằng Z-score để nhận biết thay đổi chủ đề ở các mức ngữ cảnh khác nhau, và (iii) dùng ngưỡng tự điều chỉnh cùng cơ chế gộp từng bước để hạn chế việc chia hội thoại thành quá nhiều đoạn nhỏ.
 
 Xét luồng lượt lời đầu vào $U = (u_1, u_2, \dots, u_n)$ thu được từ giai đoạn nhận dạng tiếng nói và phân định người nói. Thuật toán đề xuất nhận đầu vào là chuỗi $U$ cùng các siêu tham số cấu hình, và xuất ra tập hợp các chỉ số ranh giới phân đoạn chủ đề $B = \{b_1, b_2, \dots, b_K\}$, phân chia $U$ thành $K$ phân đoạn chủ đề liên tiếp. Quy trình tổng quan của thuật toán được minh họa trong Hình 2 và trình bày chi tiết qua ba giai đoạn xử lý cốt lõi sau đây.
 
 ![Quy trình Multi-Scale Sliding TextTiling và hai chế độ hoạt động](assets/fig02_sliding_texttiling_workflow.png)
 
-**Hình 2.** Sơ đồ chi tiết quy trình xử lý và điều kiện hoạt động của thuật toán Multi-Scale Sliding TextTiling. Thuật toán tự động phân nhánh giữa chế độ xử lý theo lô (Batch Mode, khi $n \le 40$) và chế độ cửa sổ trượt dạng luồng (Streaming Mode, khi $n > 40$) dựa trên độ dài chuỗi lượt thoại đầu vào. Hình biểu diễn cấu hình thực nghiệm $k=2$, $R=\{3,5,10,15,20\}$, $\alpha=1,2$, $W=40$, bước trượt $S=5$ và vùng nhìn trước $L=20$.
+**Hình 2.** Sơ đồ chi tiết quy trình xử lý và điều kiện hoạt động của thuật toán Multi-Scale Sliding TextTiling. 
+
+Thuật toán tự động phân nhánh giữa chế độ xử lý theo lô (Batch Mode, khi $n \le 40$) và chế độ cửa sổ trượt dạng luồng (Streaming Mode, khi $n > 40$) dựa trên độ dài chuỗi lượt thoại đầu vào. Hình biểu diễn cấu hình thực nghiệm $k=2$, $R=\{3,5,10,15,20\}$, $\alpha=1,2$, $W=40$, bước trượt $S=5$ và vùng nhìn trước $L=20$.
 
 Để làm nổi bật các đóng góp cải tiến của nghiên cứu này, dưới đây là các phân tích đối chiếu chi tiết về những điểm tương đồng (bảo toàn nguyên lý cốt lõi) và điểm khác biệt (các cải tiến kỹ thuật cụ thể cho môi trường streaming) giữa giải thuật đề xuất và thuật toán TextTiling gốc.
 
 Trong nghiên cứu này, thuật toán TextTiling của Hearst (1997) [@Hearst1997] được xem xét trên hai khía cạnh độc lập nhưng nhất quán:
-1. **Về mặt lý thuyết (Bảng 2)**: Chúng tôi đối chiếu các nguyên lý nền tảng của bài báo gốc nhằm làm rõ các hạn chế cố hữu của giải thuật Hearst (1997) và nhấn mạnh những thay đổi trong thiết kế của giải thuật đề xuất (như chuyển từ khối từ giả định sang lượt lời tự nhiên, thay cách tìm đỉnh theo hình dạng đường điểm bằng cách tổng hợp các cực đại trong nhiều phạm vi lân cận hữu hạn kết hợp chuẩn hóa Z-score, và từ xử lý theo lô toàn văn sang cửa sổ trượt dạng luồng).
-2. **Về mặt thực nghiệm (Bảng 3)**: Vì bài báo gốc không cung cấp mã nguồn hiện đại, chúng tôi sử dụng bản cài đặt tham chiếu (reference implementation) mã nguồn mở chuẩn hóa và được công nhận rộng rãi nhất của thuật toán này trong thư viện NLTK (`nltk.tokenize.texttiling.TextTilingTokenizer`) làm mô hình baseline đối chứng (`nltk_texttiling`), với các tham số được thiết lập minh bạch.
+
+ **Về mặt lý thuyết (Bảng 2)**: Chúng tôi đối chiếu các nguyên lý nền tảng của bài báo gốc nhằm làm rõ các hạn chế cố hữu của giải thuật Hearst (1997) và nhấn mạnh những thay đổi trong thiết kế của giải thuật đề xuất (như chuyển từ khối từ giả định sang lượt lời tự nhiên, thay cách tìm đỉnh theo hình dạng đường điểm bằng cách tổng hợp các cực đại trong nhiều phạm vi lân cận hữu hạn kết hợp chuẩn hóa Z-score, và từ xử lý theo lô toàn văn sang cửa sổ trượt dạng luồng).
+
+ **Về mặt thực nghiệm**: Vì bài báo gốc không cung cấp mã nguồn hiện đại, chúng tôi sử dụng bản cài đặt tham chiếu (reference implementation) mã nguồn mở chuẩn hóa và được công nhận rộng rãi nhất của thuật toán này trong thư viện NLTK (`nltk.tokenize.texttiling.TextTilingTokenizer`) làm mô hình baseline đối chứng (`nltk_texttiling`), với các tham số được thiết lập minh bạch.
 
 **Bảng 1. Các đặc điểm tương đồng (giống nhau) giữa hai thuật toán**
 
-| Đặc trưng kỹ thuật | Điểm chung thiết kế của hai thuật toán |
-| :--- | :--- |
-| **Mô hình biểu diễn cơ bản** | Đều sử dụng mô hình túi từ (Bag-of-Words - BoW) để số hóa tần suất xuất hiện của từ vựng từ văn bản đầu vào. |
-| **Đo độ mạch lạc chủ đề** | Đều áp dụng độ tương đồng cosine (Cosine Similarity) làm phép toán đo lường mức độ liên kết từ vựng giữa các khối văn bản liền kề. |
-| **Nguyên lý xác định ranh giới** | Đều tìm các khe chuyển dịch chủ đề tại các "thung lũng" độ tương đồng (local similarity valleys) thông qua việc đánh giá điểm sâu (depth score) của thung lũng đó so với các đỉnh xung quanh. |
-| **Tính chất học máy** | Đều hoạt động theo cơ chế phi giám sát (unsupervised), không yêu cầu dữ liệu gán nhãn hay quy trình huấn luyện mô hình phức tạp, giúp tối ưu hóa tài nguyên tính toán. |
+| Đặc trưng kỹ thuật               | Điểm chung thiết kế của hai thuật toán                                                                                                                                 |
+| :------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mô hình biểu diễn cơ bản**     | Đều sử dụng mô hình túi từ (Bag-of-Words - BoW) để số hóa tần suất xuất hiện của từ vựng từ văn bản đầu vào.                                                           |
+| **Đo độ mạch lạc chủ đề**        | Đều áp dụng độ tương đồng cosine (Cosine Similarity) làm phép toán đo lường mức độ liên kết từ vựng giữa các khối văn bản liền kề.                                     |
+| **Nguyên lý xác định ranh giới** | Đều xác định vị trí chuyển chủ đề tại những điểm có độ tương đồng thấp bằng cách so sánh điểm sâu của vị trí đó với các điểm cao xung quanh.                           |
+| **Tính chất học máy**            | Đều hoạt động theo cơ chế phi giám sát (unsupervised), không yêu cầu dữ liệu gán nhãn hay quy trình huấn luyện mô hình phức tạp, giúp tối ưu hóa tài nguyên tính toán. |
 
 **Bảng 2. So sánh khía cạnh lý thuyết giữa TextTiling gốc (Hearst, 1997) và Multi-Scale Sliding TextTiling (đề xuất)**
 
-| Khía cạnh lý thuyết | TextTiling gốc [@Hearst1997] | Multi-Scale Sliding TextTiling (đề xuất) |
-| :--- | :--- | :--- |
-| **Đơn vị phân hoạch** | **Khối từ vựng tĩnh**: Các đoạn từ vựng giả định (pseudo-sentences/paragraphs) dựa trên số từ cố định. | **Lượt thoại tự nhiên (Utterances)**: Lượt nói thực tế của người nói, bảo toàn ranh giới tương tác hội thoại. |
-| **Phạm vi xử lý** | **Toàn cục (Batch Mode)**: Yêu cầu nạp toàn bộ văn bản tĩnh để tính toán chuỗi độ tương đồng từ đầu đến cuối. | **Cục bộ dạng luồng (Streaming-ready)**: Sử dụng cơ chế cửa sổ trượt lân cận kích thước $W=40$ trượt theo bước $S=5$. |
-| **Biểu diễn từ vựng** | **Từ vựng toàn cục tĩnh**: Vectơ hóa dựa trên bảng từ vựng cố định thu thập từ toàn bộ tài liệu đầu vào. | **Từ vựng cục bộ động**: Sử dụng các từ điển tần suất (`dict[str, int]`) cục bộ động trên từng khối. |
-| **Cách tìm đỉnh và tính điểm sâu** | Đi theo đường điểm tương đồng sang trái và phải cho đến khi gặp các đỉnh cục bộ; không dùng tham số bán kính cố định | Tìm giá trị cực đại trong nhiều phạm vi hữu hạn $R=\{3, 5, 10, 15, 20\}$, sau đó chuẩn hóa và tổng hợp |
-| **Xử lý dạng luồng** | **Không hỗ trợ**: Không có cơ chế chốt ranh giới tăng dần, phụ thuộc độ dài toàn văn. | **Hỗ trợ streaming**: Chốt ranh giới tăng dần theo cửa sổ trượt, đảm bảo tính bất biến của kết quả đã công bố. |
-
-**Bảng 3. Tham số cấu hình baseline NLTK TextTiling trong các thực nghiệm đối chứng**
-
-| Tham số / Thành phần | Giá trị cấu hình baseline `nltk_texttiling` | Diễn giải kỹ thuật |
-| :--- | :--- | :--- |
-| **Thư viện & Module** | `nltk.tokenize.texttiling.TextTilingTokenizer` | Implementation chính thức của NLTK (v3.8.1+). |
-| **Kích thước khối từ (`w`)** | $w = 20$ | Số từ vựng cố định trong một khối từ giả định (pseudo-sentence). |
-| **Độ rộng cửa sổ (`k`)** | $k = 10$ | Số lượng khối từ dùng để tính độ tương đồng Cosine ở hai bên khe. |
-| **Độ rộng làm mịn (`smoothing_width`)** | $2$ | Độ rộng cửa sổ trung bình động dùng để làm mịn mảng độ tương đồng. |
-| **Số vòng làm mịn (`smoothing_rounds`)** | $1$ | Số lần áp dụng bộ lọc làm mịn chuỗi độ tương đồng. |
-| **Chính sách ngưỡng (`cutoff_policy`)** | `CutoffPolicy.HC` | High Cutoff (chính sách ngưỡng cao/bảo thủ): giữ các điểm sâu lớn hơn $\tau_{\text{HC}} = \mu_D - \sigma_D / 2$ (trong khi chính sách LC sử dụng ngưỡng $\tau_{\text{LC}} = \mu_D - \sigma_D$). |
-| **Từ dừng & Tiền xử lý** | `stopwordsiso` tiếng Việt | Lọc từ dừng tiếng Việt và nối chuỗi lượt thoại thành định dạng đầu vào NLTK. |
+| Khía cạnh lý thuyết                | TextTiling gốc [@Hearst1997]                                                                                                     | Multi-Scale Sliding TextTiling (đề xuất)                                                                                               |
+| :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phạm vi xử lý**                  | **Xử lý toàn bộ (Batch Mode)**: Cần nạp đầy đủ văn bản trước khi tính độ tương đồng từ đầu đến cuối.                             | **Xử lý theo luồng (Streaming-ready)**: Dùng cửa sổ trượt kích thước $W=40$ và dịch chuyển mỗi lần $S=5$.                              |
+| **Biểu diễn từ vựng**              | **Bảng từ dùng chung**: Biểu diễn văn bản bằng một bảng từ cố định được tạo từ toàn bộ tài liệu đầu vào.                         | **Bảng từ riêng cho từng khối**: Mỗi khối sử dụng một bảng đếm số lần xuất hiện của các từ và được cập nhật theo nội dung của khối đó. |
+| **Cách tìm đỉnh và tính điểm sâu** | Đi theo đường điểm tương đồng sang trái và phải cho đến khi gặp các đỉnh cục bộ; không dùng tham số bán kính cố định             | Tìm giá trị cực đại trong nhiều phạm vi hữu hạn $R=\{3, 5, 10, 15, 20\}$, sau đó chuẩn hóa và tổng hợp                                 |
+| **Xử lý dạng luồng**               | **Không hỗ trợ xử lý theo luồng**: Không thể xác định ranh giới khi dữ liệu được thêm dần và phải phụ thuộc vào toàn bộ văn bản. | **Hỗ trợ xử lý theo luồng**: Xác định ranh giới theo từng cửa sổ trượt và giữ nguyên các kết quả đã công bố.                           |
 
 #### Giai đoạn 1: Tiền xử lý và độ tương đồng khối (Preprocessing and Block-level Similarity)
 
@@ -328,7 +323,7 @@ $$
 $$
 S_i = \frac{B_L^i \cdot B_R^i}{\|B_L^i\|_2 \|B_R^i\|_2 + \varepsilon}
 $$
-Trong đó $\varepsilon = 10^{-10}$ là hằng số ổn định số học nhằm tránh phép chia cho không khi một khối rỗng sau quá trình tiền xử lý. Giá trị $S_i$ thấp cho biết hai khối chia sẻ ít từ vựng chung, phản ánh khả năng cao rằng một chuyển đổi chủ đề đang xảy ra tại vị trí khe $i$. Việc tổng hợp tần suất từ theo khối gồm $k$ lượt lời thay vì so sánh từng cặp câu thoại riêng lẻ giúp làm mịn nhiễu từ vựng — một đặc tính quan trọng trong dữ liệu hội thoại, nơi các lượt lời đơn lẻ thường rất ngắn và nghèo nàn về mặt từ vựng [@Hearst1997]. Độ tương đồng cosine được lựa chọn nhờ tính bất biến đối với độ dài văn bản (length-invariant), giảm ảnh hưởng của độ lớn vectơ khi các khối có số lượng lượt lời khác nhau ở các vùng biên. Một điểm cải tiến quan trọng khác trong bước biểu diễn là việc sử dụng không gian từ vựng cục bộ động (dynamic local vocabulary). Thay vì dựng một bảng từ vựng toàn cục tĩnh cho toàn bộ văn bản từ trước, thuật toán đề xuất xây dựng các từ điển tần suất từ động (`dict[str, int]`) trực tiếp trên từng khối lượt lời. Việc này giúp loại bỏ sự phụ thuộc vào thông tin toàn cục, đảm bảo khả năng tương thích tối đa với chế độ streaming khi từ vựng của cuộc họp liên tục thay đổi và không thể xác định trước.
+Trong đó $\varepsilon = 10^{-10}$ là hằng số ổn định số học nhằm tránh phép chia cho không khi một khối rỗng sau quá trình tiền xử lý. Giá trị $S_i$ thấp cho biết hai khối chia sẻ ít từ vựng chung, phản ánh khả năng cao rằng một chuyển đổi chủ đề đang xảy ra tại vị trí khe $i$. Việc tổng hợp tần suất từ theo khối gồm $k$ lượt lời thay vì so sánh từng cặp câu thoại riêng lẻ giúp làm mịn nhiễu từ vựng — một đặc tính quan trọng trong dữ liệu hội thoại, nơi các lượt lời đơn lẻ thường rất ngắn và nghèo nàn về mặt từ vựng [@Hearst1997]. Độ tương đồng cosine được lựa chọn nhờ tính bất biến đối với độ dài văn bản (length-invariant), giảm ảnh hưởng của độ lớn vectơ khi các khối có số lượng lượt lời khác nhau ở các vùng biên. Một điểm cải tiến quan trọng khác trong bước biểu diễn là việc sử dụng không gian từ vựng cục bộ động (dynamic local vocabulary). Thay vì dựng một bảng từ vựng toàn cục tĩnh cho toàn bộ văn bản từ trước, thuật toán đề xuất xây dựng các từ điển tần suất từ động trực tiếp trên từng khối lượt lời. Việc này giúp loại bỏ sự phụ thuộc vào thông tin toàn cục, đảm bảo khả năng tương thích tối đa với chế độ streaming khi từ vựng của cuộc họp liên tục thay đổi và không thể xác định trước.
 
 #### Giai đoạn 2: Điểm sâu thung lũng đa bán kính (Multi-radius Depth Scoring)
 
