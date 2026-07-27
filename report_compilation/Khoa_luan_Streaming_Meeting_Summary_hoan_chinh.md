@@ -310,60 +310,230 @@ Trong nghiên cứu này, thuật toán TextTiling của Hearst (1997) [@Hearst1
 | **Cách tìm đỉnh và tính điểm sâu** | Đi theo đường điểm tương đồng sang trái và phải cho đến khi gặp các đỉnh cục bộ; không dùng tham số bán kính cố định             | Tìm giá trị cực đại trong nhiều phạm vi hữu hạn $R=\{3, 5, 10, 15, 20\}$, sau đó chuẩn hóa và tổng hợp                                 |
 | **Xử lý dạng luồng**               | **Không hỗ trợ xử lý theo luồng**: Không thể xác định ranh giới khi dữ liệu được thêm dần và phải phụ thuộc vào toàn bộ văn bản. | **Hỗ trợ xử lý theo luồng**: Xác định ranh giới theo từng cửa sổ trượt và giữ nguyên các kết quả đã công bố.                           |
 
-#### Giai đoạn 1: Tiền xử lý và độ tương đồng khối (Preprocessing and Block-level Similarity)
+#### Giai đoạn 1: Làm sạch dữ liệu và tính độ giống nhau giữa hai khối lời nói
 
-Giai đoạn đầu tiên thực hiện biến đổi mỗi lượt lời thô thành biểu diễn số học và tính toán độ tương đồng từ vựng giữa các khối từ vựng (lexical block) liền kề. Với mỗi lượt lời $u_i$, hệ thống thực hiện chuẩn hóa chữ thường, loại bỏ ký tự đặc biệt, lọc từ dừng (stopwords) tiếng Việt bằng bộ từ điển stopwordsiso [@Stopwordsiso2024], và tạo vectơ tần suất từ $b_i(w) = \operatorname{tf}(w, u_i)$. Tại mỗi khe liên câu (inter-utterance gap) $i$ nằm giữa lượt lời $u_i$ và $u_{i+1}$, hai khối từ vựng có kích thước $k$ lượt lời được xây dựng lần lượt ở phía trái và phía phải:
-$$
-B_L^i(w) = \sum_{j=\max(1, i-k+1)}^{i} b_j(w)
-$$
-$$
-B_R^i(w) = \sum_{j=i+1}^{\min(n, i+k)} b_j(w)
-$$
-Độ tương đồng cosine (cosine similarity) giữa hai khối được tính theo công thức:
-$$
-S_i = \frac{B_L^i \cdot B_R^i}{\|B_L^i\|_2 \|B_R^i\|_2 + \varepsilon}
-$$
-Trong đó $\varepsilon = 10^{-10}$ là hằng số ổn định số học nhằm tránh phép chia cho không khi một khối rỗng sau quá trình tiền xử lý. Giá trị $S_i$ thấp cho biết hai khối chia sẻ ít từ vựng chung, phản ánh khả năng cao rằng một chuyển đổi chủ đề đang xảy ra tại vị trí khe $i$. Việc tổng hợp tần suất từ theo khối gồm $k$ lượt lời thay vì so sánh từng cặp câu thoại riêng lẻ giúp làm mịn nhiễu từ vựng — một đặc tính quan trọng trong dữ liệu hội thoại, nơi các lượt lời đơn lẻ thường rất ngắn và nghèo nàn về mặt từ vựng [@Hearst1997]. Độ tương đồng cosine được lựa chọn nhờ tính bất biến đối với độ dài văn bản (length-invariant), giảm ảnh hưởng của độ lớn vectơ khi các khối có số lượng lượt lời khác nhau ở các vùng biên. Một điểm cải tiến quan trọng khác trong bước biểu diễn là việc sử dụng không gian từ vựng cục bộ động (dynamic local vocabulary). Thay vì dựng một bảng từ vựng toàn cục tĩnh cho toàn bộ văn bản từ trước, thuật toán đề xuất xây dựng các từ điển tần suất từ động trực tiếp trên từng khối lượt lời. Việc này giúp loại bỏ sự phụ thuộc vào thông tin toàn cục, đảm bảo khả năng tương thích tối đa với chế độ streaming khi từ vựng của cuộc họp liên tục thay đổi và không thể xác định trước.
+Ở bước đầu tiên, mỗi lượt lời được làm sạch và chuyển thành dạng số để máy tính có thể xử lý. Với mỗi lượt lời $u_i$, hệ thống chuyển toàn bộ chữ về dạng chữ thường, loại bỏ ký tự đặc biệt [@Stopwordsiso2024]. Sau khi làm sạch, mỗi lượt lời được biểu diễn bằng số lần xuất hiện của từng từ:
 
-#### Giai đoạn 2: Điểm sâu thung lũng đa bán kính (Multi-radius Depth Scoring)
-
-Giai đoạn thứ hai xác định mức độ chuyển đổi chủ đề tại mỗi khe bằng cách tính điểm sâu thung lũng (depth score) — một chỉ số đo mức chênh lệch giữa giá trị tương đồng tại khe đang xét so với các giá trị tương đồng cực đại trong vùng lân cận [@Hearst1997, @Pevzner2002]. Đối với mỗi bán kính quan sát $r$, các đỉnh tương đồng cục bộ (local similarity peaks) ở phía trái và phía phải của khe $i$ được xác định:
-$$
-p_L(i, r) = \max_{\max(1, i-r) \le j \le i} S_j
-$$
-$$
-p_R(i, r) = \max_{i \le j \le \min(n-1, i+r)} S_j
-$$
-Điểm sâu tại khe $i$ với bán kính $r$ được tính:
-$$
-D_r(i) = \frac{p_L(i, r) + p_R(i, r) - 2S_i}{2}
-$$
-Về mặt trực giác, $D_r(i)$ đo mức "sâu" của thung lũng tương đồng (similarity valley) tại vị trí khe $i$: giá trị $D_r(i)$ cao cho thấy khe $i$ nằm tại một vùng có sự suy giảm tương đồng rõ rệt so với cả hai phía — dấu hiệu mạnh mẽ của một chuyển đổi chủ đề.
-
-Khác biệt cốt lõi với TextTiling gốc nằm ở việc nghiên cứu này thiết lập cơ chế quét theo các bán kính quan sát xác định $R = \{3, 5, 10, 15, 20\}$ kết hợp chuẩn hóa Z-score trên cửa sổ trượt, thay vì đi tìm các đỉnh cục bộ tự do dọc theo chuỗi tương đồng toàn văn. Bán kính nhỏ ($r = 3$) nhạy cảm với các chuyển đổi chủ đề cục bộ xảy ra trong phạm vi vài lượt lời liên tiếp, trong khi bán kính lớn ($r = 20$) có khả năng nhận biết các dịch chuyển chủ đề vĩ mô trải dài hàng chục lượt lời. Để đảm bảo các bán kính khác nhau đóng góp công bằng vào kết quả tổng hợp, mảng điểm sâu ứng với mỗi bán kính được chuẩn hóa Z-score nhằm đưa về cùng thang đo với trung bình 0 và độ lệch chuẩn 1, tránh hiện tượng bán kính lớn (với biên độ depth tự nhiên lớn hơn) chi phối kết quả:
-$$
-\widehat{D}_r(i) = \frac{D_r(i) - \mu_r}{\sigma_r + 10^{-10}}
-$$
-trong đó $\mu_r$ và $\sigma_r$ lần lượt là trung bình và độ lệch chuẩn của $D_r(i)$ trên tất cả các khe (được tính toàn cục trên toàn bộ cuộc họp ở chế độ xử lý theo lô, hoặc tính cục bộ trên từng cửa sổ trượt ở chế độ luồng). Điểm sâu tổng hợp đa quy mô (aggregated multi-scale depth score) được xác định bằng giá trị trung bình cộng:
-$$
-\bar{D}(i) = \frac{1}{|R|} \sum_{r \in R} \widehat{D}_r(i)
+$$  
+b_i(w) = \operatorname{tf}(w, u_i)  
 $$
 
-#### Giai đoạn 3: Ngưỡng thích ứng và gộp phân đoạn ngắn (Adaptive Thresholding and Greedy Merging)
+Trong đó, $b_i(w)$ là số lần từ $w$ xuất hiện trong lượt lời $u_i$.
 
-Giai đoạn thứ ba xác định các khe ứng viên ranh giới dựa trên ngưỡng thích ứng (adaptive threshold) và thực hiện hậu xử lý gộp tham lam (greedy merging) để giảm hiện tượng quá phân mảnh (over-segmentation). Ngưỡng thích ứng được tính theo công thức:
-$$
-\tau = \mu(\bar{D}) + \alpha \cdot \sigma(\bar{D})
-$$
-trong đó $\mu(\bar{D})$ và $\sigma(\bar{D})$ lần lượt là trung bình và độ lệch chuẩn của chuỗi điểm sâu tổng hợp $\bar{D}$ (được tính toàn cục hoặc cục bộ từng cửa sổ tương ứng với chế độ hoạt động), và $\alpha$ là hệ số kiểm soát độ nhạy phân đoạn. Giá trị $\alpha$ cao dẫn đến ngưỡng cao hơn, tạo ra ít ranh giới hơn và ưu tiên các phân đoạn dài; ngược lại, giá trị $\alpha$ thấp tạo ra nhiều ranh giới hơn và ưu tiên các phân đoạn ngắn. Khe $i$ có $\bar{D}(i) > \tau$ được đánh dấu là ứng viên ranh giới chủ đề.
+Thuật toán không so sánh từng lượt lời riêng lẻ vì các câu trong hội thoại thường ngắn và chứa ít từ. Thay vào đó, tại vị trí nằm giữa hai lượt lời $u_i$ và $u_{i+1}$, hệ thống tạo một khối ở bên trái và một khối ở bên phải. Mỗi khối gồm $k$ lượt lời gần nhất.
 
-Sau khi trích xuất tập ứng viên ranh giới, giai đoạn hậu xử lý gộp tham lam (greedy merging) kiểm tra và loại bỏ các phân đoạn có độ dài nhỏ hơn ngưỡng tối thiểu $m_{\min}$:
-$$
-m_{\min} = \begin{cases} \max(2, \lfloor \gamma \cdot n \rfloor) & \text{nếu } n \le W \text{ (Batch Mode)} \\ \max(2, \lfloor \gamma \cdot W \rfloor) & \text{nếu } n > W \text{ (Streaming Mode)} \end{cases}
-$$
-trong đó $\gamma$ là tỷ lệ gộp tối thiểu (minimum segment ratio). Trong các thực nghiệm phân đoạn chính của khóa luận, chúng tôi sử dụng $\gamma = 0{,}20$; cấu hình phần mềm mặc định của bản triển khai được trình bày riêng trong Phụ lục để phân biệt giữa tham số thực nghiệm và tham số vận hành. Khi phát hiện một phân đoạn có ít hơn $m_{\min}$ lượt lời, thuật toán so sánh giá trị $\bar{D}$ tại hai ranh giới bao quanh phân đoạn đó và xóa ranh giới có $\bar{D}$ thấp hơn, từ đó gộp phân đoạn ngắn vào phân đoạn láng giềng có tương đồng chủ đề cao hơn. Giai đoạn hậu xử lý này đảm bảo mỗi phân đoạn kết quả chứa đủ ngữ cảnh cho giai đoạn tóm tắt sinh tạo tiếp theo.
+Khối bên trái được tính như sau:
 
-Các giá trị siêu tham số dùng trong thực nghiệm chính (kích thước khối $k = 2$, hệ số ngưỡng $\alpha = 1{,}2$, tập bán kính $R = \{3, 5, 10, 15, 20\}$, tỷ lệ gộp tối thiểu $\gamma = 0{,}20$) được xác định thông qua thử nghiệm siêu tham số trên dữ liệu mẫu và được cố định nhất quán cho toàn bộ các bài đánh giá thực nghiệm được báo cáo trong chương này.
+$$  
+B_L^i(w) = \sum_{j=\max(1, i-k+1)}^{i} b_j(w)  
+$$
+
+Khối bên phải được tính như sau:
+
+$$  
+B_R^i(w) = \sum_{j=i+1}^{\min(n, i+k)} b_j(w)  
+$$
+
+Hai khối này sau đó được so sánh bằng độ tương đồng cosine:
+
+$$  
+S_i = \frac{B_L^i \cdot B_R^i}{|B_L^i|_2 |B_R^i|_2 + \varepsilon}  
+$$
+
+Trong đó, $\varepsilon = 10^{-10}$ được thêm vào để tránh chia cho 0 khi một khối không còn từ nào sau bước làm sạch.
+
+Có thể hiểu đơn giản rằng $S_i$ cho biết nội dung ở hai phía của vị trí $i$ giống nhau đến mức nào. Nếu $S_i$ cao, hai khối đang nói về nội dung gần nhau. Nếu $S_i$ thấp, nội dung ở hai phía khác nhau rõ rệt, vì vậy vị trí này có thể là nơi chủ đề thay đổi. Việc so sánh theo khối giúp giảm ảnh hưởng của các lượt lời quá ngắn hoặc chứa ít thông tin [@Hearst1997]. Độ tương đồng cosine cũng ít bị ảnh hưởng bởi độ dài của hai khối, nên phù hợp khi số lượt lời ở các vị trí đầu và cuối cửa sổ không hoàn toàn bằng nhau.
+
+#### Giai đoạn 2: Đo mức độ thay đổi chủ đề ở nhiều phạm vi
+
+Sau khi có chuỗi độ tương đồng $S_i$, hệ thống tiếp tục xác định vị trí nào có khả năng là ranh giới chủ đề. Ý tưởng chính là tìm những vị trí có độ tương đồng thấp hơn rõ rệt so với các vị trí xung quanh.
+
+Với mỗi phạm vi quan sát $r$, hệ thống tìm giá trị tương đồng cao nhất ở bên trái và bên phải của vị trí $i$:
+
+$$  
+p_L(i, r) = \max_{\max(1, i-r) \le j \le i} S_j  
+$$
+
+$$  
+p_R(i, r) = \max_{i \le j \le \min(n-1, i+r)} S_j  
+$$
+
+Sau đó, điểm sâu tại vị trí $i$ được tính như sau:
+
+$$  
+D_r(i) = \frac{p_L(i, r) + p_R(i, r) - 2S_i}{2}  
+$$
+
+Điểm này đo mức giảm của độ tương đồng tại vị trí đang xét so với hai phía xung quanh. Nếu $D_r(i)$ cao, độ tương đồng tại vị trí $i$ thấp hơn rõ rệt so với vùng bên trái và bên phải. Đây là dấu hiệu cho thấy chủ đề có thể thay đổi tại vị trí đó.
+
+Thuật toán sử dụng nhiều phạm vi quan sát:
+
+$$  
+R = {3, 5, 10, 15, 20}  
+$$
+
+Phạm vi nhỏ, chẳng hạn $r=3$, giúp phát hiện những thay đổi chủ đề xảy ra trong vài lượt lời. Phạm vi lớn, chẳng hạn $r=20$, giúp phát hiện những thay đổi kéo dài trên một đoạn hội thoại rộng hơn.
+
+Vì điểm sâu ở các phạm vi khác nhau có thể có độ lớn khác nhau, mỗi nhóm điểm được chuẩn hóa bằng Z-score:
+
+$$  
+\widehat{D}_r(i) = \frac{D_r(i) - \mu_r}{\sigma_r + 10^{-10}}  
+$$
+
+Trong đó, $\mu_r$ là giá trị trung bình và $\sigma_r$ là độ lệch chuẩn của các điểm sâu ứng với phạm vi $r$.
+
+Việc chuẩn hóa giúp các phạm vi nhỏ và lớn đóng góp công bằng hơn vào kết quả cuối cùng. Nếu không có bước này, phạm vi lớn có thể tạo ra điểm sâu lớn hơn và làm ảnh hưởng quá nhiều đến kết quả.
+
+Điểm sâu cuối cùng tại vị trí $i$ được tính bằng trung bình của tất cả các phạm vi:
+
+$$  
+\bar{D}(i) = \frac{1}{|R|} \sum_{r \in R} \widehat{D}_r(i)  
+$$
+
+Giá trị $\bar{D}(i)$ càng cao thì khả năng vị trí $i$ là nơi thay đổi chủ đề càng lớn.
+
+#### Giai đoạn 3: Chọn ranh giới và loại bỏ các đoạn quá ngắn
+
+Sau khi có điểm sâu tổng hợp $\bar{D}(i)$, hệ thống cần xác định mức điểm nào đủ lớn để được xem là ranh giới chủ đề.
+
+Ngưỡng được tính tự động theo công thức:
+
+$$  
+\tau = \mu(\bar{D}) + \alpha \cdot \sigma(\bar{D})  
+$$
+
+Trong đó, $\mu(\bar{D})$ là giá trị trung bình, $\sigma(\bar{D})$ là độ lệch chuẩn của chuỗi điểm sâu và $\alpha$ là tham số điều chỉnh độ nhạy.
+
+Nếu $\alpha$ lớn, ngưỡng $\tau$ sẽ cao hơn. Khi đó, chỉ những vị trí có mức thay đổi rất rõ mới được chọn, nên số đoạn tạo ra sẽ ít hơn và mỗi đoạn thường dài hơn.
+
+Nếu $\alpha$ nhỏ, ngưỡng thấp hơn. Khi đó, nhiều vị trí được chọn làm ranh giới hơn, nên hội thoại có thể bị chia thành nhiều đoạn ngắn.
+
+Một vị trí $i$ được xem là ứng viên ranh giới khi:
+
+$$  
+\bar{D}(i) > \tau  
+$$
+
+Sau bước này, một số ranh giới có thể nằm quá gần nhau, làm xuất hiện các đoạn quá ngắn. Vì vậy, hệ thống tiếp tục kiểm tra độ dài tối thiểu của mỗi đoạn:
+
+$$  
+m_{\min} =  
+\begin{cases}  
+\max(2, \lfloor \gamma \cdot n \rfloor) & \text{nếu } n \le W \  
+\max(2, \lfloor \gamma \cdot W \rfloor) & \text{nếu } n > W  
+\end{cases}  
+$$
+
+Trong đó, $\gamma$ là tỷ lệ độ dài tối thiểu của một đoạn.
+
+Nếu một đoạn có ít hơn $m_{\min}$ lượt lời, hệ thống xem xét hai ranh giới ở hai đầu đoạn đó. Ranh giới nào có điểm sâu thấp hơn sẽ bị xóa. Nhờ vậy, đoạn quá ngắn được gộp vào đoạn bên cạnh có nội dung gần hơn.
+
+Bước này giúp tránh chia cuộc họp thành quá nhiều phần nhỏ và bảo đảm mỗi phần có đủ nội dung để mô hình ViT5 tạo bản tóm tắt.
+
+Trong các thí nghiệm chính, khóa luận sử dụng các tham số:
+
+$$  
+k=2,\quad \alpha=1{,}2,\quad R={3,5,10,15,20},\quad \gamma=0{,}20  
+$$
+
+Các giá trị này được chọn sau khi thử nghiệm trên dữ liệu mẫu và được giữ cố định trong toàn bộ quá trình đánh giá.
+
+#### Cơ chế xử lý cuộc họp theo từng lượt lời
+
+Để thuật toán hoạt động khi cuộc họp vẫn đang diễn ra, hệ thống lưu lại trạng thái sau mỗi lượt lời thứ $t$:
+
+$$  
+\mathcal{S}_t = \left(U_t, s_t, P_t, B_t, d_t\right)  
+$$
+
+Trong đó:
+
+- $U_t$ là danh sách các lượt lời đã nhận;
+    
+- $s_t$ là vị trí bắt đầu của cửa sổ tiếp theo;
+    
+- $P_t$ là các ranh giới đang chờ xem xét;
+    
+- $B_t$ là các ranh giới đã được xác nhận;
+    
+- $d_t$ là ranh giới được xác nhận gần nhất.
+    
+
+Sau mỗi lượt lời mới, hệ thống thêm lượt lời đó vào $U_t$. Khi đã có đủ $W=40$ lượt lời tính từ vị trí $s_t$, hệ thống lấy một cửa sổ gồm 40 lượt lời:
+
+$$  
+U_t[s_t:s_t+W]  
+$$
+
+Trên cửa sổ này, hệ thống thực hiện lại ba bước đã trình bày: tính độ tương đồng, tính điểm sâu ở nhiều phạm vi và chọn các vị trí vượt ngưỡng.
+
+Nếu vị trí $j$ trong cửa sổ được xem là ứng viên, vị trí của nó trong toàn bộ cuộc họp được tính bằng:
+
+$$  
+g=s_t+j  
+$$
+
+Ứng viên này chỉ được thêm vào danh sách chờ nếu nó nằm sau ranh giới đã xác nhận gần nhất, tức là $g>d_t$.
+
+Hệ thống không xác nhận ranh giới ngay lập tức vì cần thêm nội dung ở phía sau để kiểm tra xem thay đổi chủ đề có thực sự rõ ràng hay không. Với số lượt lời cần nhìn thêm là $L=20$, mốc có thể xác nhận được tính như sau:
+
+$$  
+c_t = s_t + W - L  
+$$
+
+Các ứng viên có vị trí không vượt quá $c_t$ được xem là đã có đủ ngữ cảnh:
+
+$$  
+E_t = \left{g \mid (g,\bar{D}(g))\in P_t,\ g\le c_t\right}  
+$$
+
+Các ứng viên này được sắp xếp theo thứ tự xuất hiện. Nếu hai ranh giới quá gần nhau, hệ thống giữ lại ranh giới có điểm sâu cao hơn và loại bỏ ranh giới yếu hơn.
+
+Những ranh giới còn lại được thêm vào $B_t$ và được công bố ra ngoài. Sau khi đã công bố, chúng sẽ không bị thay đổi ở các lần xử lý sau. Các ứng viên đã được xem xét cũng được xóa khỏi $P_t$.
+
+Sau đó, cửa sổ dịch sang phải $S=5$ lượt lời:
+
+$$  
+s_{t+1}=s_t+S  
+$$
+
+Như vậy, các cửa sổ liên tiếp có phần nội dung chồng lên nhau. Điều này giúp hệ thống không bỏ sót các thay đổi chủ đề nằm gần mép cửa sổ.
+
+#### Xử lý khi cuộc họp kết thúc
+
+Khi cuộc họp kết thúc, hệ thống cần xử lý phần dữ liệu còn lại ở cuối để tránh bỏ sót ranh giới.
+
+Nếu tổng số lượt lời $N$ không lớn hơn $W$, toàn bộ cuộc họp được xử lý một lần như một văn bản hoàn chỉnh.
+
+Nếu $N>W$, hệ thống lấy 40 lượt lời cuối:
+
+$$  
+U_N[N-W:N]  
+$$
+
+Cửa sổ cuối này được đánh giá để tìm thêm các ranh giới chưa được xác nhận. Các ứng viên còn lại được gộp nếu nằm quá gần nhau, sau đó được công bố theo thứ tự xuất hiện.
+
+Nếu vị trí cuối cùng $N-1$ chưa có trong tập ranh giới $B_N$, hệ thống bổ sung vị trí này với điểm sâu bằng 0. Việc này bảo đảm đoạn cuối cùng của cuộc họp luôn được đóng trước khi chuyển sang bước tóm tắt.
+
+#### Chi phí xử lý
+
+Với cuộc họp gồm $N$ lượt lời, số cửa sổ được xử lý xấp xỉ:
+
+$$  
+1+\left\lceil\frac{N-W}{S}\right\rceil  
+$$
+
+Trong thiết lập thực nghiệm, các tham số sau được giữ cố định:
+
+$$  
+W=40,\quad S=5,\quad k=2,\quad R={3,5,10,15,20}  
+$$
+
+Vì kích thước cửa sổ và các tham số không thay đổi, tổng thời gian xử lý tăng gần tuyến tính theo số lượt lời $N$. Nói cách khác, khi độ dài cuộc họp tăng gấp đôi, thời gian xử lý cũng tăng xấp xỉ gấp đôi.
+
+Bản triển khai hiện lưu toàn bộ các lượt lời đã nhận, nên lượng bộ nhớ cần dùng là $O(N)$. Ngoài ra, hệ thống chỉ cần thêm một phần bộ nhớ tạm để lưu bảng đếm từ và các điểm tính toán trong từng cửa sổ.
+
+Sau khi toàn bộ ranh giới được xác định, các đoạn hội thoại được chuyển sang mô hình ViT5 để tạo bản tóm tắt theo đúng thứ tự thời gian.
 
 #### Cơ chế cập nhật tăng dần có trạng thái (Stateful Incremental Update Mechanism)
 
