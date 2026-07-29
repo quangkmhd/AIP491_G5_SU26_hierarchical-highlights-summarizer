@@ -25,48 +25,42 @@ class AsrConfig(ConfigBase):
     }
 
     model_type: str = Field(
-        default="qwen3",
-        description="ASR model type: 'transducer' or 'qwen3'",
+        default="transducer",
+        description="ASR model type: 'transducer'",
     )
     language: str = Field(
         default="vi",
-        description="Forced language for multilingual ASR models (e.g. 'vi' for Qwen3).",
+        description="Forced language for multilingual ASR models.",
     )
 
-    # Transducer ASR model paths
+    # Streaming Transducer ASR model paths (hynt/Zipformer-30M-RNNT-Streaming-6000h)
     encoder: str = Field(
-        default=str(_MODELS_DIR / "Zipformer-30M-RNNT-6000h" / "encoder-epoch-20-avg-10.int8.onnx"),
+        default=str(
+            _MODELS_DIR
+            / "Zipformer-30M-RNNT-Streaming-6000h"
+            / "encoder-epoch-31-avg-11-chunk-32-left-128.fp16.onnx"
+        ),
         description="Path to the transducer encoder model ONNX file.",
     )
     decoder: str = Field(
-        default=str(_MODELS_DIR / "Zipformer-30M-RNNT-6000h" / "decoder-epoch-20-avg-10.int8.onnx"),
+        default=str(
+            _MODELS_DIR
+            / "Zipformer-30M-RNNT-Streaming-6000h"
+            / "decoder-epoch-31-avg-11-chunk-32-left-128.fp16.onnx"
+        ),
         description="Path to the transducer decoder model ONNX file.",
     )
     joiner: str = Field(
-        default=str(_MODELS_DIR / "Zipformer-30M-RNNT-6000h" / "joiner-epoch-20-avg-10.int8.onnx"),
+        default=str(
+            _MODELS_DIR
+            / "Zipformer-30M-RNNT-Streaming-6000h"
+            / "joiner-epoch-31-avg-11-chunk-32-left-128.fp16.onnx"
+        ),
         description="Path to the transducer joiner model ONNX file.",
     )
     tokens: str = Field(
-        default=str(_MODELS_DIR / "Zipformer-30M-RNNT-6000h" / "tokens.txt"),
+        default=str(_MODELS_DIR / "Zipformer-30M-RNNT-Streaming-6000h" / "tokens.txt"),
         description="Path to the tokens.txt file.",
-    )
-
-    # Qwen3 model paths
-    qwen3_conv_frontend: str = Field(
-        default=str(_MODELS_DIR / "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25" / "conv_frontend.onnx"),
-        description="Path to conv_frontend.onnx for Qwen3 ASR.",
-    )
-    qwen3_encoder: str = Field(
-        default=str(_MODELS_DIR / "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25" / "encoder.int8.onnx"),
-        description="Path to encoder.int8.onnx for Qwen3 ASR.",
-    )
-    qwen3_decoder: str = Field(
-        default=str(_MODELS_DIR / "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25" / "decoder.int8.onnx"),
-        description="Path to decoder.int8.onnx for Qwen3 ASR.",
-    )
-    qwen3_tokenizer: str = Field(
-        default=str(_MODELS_DIR / "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25" / "tokenizer"),
-        description="Path to tokenizer directory for Qwen3 ASR.",
     )
 
     # VAD model path

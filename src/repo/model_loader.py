@@ -109,7 +109,12 @@ class ModelLoader:
         with self._cache_lock:
             if kind not in self._cache:
                 self._cache[kind] = _load_seq2seq_handle(kind, path)
-                logger.info("model cache store kind=%s checkpoint=%s", kind.value, path)
+                if kind == ModelKind.CHUNK_SUMMARIZER:
+                    logger.info("Summary Model loaded: ViT5 Chunk Summarizer (ViT5-base fine-tuned) [checkpoint=%s]", path)
+                elif kind == ModelKind.TOPIC_TITLER:
+                    logger.info("Title Model loaded: BARTpho Topic Titler (BARTpho-syllable fine-tuned) [checkpoint=%s]", path)
+                else:
+                    logger.info("model cache store kind=%s checkpoint=%s", kind.value, path)
             return self._cache[kind]
 
     def load_chunk_summarizer(self) -> ModelHandle:

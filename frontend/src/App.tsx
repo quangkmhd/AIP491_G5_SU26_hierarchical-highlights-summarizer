@@ -265,9 +265,10 @@ export default function App() {
 
       // 2. Open microphone stream
       console.log('[DEBUG] Requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true 
-      });
+      const audioConstraints: MediaTrackConstraints = selectedDeviceId
+        ? { deviceId: { exact: selectedDeviceId }, echoCancellation: true, noiseSuppression: false, autoGainControl: true }
+        : { echoCancellation: true, noiseSuppression: false, autoGainControl: true };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
       mediaStreamRef.current = stream;
       console.log('[DEBUG] Microphone access granted. Stream acquired:', stream.id);
 
@@ -299,9 +300,10 @@ export default function App() {
       updateDevices();
 
       // 3. Open WebSocket connection
-      // If we are running on Vite dev server (port 5173), point WebSocket to backend port 8088
+      // If we are running on Vite dev server (port 5173), point WebSocket to backend port 8005
+      const backendPort = (import.meta as any).env?.VITE_BACKEND_PORT || '8005';
       const socketHost = window.location.port === '5173' 
-        ? `${window.location.hostname}:8000` 
+        ? `${window.location.hostname}:${backendPort}` 
         : window.location.host;
       const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${socketHost}/ws`;
       console.log(`[DEBUG] Connecting to WebSocket URL: ${socketUrl}`);
@@ -321,6 +323,26 @@ export default function App() {
         try {
           const data = JSON.parse(event.data);
 
+          // Handle real-time partial utterance events
+          if (data.type === 'partial_utterance' && data.text) {
+            const partialSegment = {
+              id: data.id,
+              text: `${data.text}...`,
+              start_sec: Math.max(0, durationRef.current - 1),
+              end_sec: durationRef.current,
+              speaker: data.speaker || `Speaker ${String(data.id).padStart(2, '0')}`,
+              isPartial: true,
+            };
+            setSessions(prev => prev.map(s => {
+              if (s.id === activeSessionIdRef.current) {
+                const filtered = s.segments.filter((seg: any) => seg.id !== data.id);
+                return { ...s, segments: [...filtered, partialSegment] };
+              }
+              return s;
+            }));
+            return;
+          }
+
           // Handle utterance events
           if (data.type === 'utterance' && data.text) {
             console.log(`[DEBUG] ASR Segment Received: id=${data.id}, text="${data.text}"`);
@@ -335,7 +357,8 @@ export default function App() {
             console.log('[DEBUG] Appending segment to session:', activeSessionIdRef.current, newSegment);
             setSessions(prev => prev.map(s => {
               if (s.id === activeSessionIdRef.current) {
-                return { ...s, segments: [...s.segments, newSegment] };
+                const filtered = s.segments.filter((seg: any) => seg.id !== data.id);
+                return { ...s, segments: [...filtered, newSegment] };
               }
               return s;
             }));
@@ -440,8 +463,15 @@ export default function App() {
 
   const startAudioProcessing = (micStream: MediaStream, displayStream: MediaStream | null) => {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    console.log('[DEBUG] Initializing Web Audio Context...');
-    const audioCtx = new AudioCtx();
+    console.log('[DEBUG] Initializing Web Audio Context with target sample rate 16000Hz...');
+    // Requesting native 16kHz audio context for optimal ASR performance and resampler quality
+    let audioCtx: AudioContext;
+    try {
+      audioCtx = new AudioCtx({ sampleRate: 16000 });
+    } catch (err) {
+      console.warn('[DEBUG] Could not initialize AudioContext at 16000Hz, falling back to default:', err);
+      audioCtx = new AudioCtx();
+    }
     audioContextRef.current = audioCtx;
     
     // Explicitly resume the AudioContext to prevent modern browsers from suspending it

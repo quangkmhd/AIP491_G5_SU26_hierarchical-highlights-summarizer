@@ -7,13 +7,15 @@ import sys
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient  # noqa: E402
 
-from src.runtime.api import create_app
-from src.service import StreamingOrchestrator
+from src.runtime.api import _decode_pcm_float32, create_app  # noqa: E402
+from src.service import StreamingOrchestrator  # noqa: E402
 
 
 class FakeSummarizer:
@@ -117,3 +119,13 @@ class ApiStreamingTests(unittest.TestCase):
                 self.assertIn("fix", data)
                 self.assertIn("utterances", data["fix"])
         asyncio.run(_run())
+
+
+class PcmValidationTests(unittest.TestCase):
+    def test_decode_pcm_float32_rejects_non_float32_byte_length(self) -> None:
+        with self.assertRaisesRegex(ValueError, "multiple of 4"):
+            _decode_pcm_float32(b"x")
+
+    def test_decode_pcm_float32_rejects_non_finite_samples(self) -> None:
+        with self.assertRaisesRegex(ValueError, "finite"):
+            _decode_pcm_float32(np.array([np.nan], dtype=np.float32).tobytes())

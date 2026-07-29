@@ -42,7 +42,6 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   const [editedTitle, setEditedTitle] = useState(title);
   const [copied, setCopied] = useState(false);
   const [summaryText, setSummaryText] = useState(summary || '');
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -70,33 +69,6 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleGenerateSummary = () => {
-    if (segments.length === 0) return;
-    setIsGeneratingSummary(true);
-    
-    // Simulate summary generation with a detailed prompt and timer
-    setTimeout(() => {
-      const summaryContent = `# Tóm tắt phiên họp: ${title}
-
-## Tóm tắt nội dung chính
-Phiên họp thảo luận về các vấn đề nhận diện giọng nói tiếng Việt thời gian thực (realtime streaming ASR). Người phát biểu đã trình bày về cấu trúc hệ thống, bao gồm VAD (Voice Activity Detector) để lọc khoảng lặng và ASR Engine để chuyển âm thanh thành văn bản.
-
-## Các quyết định quan trọng
-*   Sử dụng framework **React (Vite)** phối hợp với **FastAPI** và kết nối qua **WebSocket** để đạt độ trễ thấp nhất.
-*   Cài đặt giao diện thu âm nổi (Floating Controls) cùng hiệu ứng sóng âm động nhằm tăng tính tương tác.
-*   Lưu lịch sử hội thoại cục bộ qua LocalStorage.
-
-## Kế hoạch hành động
-*   [ ] Hoàn thành viết mã nguồn frontend cho các component.
-*   [ ] Chạy thử nghiệm kết nối WebSocket để đo đạc độ trễ và RTF (Real-time Factor).
-*   [ ] Tối ưu hóa mô hình trên GPU sử dụng CUDA.`;
-      
-      setSummaryText(summaryContent);
-      onSaveSummary(summaryContent);
-      setIsGeneratingSummary(false);
-      setViewMode('split');
-    }, 2000);
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -284,45 +256,6 @@ Phiên họp thảo luận về các vấn đề nhận diện giọng nói ti�
                 </p>
               </div>
             )}
-            
-            {/* Recap Pipeline Results */}
-            {(recapTitles.length > 0 || recapChunks.length > 0) && (
-              <div className="mt-6 border-t border-slate-200 pt-4">
-                <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-indigo-500" />
-                  Meeting Recap
-                </h3>
-                
-                {recapTitles.map((rt, idx) => {
-                  const chunkSummaries = recapChunks.filter(c => c.segment_id === rt.segment_id);
-                  return (
-                    <div key={rt.segment_id} className="mb-4 rounded-lg bg-indigo-50 border border-indigo-100 p-4">
-                      <h4 className="font-semibold text-indigo-700 mb-2">
-                        Chapter {idx + 1}: {rt.title}
-                      </h4>
-                      {chunkSummaries.map(cs => (
-                        <p key={cs.chunk_id} className="text-sm text-slate-600 mb-1 pl-3 border-l-2 border-indigo-200">
-                          {cs.rolling_summary}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                })}
-
-                {hierarchicalRecap && (
-                  <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-                    <h4 className="font-semibold text-emerald-700 mb-2 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      Meeting Summary Complete
-                    </h4>
-                    <p className="text-sm text-emerald-600">
-                      {hierarchicalRecap.segments?.length || 0} chapters detected, 
-                      processed in {hierarchicalRecap.processing_time_ms}ms
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
 
             <div ref={bottomRef} />
           </div>
@@ -339,49 +272,74 @@ Phiên họp thảo luận về các vấn đề nhận diện giọng nói ti�
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-500" /> AI recap &amp; notes
               </span>
-              
-              {segments.length > 0 && !summaryText && !isGeneratingSummary && (
-                <button
-                  onClick={handleGenerateSummary}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-medium transition-all shadow-sm flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5" /> Generate Recap
-                </button>
-              )}
             </div>
 
-            <div className="flex-1 bg-white border border-slate-200/60 rounded-2xl shadow-sm p-6 flex flex-col">
-              {isGeneratingSummary ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-10 h-10 border-4 border-slate-200 border-t-red-500 rounded-full animate-spin mb-4" />
-                  <p className="text-xs text-slate-500 font-medium">Analyzing speech content and generating meeting recap...</p>
+            <div className="flex-1 bg-white border border-slate-200/60 rounded-2xl shadow-sm p-6 flex flex-col overflow-y-auto">
+              {(recapTitles.length > 0 || recapChunks.length > 0 || hierarchicalRecap || summaryText) ? (
+                <div className="space-y-4">
+                  {(recapTitles.length > 0 || recapChunks.length > 0 || hierarchicalRecap) && (
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-indigo-500" />
+                        Meeting Recap
+                      </h3>
+                      
+                      {recapTitles.map((rt, idx) => {
+                        const chunkSummaries = recapChunks.filter(c => c.segment_id === rt.segment_id);
+                        return (
+                          <div key={rt.segment_id} className="mb-4 rounded-lg bg-indigo-50/70 border border-indigo-100 p-4">
+                            <h4 className="font-semibold text-indigo-700 text-sm mb-2">
+                              Chapter {idx + 1}: {rt.title}
+                            </h4>
+                            {chunkSummaries.map(cs => (
+                              <p key={cs.chunk_id} className="text-xs text-slate-600 mb-1.5 pl-3 border-l-2 border-indigo-300 leading-relaxed">
+                                {cs.rolling_summary}
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      })}
+
+                      {hierarchicalRecap && (
+                        <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+                          <h4 className="font-semibold text-emerald-700 text-sm mb-1 flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Meeting Summary Complete
+                          </h4>
+                          <p className="text-xs text-emerald-600">
+                            {hierarchicalRecap.segments?.length || 0} chapters detected, 
+                            processed in {hierarchicalRecap.processing_time_ms}ms
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {summaryText && (
+                    <div className={recapTitles.length > 0 || recapChunks.length > 0 ? "mt-4 pt-4 border-t border-slate-200" : ""}>
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Summary Notes</h4>
+                      <textarea
+                        value={summaryText}
+                        onChange={(e) => {
+                          setSummaryText(e.target.value);
+                          onSaveSummary(e.target.value);
+                        }}
+                        rows={10}
+                        className="w-full resize-none border-0 p-0 text-sm focus:outline-none focus:ring-0 leading-relaxed text-slate-700 font-mono bg-transparent"
+                        placeholder="Review or edit the meeting summary..."
+                      />
+                    </div>
+                  )}
                 </div>
-              ) : summaryText ? (
-                <textarea
-                  value={summaryText}
-                  onChange={(e) => {
-                    setSummaryText(e.target.value);
-                    onSaveSummary(e.target.value);
-                  }}
-                  className="w-full flex-1 resize-none border-0 p-0 text-sm focus:outline-none focus:ring-0 leading-relaxed text-slate-700 font-mono"
-                  placeholder="Review or edit the meeting summary..."
-                />
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-8 select-none">
                   <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3 text-slate-400 border border-slate-100">
                     📝
                   </div>
                   <h3 className="font-semibold text-slate-700 text-xs mb-1">No Recap Available</h3>
-                  <p className="text-xs text-slate-400 max-w-xs mb-4">
-                    Once you have recording segments, click "Generate Recap" to draft structured notes, decisions, and action items.
+                  <p className="text-xs text-slate-400 max-w-xs">
+                    Recap notes, decisions, and action items will be automatically generated during the session.
                   </p>
-                  <button
-                    onClick={handleGenerateSummary}
-                    disabled={segments.length === 0}
-                    className="px-4 py-2 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 border border-slate-200 text-slate-600 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-slate-400" /> Draft Recap
-                  </button>
                 </div>
               )}
             </div>

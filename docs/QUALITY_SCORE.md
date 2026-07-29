@@ -18,6 +18,7 @@ time.
 | `Hierarchical Recap`        | B+    | 268 fast tests pass with injected adapters; CUDA smoke loads real ViT5+BARTpho and generates summary then title | High | Stable | Full 370-utterance real-model timing remains hardware-dependent | 2026-07-11 |
 | `Highlights & Action Items` | N/A   | Highlights pipeline intentionally dropped by DR1; no runtime/UI/eval surface exposes it                                                                                                                                              | High             | -              | None; do not reintroduce highlights_extractive unless a new design decision reverses DR1                                        | 2026-07-05   |
 | `CLI App`                   | B     | CLI process/stream tests include NDJSON output, recap write, nonexistent file, and actionable Fix message for empty JSON arrays                                                                                                      | High             | -              | argparse file-open errors still use argparse's stock message before command context exists                                      | 2026-07-05   |
+| `ASR + Speaker`             | B     | Zipformer finalization regression verifies 0.4-second Float32 tail and `input_finished()`; PCM validation tests reject malformed/non-finite WebSocket frames; running API health confirms the CUDA ASR engine loads | Medium | Stable | No Vietnamese audio fixture with ground-truth transcript is available for WER regression measurement | 2026-07-27 |
  
 ## Architectural Layers
  

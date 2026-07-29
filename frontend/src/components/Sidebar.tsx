@@ -129,12 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         {/* Header inside Panel */}
-        <div className="p-4 border-b border-slate-200/80 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-red-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">m</div>
-            <span className="font-semibold text-slate-700">Meetily Pro</span>
-          </div>
-          
+        <div className="p-4 border-b border-slate-200/80 flex items-center justify-end">
           {/* Collapse Button inside Panel */}
           <button 
             onClick={() => setIsExpanded(false)} 

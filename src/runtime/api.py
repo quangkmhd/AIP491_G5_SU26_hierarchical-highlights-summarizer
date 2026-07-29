@@ -10,6 +10,8 @@ from pathlib import Path
 import time
 import uuid
 
+import numpy as np
+
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -28,12 +30,21 @@ from src.types.schemas import TranscriptIngestionRequest
 from src.types.transcript import DialogueTranscript
 
 try:
-    import numpy as np
     from src.config.asr import AsrConfig
     from src.service.asr_engine import AsrEngine
     _ASR_AVAILABLE = True
 except ImportError:
     _ASR_AVAILABLE = False
+
+
+def _decode_pcm_float32(payload: bytes) -> np.ndarray:
+    """Validate and decode one headerless Float32 PCM WebSocket frame."""
+    if len(payload) % np.dtype(np.float32).itemsize:
+        raise ValueError("audio frame byte length must be a multiple of 4 for Float32 PCM")
+    chunk = np.frombuffer(payload, dtype=np.float32)
+    if not np.isfinite(chunk).all():
+        raise ValueError("audio frame must contain only finite Float32 PCM samples")
+    return chunk
 
 
 def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
@@ -125,6 +136,15 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
     else:
         logger.info("sherpa-onnx not installed; ASR WebSocket endpoint disabled.")
     app.state.asr_engine = asr_engine_instance
+
+    logger.info(
+        "AI System Initialized:\n"
+        "  [Title Model]   : BARTpho Topic Titler (models/bartpho-topic-titler-v2)\n"
+        "  [Summary Model] : ViT5 Chunk Summarizer (models/vit5-chunk-summarizer-v1)\n"
+        "  [ASR Engine]    : Zipformer 30M-RNNT Transducer Streaming (models/Zipformer-30M-RNNT-Streaming-6000h)\n"
+        "  [Speaker Model] : WeSpeaker ResNet34 LM (models/diarization_models/wespeaker_en_voxceleb_resnet34_LM.onnx)\n"
+        "  [VAD Engine]    : Silero VAD (models/silero_vad.onnx)"
+    )
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):  # type: ignore[no-untyped-def]
@@ -246,25 +266,34 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
         asr = app.state.asr_engine
         vad = asr.create_vad()
+        online_stream = asr.create_stream()
         ws_orchestrator = StreamingOrchestrator()
         ws_orchestrator.reset_incremental()
 
         registered_speakers: dict[str, np.ndarray] = {}
         tail: np.ndarray = np.array([], dtype=np.float32)
         utterance_id = 0
+        last_partial_text = ""
 
         async def process_speech_segment(seg_audio: np.ndarray) -> None:
             """Decode one speech segment, identify speaker, feed orchestrator."""
-            nonlocal utterance_id
+            nonlocal utterance_id, last_partial_text
             utterance_id += 1
             duration = len(seg_audio) / 16000.0
+
+            seg_rms = float(np.sqrt(np.mean(seg_audio**2))) if len(seg_audio) > 0 else 0.0
+            seg_peak = float(np.max(np.abs(seg_audio))) if len(seg_audio) > 0 else 0.0
 
             speaker_name = asr.identify_speaker(seg_audio, registered_speakers)
             text = asr.decode_segment(seg_audio)
             logger.info(
-                "ASR Segment #%d: speaker=%s text='%s'",
-                utterance_id, speaker_name, text,
+                "ASR Segment #%d: speaker=%s duration=%.2fs rms=%.4f peak=%.4f text='%s'",
+                utterance_id, speaker_name, duration, seg_rms, seg_peak, text,
             )
+
+            # Reset online stream for the next utterance
+            asr.reset_stream(online_stream)
+            last_partial_text = ""
 
             if text:
                 await websocket.send_json({
@@ -293,7 +322,27 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
                     break
 
                 if "bytes" in message:
-                    chunk = np.frombuffer(message["bytes"], dtype=np.float32)
+                    try:
+                        chunk = _decode_pcm_float32(message["bytes"])
+                    except ValueError as exc:
+                        logger.warning("Rejecting invalid WebSocket PCM frame: %s", exc)
+                        await websocket.close(code=1003, reason="invalid Float32 PCM audio")
+                        break
+                    if len(chunk) > 0:
+                        chunk_rms = float(np.sqrt(np.mean(chunk**2)))
+                        if chunk_rms < 0.002:
+                            logger.debug("Incoming audio chunk RMS=%.5f (too quiet / near silence)", chunk_rms)
+
+                        # Real-time partial transcript streaming via OnlineRecognizer
+                        partial_text = asr.decode_stream_step(online_stream, chunk)
+                        if partial_text and partial_text != last_partial_text:
+                            last_partial_text = partial_text
+                            await websocket.send_json({
+                                "type": "partial_utterance",
+                                "id": utterance_id + 1,
+                                "text": partial_text,
+                            })
+
                     tail = np.concatenate([tail, chunk])
                     while len(tail) >= asr.vad_window_size:
                         vad.accept_waveform(tail[:asr.vad_window_size])

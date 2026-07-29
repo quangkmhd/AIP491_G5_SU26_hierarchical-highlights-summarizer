@@ -9,8 +9,14 @@ SOURCE="${ROOT}/../16-dts-tsl/models"
 mkdir -p "${ROOT}/models/vit5-chunk-summarizer-v1"
 mkdir -p "${ROOT}/models/bartpho-topic-titler-v2"
 
-cp "${SOURCE}/vit5-chunk-summarizer-v1/"{config.json,generation_config.json,model.safetensors,tokenizer.json,tokenizer_config.json} \
-  "${ROOT}/models/vit5-chunk-summarizer-v1/"
+SUMM_SOURCE="${SOURCE}/vit5-chunk-summarizer-v1/checkpoint-7900"
+if [ -d "${SUMM_SOURCE}" ]; then
+  cp "${SUMM_SOURCE}/"{config.json,generation_config.json,model.safetensors,tokenizer.json,tokenizer_config.json} \
+    "${ROOT}/models/vit5-chunk-summarizer-v1/"
+elif [ -f "${SOURCE}/vit5-chunk-summarizer-v1/model.safetensors" ]; then
+  cp "${SOURCE}/vit5-chunk-summarizer-v1/"{config.json,generation_config.json,model.safetensors,tokenizer.json,tokenizer_config.json} \
+    "${ROOT}/models/vit5-chunk-summarizer-v1/"
+fi
 
 TITLE_SOURCE="${SOURCE}/bartpho-topic-titler-v2/checkpoint-184"
 cp "${TITLE_SOURCE}/"{config.json,generation_config.json,model.safetensors,dict.txt,sentencepiece.bpe.model,tokenizer_config.json} \

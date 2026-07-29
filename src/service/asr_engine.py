@@ -34,87 +34,63 @@ class AsrEngine:
 
     def __init__(self, config: AsrConfig | None = None) -> None:
         self.config = config or AsrConfig()
-        self.asr_engine: Optional[sherpa_onnx.OfflineRecognizer] = None
+        self.asr_engine: Optional[sherpa_onnx.OnlineRecognizer] = None
         self.embedding_extractor: Optional[sherpa_onnx.SpeakerEmbeddingExtractor] = None
         self.vad_window_size: int = 512  # Silero VAD at 16 kHz default
         self._init_engines()
 
     def _validate_paths(self) -> None:
         """Checks if all required model files exist before proceeding."""
-        model_type = getattr(self.config, "model_type", "transducer")
-        if model_type == "qwen3":
-            required_paths = {
-                "ASR Conv Frontend": self.config.qwen3_conv_frontend,
-                "ASR Encoder": self.config.qwen3_encoder,
-                "ASR Decoder": self.config.qwen3_decoder,
-                "ASR Tokenizer": self.config.qwen3_tokenizer,
-                "Silero VAD model": self.config.silero_vad,
-            }
-        else:
-            required_paths = {
-                "ASR Encoder": self.config.encoder,
-                "ASR Decoder": self.config.decoder,
-                "ASR Joiner": self.config.joiner,
-                "ASR Tokens": self.config.tokens,
-                "Silero VAD model": self.config.silero_vad,
-            }
+        required_paths = {
+            "ASR Encoder": self.config.encoder,
+            "ASR Decoder": self.config.decoder,
+            "ASR Joiner": self.config.joiner,
+            "ASR Tokens": self.config.tokens,
+            "Silero VAD model": self.config.silero_vad,
+        }
         for label, path in required_paths.items():
             if not Path(path).exists():
                 logger.error("%s not found: %s", label, path)
                 raise FileNotFoundError(f"{label} not found at: {path}")
 
     def _init_engines(self) -> None:
-        """Load the OfflineRecognizer + Speaker Embedding + Silero VAD config.
-
-        Logic copied from init_asr_engine() in the reference backend.
-        """
+        """Load the OnlineRecognizer + Speaker Embedding + Silero VAD config."""
         self._validate_paths()
 
         model_type = getattr(self.config, "model_type", "transducer")
         logger.info(
-            "Loading OfflineRecognizer (model_type=%s, provider=%s)...",
+            "ASR Model loading: Zipformer 30M-RNNT Streaming (model_type=%s, provider=%s, encoder=%s)...",
             model_type,
             self.config.provider,
+            self.config.encoder,
         )
 
-        if model_type == "qwen3":
-            self.asr_engine = sherpa_onnx.OfflineRecognizer.from_qwen3_asr(
-                conv_frontend=self.config.qwen3_conv_frontend,
-                encoder=self.config.qwen3_encoder,
-                decoder=self.config.qwen3_decoder,
-                tokenizer=self.config.qwen3_tokenizer,
-                num_threads=self.config.num_threads,
-                sample_rate=16000,
-                feature_dim=128,  # Qwen3 default is 128
-                decoding_method="greedy_search",  # Qwen3 default is greedy_search
-                provider=self.config.provider,
-            )
-        else:
-            self.asr_engine = sherpa_onnx.OfflineRecognizer.from_transducer(
-                encoder=self.config.encoder,
-                decoder=self.config.decoder,
-                joiner=self.config.joiner,
-                tokens=self.config.tokens,
-                num_threads=self.config.num_threads,
-                sample_rate=16000,
-                feature_dim=80,
-                decoding_method="modified_beam_search",
-                provider=self.config.provider,
-            )
+        self.asr_engine = sherpa_onnx.OnlineRecognizer.from_transducer(
+            encoder=self.config.encoder,
+            decoder=self.config.decoder,
+            joiner=self.config.joiner,
+            tokens=self.config.tokens,
+            num_threads=self.config.num_threads,
+            sample_rate=16000,
+            feature_dim=80,
+            decoding_method="greedy_search",
+            provider=self.config.provider,
+        )
+        logger.info("ASR Model loaded: Zipformer 30M-RNNT Streaming Transducer [provider=%s]", self.config.provider)
 
         # Load Speaker Embedding Extractor
         if Path(self.config.speaker_embed).exists():
-            logger.info("Loading Speaker Embedding Extractor (%s)...", self.config.speaker_embed)
+            logger.info("Speaker/Diarization Model loading: WeSpeaker ResNet34 LM [path=%s]...", self.config.speaker_embed)
             embedding_config = sherpa_onnx.SpeakerEmbeddingExtractorConfig(
                 model=self.config.speaker_embed,
                 num_threads=1,
                 provider=self.config.provider,
             )
             self.embedding_extractor = sherpa_onnx.SpeakerEmbeddingExtractor(embedding_config)
-            logger.info("Speaker Embedding Extractor loaded successfully.")
+            logger.info("Speaker/Diarization Model loaded: WeSpeaker ResNet34 LM (%s)", self.config.speaker_embed)
         else:
             logger.warning(
-                "Speaker Embedding Extractor model not found at %s. "
+                "Speaker/Diarization Model (WeSpeaker ResNet34 LM) not found at %s. "
                 "Diarization will be disabled.",
                 self.config.speaker_embed,
             )
@@ -133,13 +109,10 @@ class AsrEngine:
             del probe
         except Exception:
             self.vad_window_size = 512
-        logger.info("ASR ready. VAD window = %d samples.", self.vad_window_size)
+        logger.info("VAD Model ready: Silero VAD [path=%s, window=%d samples]", self.config.silero_vad, self.vad_window_size)
 
     def create_vad(self) -> sherpa_onnx.VoiceActivityDetector:
-        """Create a per-connection VAD so two clients don't cross-contaminate.
-
-        Copied from _new_vad() in the reference backend.
-        """
+        """Create a per-connection VAD so two clients don't cross-contaminate."""
         cfg = sherpa_onnx.VadModelConfig()
         cfg.silero_vad.model = self.config.silero_vad
         cfg.silero_vad.min_silence_duration = self.config.min_silence_duration
@@ -149,22 +122,45 @@ class AsrEngine:
         cfg.sample_rate = 16000
         return sherpa_onnx.VoiceActivityDetector(cfg, buffer_size_in_seconds=120)
 
-    def decode_segment(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
-        """Run the recognizer over one speech segment; return stripped text.
-
-        Copied from _decode_segment() in the reference backend.
-        """
+    def create_stream(self) -> sherpa_onnx.OnlineStream:
+        """Create a per-connection online stream for continuous real-time ASR decoding."""
         assert self.asr_engine is not None, "ASR engine not initialized"
-        stream = self.asr_engine.create_stream()
-        stream.accept_waveform(sample_rate, audio)
+        return self.asr_engine.create_stream()
 
-        model_type = getattr(self.config, "model_type", "transducer")
-        language = getattr(self.config, "language", None)
-        if model_type == "qwen3" and language:
-            stream.set_option("language", language)
+    def decode_stream_step(
+        self, stream: sherpa_onnx.OnlineStream, chunk: np.ndarray, sample_rate: int = 16000
+    ) -> str:
+        """Accept an audio chunk, decode ready frames, and return current partial transcript."""
+        assert self.asr_engine is not None, "ASR engine not initialized"
+        stream.accept_waveform(sample_rate, chunk)
+        while self.asr_engine.is_ready(stream):
+            self.asr_engine.decode_stream(stream)
+        result = self.asr_engine.get_result(stream)
+        text = result if isinstance(result, str) else getattr(result, "text", str(result))
+        return text.strip().lower()
 
-        self.asr_engine.decode_streams([stream])
-        return stream.result.text.strip()
+    def reset_stream(self, stream: sherpa_onnx.OnlineStream) -> None:
+        """Reset an online stream state for the next utterance."""
+        assert self.asr_engine is not None, "ASR engine not initialized"
+        self.asr_engine.reset(stream)
+
+    def decode_segment(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
+        """Run the recognizer over one speech segment; return stripped lowercase text."""
+        assert self.asr_engine is not None, "ASR engine not initialized"
+        stream = self.create_stream()
+        self.decode_stream_step(stream, audio, sample_rate)
+
+        # Zipformer is chunked streaming ASR. Add the documented 0.4 s zero
+        # tail and explicitly finish input so the recognizer can emit frames
+        # buffered at the end of a VAD-delimited utterance.
+        stream.accept_waveform(sample_rate, np.zeros(int(sample_rate * 0.4), dtype=np.float32))
+        stream.input_finished()
+        while self.asr_engine.is_ready(stream):
+            self.asr_engine.decode_stream(stream)
+
+        result = self.asr_engine.get_result(stream)
+        text = result if isinstance(result, str) else getattr(result, "text", str(result))
+        return text.strip().lower()
 
     def identify_speaker(
         self,
