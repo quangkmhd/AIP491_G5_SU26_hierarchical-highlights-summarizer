@@ -3,4 +3,6 @@
 These plans are currently driving work. Each plan should have exactly one
 clearly owned current step.
 
-- [`report-figures-1-9-redesign.md`](report-figures-1-9-redesign.md) — current step: Task 2, Build the Deterministic Diagram Generator.
+No execution plan is currently active. The Figure 1–9 redesign plan is
+archived at
+[`../completed/report-figures-1-9-redesign.md`](../completed/report-figures-1-9-redesign.md).

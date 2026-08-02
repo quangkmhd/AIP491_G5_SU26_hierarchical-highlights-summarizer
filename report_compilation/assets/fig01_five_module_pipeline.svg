@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560">
+<style>
+text { font-family: Arial, Helvetica, sans-serif; }
+</style>
+<defs>
+<marker id="arrow-primary" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#3b6ea8"/></marker>
+<marker id="arrow-output" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#2e7d32"/></marker>
+</defs>
+<rect width="1200" height="560" fill="#ffffff"/>
+<text x="60" y="58" font-size="22" font-weight="700" fill="#111827">SYSTEM OVERVIEW — FIVE-MODULE PIPELINE</text>
+<text x="60" y="86" font-size="14" fill="#6b7280">End-to-end processing route</text>
+<line x1="60" y1="108" x2="1140" y2="108" stroke="#1f3a5f" stroke-width="2"/>
+<rect x="35" y="185" width="115" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
+<text x="53" y="216" text-anchor="start" font-size="14" font-weight="700" fill="#111827"><tspan x="53" dy="0">Audio </tspan><tspan x="53" dy="18">Stream</tspan></text>
+<rect x="180" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
+<circle cx="202" cy="207" r="13" fill="#1f3a5f"/>
+<text x="202" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">1</text>
+<text x="245" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="245" dy="0">Audio </tspan><tspan x="245" dy="18">Preprocessing</tspan></text>
+<rect x="340" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
+<circle cx="362" cy="207" r="13" fill="#1f3a5f"/>
+<text x="362" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2</text>
+<text x="405" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="405" dy="0">Speaker </tspan><tspan x="405" dy="18">Diarization</tspan></text>
+<rect x="500" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
+<circle cx="522" cy="207" r="13" fill="#1f3a5f"/>
+<text x="522" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">3</text>
+<text x="565" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="565" dy="0">Automatic Speech </tspan><tspan x="565" dy="18">Recognition</tspan></text>
+<rect x="660" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
+<circle cx="682" cy="207" r="13" fill="#1f3a5f"/>
+<text x="682" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">4</text>
+<text x="725" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="725" dy="0">Topic </tspan><tspan x="725" dy="18">Segmentation</tspan></text>
+<rect x="820" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
+<circle cx="842" cy="207" r="13" fill="#1f3a5f"/>
+<text x="842" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">5</text>
+<text x="885" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="885" dy="0">Hierarchical </tspan><tspan x="885" dy="18">Summarization</tspan></text>
+<rect x="990" y="185" width="175" height="112" rx="10" fill="#f0fdf4" stroke="#2e7d32" stroke-width="2"/>
+<text x="1008" y="216" text-anchor="start" font-size="14" font-weight="700" fill="#111827"><tspan x="1008" dy="0">Hierarchical </tspan><tspan x="1008" dy="18">Meeting Recap</tspan></text>
+<text x="1008" y="260" text-anchor="start" font-size="12" font-weight="400" fill="#6b7280">title + ordered summaries</text>
+<line x1="150" y1="241" x2="180" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
+<line x1="310" y1="241" x2="340" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
+<line x1="470" y1="241" x2="500" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
+<line x1="630" y1="241" x2="660" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
+<line x1="790" y1="241" x2="820" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
+<line x1="950" y1="241" x2="990" y2="241" stroke="#2e7d32" stroke-width="2.5" marker-end="url(#arrow-output)"/>
+<text x="60" y="375" text-anchor="start" font-size="12" font-weight="700" fill="#6b7280">Representation changes</text>
+<line x1="325" y1="320" x2="325" y2="342" stroke="#1f3a5f" stroke-width="1"/>
+<circle cx="325" cy="320" r="3" fill="#1f3a5f"/>
+<text x="325" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="325" dy="0">cleaned </tspan><tspan x="325" dy="17">speech</tspan></text>
+<line x1="485" y1="320" x2="485" y2="342" stroke="#1f3a5f" stroke-width="1"/>
+<circle cx="485" cy="320" r="3" fill="#1f3a5f"/>
+<text x="485" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="485" dy="0">speaker-labelled </tspan><tspan x="485" dy="17">audio</tspan></text>
+<line x1="645" y1="320" x2="645" y2="342" stroke="#1f3a5f" stroke-width="1"/>
+<circle cx="645" cy="320" r="3" fill="#1f3a5f"/>
+<text x="645" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="645" dy="0">speaker-labelled </tspan><tspan x="645" dy="17">utterances</tspan></text>
+<line x1="805" y1="320" x2="805" y2="342" stroke="#1f3a5f" stroke-width="1"/>
+<circle cx="805" cy="320" r="3" fill="#1f3a5f"/>
+<text x="805" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="805" dy="0">committed </tspan><tspan x="805" dy="17">topics</tspan></text>
+<line x1="970" y1="320" x2="970" y2="342" stroke="#1f3a5f" stroke-width="1"/>
+<circle cx="970" cy="320" r="3" fill="#1f3a5f"/>
+<text x="970" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="970" dy="0">hierarchical </tspan><tspan x="970" dy="17">recap</tspan></text>
+</svg>
