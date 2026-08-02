@@ -146,17 +146,22 @@ def eval_history(path: Path) -> list[dict]:
 
 
 def training_history_figure(
-    rows: list[dict], name: str, model_name: str, best_epoch: int, checkpoint_label: str
+    rows: list[dict], name: str, model_name: str, best_epoch: int, checkpoint_label: str,
+    evaluation_note: str | None = None,
+    annotate_min_loss: bool = True,
 ) -> None:
     epochs = [int(row["epoch"]) for row in rows]
     loss = [row["eval_loss"] for row in rows]
     rouge1 = [row["eval_rouge1"] for row in rows]
+    rouge2 = [row["eval_rouge2"] for row in rows]
     rouge_l = [row["eval_rougeL"] for row in rows]
+    min_loss_index = int(np.argmin(loss))
+    min_loss_epoch = epochs[min_loss_index]
 
     fig, axes = plt.subplots(
         2,
         1,
-        figsize=(7.2, 6.0),
+        figsize=(7.6, 6.4),
         sharex=True,
         layout="constrained",
         gridspec_kw={"hspace": 0.12},
@@ -165,26 +170,45 @@ def training_history_figure(
     axes[0].set_ylabel("Validation loss")
     axes[0].legend(frameon=False, loc="best")
     axes[1].plot(epochs, rouge1, color=BLUE, marker="s", linewidth=1.8, label="ROUGE-1")
+    axes[1].plot(epochs, rouge2, color=CYAN, marker="D", linewidth=1.8, label="ROUGE-2")
     axes[1].plot(epochs, rouge_l, color=ORANGE, marker="^", linewidth=1.8, label="ROUGE-L")
     axes[1].set_xlabel("Epoch")
     axes[1].set_ylabel("ROUGE score")
-    axes[1].legend(frameon=False, ncol=2, loc="best")
+    axes[1].legend(
+        frameon=False,
+        ncol=3,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+    )
     for ax in axes:
         ax.grid(color="#D1D5DB", linestyle="--", linewidth=0.7)
         ax.set_axisbelow(True)
         ax.set_xticks(epochs)
         ax.axvline(best_epoch, color=TEAL, linestyle=":", linewidth=1.4)
     best_row = next(row for row in rows if int(row["epoch"]) == best_epoch)
+    if annotate_min_loss:
+        axes[0].annotate(
+            f"Loss thấp nhất\nEpoch {min_loss_epoch} · {loss[min_loss_index]:.4f}",
+            xy=(min_loss_epoch, loss[min_loss_index]),
+            xytext=(0.25, 0.12),
+            textcoords="axes fraction",
+            arrowprops={"arrowstyle": "->", "color": RED},
+            bbox={"boxstyle": "round,pad=0.35", "facecolor": "#FFF1EC", "edgecolor": RED},
+            fontsize=9,
+        )
     axes[1].annotate(
         f"{checkpoint_label}\nEpoch {best_epoch} · ROUGE-L = {best_row['eval_rougeL']:.4f}",
         xy=(best_epoch, best_row["eval_rougeL"]),
-        xytext=(0.52, 0.18),
+        xytext=(0.57, 0.43),
         textcoords="axes fraction",
         arrowprops={"arrowstyle": "->", "color": TEAL},
         bbox={"boxstyle": "round,pad=0.35", "facecolor": "#E8F7F4", "edgecolor": TEAL},
         fontsize=9,
     )
-    fig.suptitle(f"Diễn biến đánh giá {model_name} theo epoch", fontsize=13, fontweight="bold")
+    title = f"Diễn biến đánh giá {model_name} theo epoch"
+    if evaluation_note:
+        title += f"\n{evaluation_note}"
+    fig.suptitle(title, fontsize=13, fontweight="bold")
     save(fig, name)
 
 
@@ -193,20 +217,23 @@ def main() -> None:
     dataset_length_comparison()
     alimeeting_length_distribution()
     vit5_path = MODEL_ROOT / "outputs/chunk_summarizer/vit5-chunk-summarizer-v1/checkpoint-7900/trainer_state.json"
-    bartpho_path = MODEL_ROOT / "outputs/topic_titler/bartpho-topic-titler-v2/checkpoint-92/trainer_state.json"
+    bartpho_path = MODEL_ROOT / "models/bartpho-topic-titler-v2/checkpoint-184/trainer_state.json"
     training_history_figure(
         eval_history(vit5_path),
         "vit5_training_history",
         "ViT5",
         best_epoch=6,
         checkpoint_label="Checkpoint được chọn",
+        evaluation_note="Tập con validation cố định gồm 200 mẫu",
     )
     training_history_figure(
         eval_history(bartpho_path),
         "bartpho_training_history_new",
         "BARTpho",
-        best_epoch=2,
-        checkpoint_label="Checkpoint được triển khai",
+        best_epoch=4,
+        checkpoint_label="Checkpoint được chọn",
+        evaluation_note="Tập validation gồm 326 mẫu chủ đề",
+        annotate_min_loss=False,
     )
 
 
