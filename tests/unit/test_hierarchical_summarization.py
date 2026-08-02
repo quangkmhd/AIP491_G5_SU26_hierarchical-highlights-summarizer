@@ -36,7 +36,7 @@ class HierarchicalSummarizationTests(unittest.TestCase):
     def test_summary_body_matches_training_format(self):
         chunk = Chunk(utterances=[utterance(0, "Xin chào", "Lan"), utterance(1, "Kế hoạch", "Minh")])
         self.assertEqual(self.service.abstractive(chunk), "summary")
-        self.assertEqual(self.summarizer.inputs, ["Lan: Xin chào\nMinh: Kế hoạch"])
+        self.assertEqual(self.summarizer.inputs, ["- Lan: Xin chào\n- Minh: Kế hoạch"])
 
     def test_summary_is_not_arbitrarily_clipped(self):
         self.summarizer.output = "x" * 1000
@@ -85,7 +85,7 @@ class HierarchicalSummarizationTests(unittest.TestCase):
 
     def test_abstractive_utterances_helper(self):
         self.service.abstractive_utterances([utterance(0, "nội dung")])
-        self.assertEqual(self.summarizer.inputs, ["S1: nội dung"])
+        self.assertEqual(self.summarizer.inputs, ["- S1: nội dung"])
 
 
 if __name__ == "__main__":
