@@ -8,34 +8,34 @@ text { font-family: Arial, Helvetica, sans-serif; }
 <marker id="arrow-output" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#2e7d32"/></marker>
 </defs>
 <rect width="1200" height="560" fill="#ffffff"/>
-<text x="60" y="58" font-size="22" font-weight="700" fill="#111827">SYSTEM OVERVIEW — FIVE-MODULE PIPELINE</text>
-<text x="60" y="86" font-size="14" fill="#6b7280">End-to-end processing route</text>
+<text x="60" y="58" font-size="28" font-weight="700" fill="#111827">SYSTEM OVERVIEW — FIVE-MODULE PIPELINE</text>
+<text x="60" y="88" font-size="17" fill="#6b7280">End-to-end processing route</text>
 <line x1="60" y1="108" x2="1140" y2="108" stroke="#1f3a5f" stroke-width="2"/>
 <rect x="35" y="185" width="115" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<text x="53" y="216" text-anchor="start" font-size="14" font-weight="700" fill="#111827"><tspan x="53" dy="0">Audio </tspan><tspan x="53" dy="18">Stream</tspan></text>
+<text x="53" y="216" text-anchor="start" font-size="16" font-weight="700" fill="#111827"><tspan x="53" dy="0">Audio </tspan><tspan x="53" dy="18">Stream</tspan></text>
 <rect x="180" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="202" cy="207" r="13" fill="#1f3a5f"/>
-<text x="202" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">1</text>
-<text x="245" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="245" dy="0">Audio </tspan><tspan x="245" dy="18">Preprocessing</tspan></text>
+<circle cx="202" cy="207" r="13" fill="#1f3a5f" data-step="1"/>
+<text x="202" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
+<text x="245" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="245" dy="0">Audio </tspan><tspan x="245" dy="18">Preprocessing</tspan></text>
 <rect x="340" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="362" cy="207" r="13" fill="#1f3a5f"/>
-<text x="362" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2</text>
-<text x="405" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="405" dy="0">Speaker </tspan><tspan x="405" dy="18">Diarization</tspan></text>
+<circle cx="362" cy="207" r="13" fill="#1f3a5f" data-step="2"/>
+<text x="362" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
+<text x="405" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="405" dy="0">Speaker </tspan><tspan x="405" dy="18">Diarization</tspan></text>
 <rect x="500" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="522" cy="207" r="13" fill="#1f3a5f"/>
-<text x="522" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">3</text>
-<text x="565" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="565" dy="0">Automatic Speech </tspan><tspan x="565" dy="18">Recognition</tspan></text>
+<circle cx="522" cy="207" r="13" fill="#1f3a5f" data-step="3"/>
+<text x="522" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
+<text x="565" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="565" dy="0">Automatic Speech </tspan><tspan x="565" dy="18">Recognition</tspan></text>
 <rect x="660" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="682" cy="207" r="13" fill="#1f3a5f"/>
-<text x="682" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">4</text>
-<text x="725" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="725" dy="0">Topic </tspan><tspan x="725" dy="18">Segmentation</tspan></text>
+<circle cx="682" cy="207" r="13" fill="#1f3a5f" data-step="4"/>
+<text x="682" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
+<text x="725" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="725" dy="0">Topic </tspan><tspan x="725" dy="18">Segmentation</tspan></text>
 <rect x="820" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="842" cy="207" r="13" fill="#1f3a5f"/>
-<text x="842" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">5</text>
-<text x="885" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#111827"><tspan x="885" dy="0">Hierarchical </tspan><tspan x="885" dy="18">Summarization</tspan></text>
+<circle cx="842" cy="207" r="13" fill="#1f3a5f" data-step="5"/>
+<text x="842" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">5</text>
+<text x="885" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="885" dy="0">Hierarchical </tspan><tspan x="885" dy="18">Summarization</tspan></text>
 <rect x="990" y="185" width="175" height="112" rx="10" fill="#f0fdf4" stroke="#2e7d32" stroke-width="2"/>
-<text x="1008" y="216" text-anchor="start" font-size="14" font-weight="700" fill="#111827"><tspan x="1008" dy="0">Hierarchical </tspan><tspan x="1008" dy="18">Meeting Recap</tspan></text>
-<text x="1008" y="260" text-anchor="start" font-size="12" font-weight="400" fill="#6b7280">title + ordered summaries</text>
+<text x="1008" y="216" text-anchor="start" font-size="16" font-weight="700" fill="#111827"><tspan x="1008" dy="0">Hierarchical </tspan><tspan x="1008" dy="18">Meeting Recap</tspan></text>
+<text x="1008" y="260" text-anchor="start" font-size="13" font-weight="400" fill="#6b7280">title + ordered summaries</text>
 <line x1="150" y1="241" x2="180" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
 <line x1="310" y1="241" x2="340" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
 <line x1="470" y1="241" x2="500" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>

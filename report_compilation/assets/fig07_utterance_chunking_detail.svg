@@ -8,11 +8,11 @@ text { font-family: Arial, Helvetica, sans-serif; }
 <marker id="arrow-output" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#2e7d32"/></marker>
 </defs>
 <rect width="1200" height="590" fill="#ffffff"/>
-<text x="60" y="58" font-size="22" font-weight="700" fill="#111827">MODULE 5 — HIERARCHICAL SUMMARIZATION</text>
-<text x="60" y="86" font-size="14" fill="#6b7280">Utterance chunking</text>
+<text x="60" y="58" font-size="28" font-weight="700" fill="#111827">MODULE 5 — HIERARCHICAL SUMMARIZATION</text>
+<text x="60" y="88" font-size="17" fill="#6b7280">Utterance chunking</text>
 <line x1="60" y1="108" x2="1140" y2="108" stroke="#1f3a5f" stroke-width="2"/>
 <rect x="50" y="145" width="1100" height="285" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<text x="68" y="175" text-anchor="start" font-size="15" font-weight="700" fill="#1f3a5f">Committed Topic Segment — 21 utterances</text>
+<text x="68" y="175" text-anchor="start" font-size="18" font-weight="700" fill="#1f3a5f">Committed Topic Segment — 21 utterances</text>
 <line x1="68" y1="189" x2="1132" y2="189" stroke="#1f3a5f" stroke-width="1" opacity="0.35"/>
 <rect x="120" y="220" width="330" height="125" rx="8" fill="#ffffff" stroke="#1f3a5f" stroke-width="1.5"/>
 <text x="285" y="247" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">Chunk 1 — 8 utterances</text>
@@ -65,10 +65,10 @@ text { font-family: Arial, Helvetica, sans-serif; }
 <line x1="120" y1="380" x2="1080" y2="380" stroke="#3b6ea8" stroke-width="2"/>
 <polygon points="1080,380 1068,374 1068,386" fill="#3b6ea8"/>
 <text x="600" y="405" text-anchor="middle" font-size="12" font-weight="400" fill="#6b7280">chronological order</text>
-<rect x="170" y="485" width="230" height="30" rx="15" fill="#f8fafc" stroke="#1f3a5f" stroke-width="1.5"/>
-<text x="285" y="505" text-anchor="middle" font-size="12" fill="#6b7280">Chronological</text>
-<rect x="485" y="485" width="230" height="30" rx="15" fill="#f8fafc" stroke="#1f3a5f" stroke-width="1.5"/>
-<text x="600" y="505" text-anchor="middle" font-size="12" fill="#6b7280">No overlap</text>
-<rect x="800" y="485" width="230" height="30" rx="15" fill="#f8fafc" stroke="#1f3a5f" stroke-width="1.5"/>
-<text x="915" y="505" text-anchor="middle" font-size="12" fill="#6b7280">Never cross a topic boundary</text>
+<rect x="170" y="485" width="230" height="34" rx="17" fill="#f8fafc" stroke="#1f3a5f" stroke-width="1.5"/>
+<text x="285" y="508" text-anchor="middle" font-size="14" fill="#6b7280">Chronological</text>
+<rect x="485" y="485" width="230" height="34" rx="17" fill="#f8fafc" stroke="#1f3a5f" stroke-width="1.5"/>
+<text x="600" y="508" text-anchor="middle" font-size="14" fill="#6b7280">No overlap</text>
+<rect x="800" y="485" width="230" height="34" rx="17" fill="#f8fafc" stroke="#1f3a5f" stroke-width="1.5"/>
+<text x="915" y="508" text-anchor="middle" font-size="14" fill="#6b7280">Never cross a topic boundary</text>
 </svg>

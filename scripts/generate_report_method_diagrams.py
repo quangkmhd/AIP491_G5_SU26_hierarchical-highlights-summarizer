@@ -85,7 +85,7 @@ def add_panel(
         x=x + 18,
         y=y + 30,
         text=title,
-        size=15,
+        size=18,
         fill=stroke,
         weight=700,
     )
@@ -119,11 +119,11 @@ def svg_open(lines: list[str], *, height: int, title: str, subtitle: str) -> Non
     lines.append("</defs>")
     lines.append(f'<rect width="{CANVAS_WIDTH}" height="{height}" fill="#ffffff"/>')
     lines.append(
-        f'<text x="60" y="58" font-size="22" font-weight="700" '
+        f'<text x="60" y="58" font-size="28" font-weight="700" '
         f'fill="{TEXT_PRIMARY}">{escape(title)}</text>'
     )
     lines.append(
-        f'<text x="60" y="86" font-size="14" fill="{TEXT_SECONDARY}">{escape(subtitle)}</text>'
+        f'<text x="60" y="88" font-size="17" fill="{TEXT_SECONDARY}">{escape(subtitle)}</text>'
     )
     lines.append(
         f'<line x1="60" y1="108" x2="1140" y2="108" stroke="{BORDER_NAVY}" '
@@ -158,21 +158,22 @@ def add_box(
     )
     if step is not None:
         lines.append(
-            f'<circle cx="{x + 22}" cy="{y + 22}" r="13" fill="{stroke}"/>'
+            f'<circle cx="{x + 22}" cy="{y + 22}" r="13" fill="{stroke}" '
+            f'data-step="{step}"/>'
         )
         lines.append(
-            f'<text x="{x + 22}" y="{y + 27}" text-anchor="middle" font-size="12" '
+            f'<text x="{x + 22}" y="{y + 27}" text-anchor="middle" font-size="14" '
             'font-weight="700" fill="#ffffff">'
             f"{step}</text>"
         )
         text_x = x + width // 2
         title_y = y + 55
-        title_size = 12
+        title_size = 14
         title_anchor = "middle"
     else:
         text_x = x + 18
         title_y = y + 31
-        title_size = 14
+        title_size = 16
         title_anchor = "start"
     title_lines = title.split("\n")
     add_multiline_text(
@@ -192,7 +193,7 @@ def add_box(
             x=text_x,
             y=title_y + 26 + (len(title_lines) - 1) * 18,
             text=subtitle,
-            size=12,
+            size=13,
             fill=TEXT_SECONDARY,
             anchor=title_anchor,
         )
@@ -220,7 +221,7 @@ def add_arrow(
         label_x = (x1 + x2) // 2
         label_y = (y1 + y2) // 2 - 10
         lines.append(
-            f'<text x="{label_x}" y="{label_y}" text-anchor="middle" font-size="12" '
+            f'<text x="{label_x}" y="{label_y}" text-anchor="middle" font-size="13" '
             f'fill="{TEXT_SECONDARY}">{escape(label)}</text>'
         )
 
@@ -239,11 +240,11 @@ def add_rule_pill(
     fill = "#f0fdf4" if is_output else PANEL_NEUTRAL
     stroke = OUTPUT_GREEN if is_output else BORDER_NAVY
     lines.append(
-        f'<rect x="{x}" y="{y}" width="{width}" height="30" rx="15" fill="{fill}" '
+        f'<rect x="{x}" y="{y}" width="{width}" height="34" rx="17" fill="{fill}" '
         f'stroke="{stroke}" stroke-width="1.5"/>'
     )
     lines.append(
-        f'<text x="{x + width // 2}" y="{y + 20}" text-anchor="middle" font-size="12" '
+        f'<text x="{x + width // 2}" y="{y + 23}" text-anchor="middle" font-size="14" '
         f'fill="{TEXT_SECONDARY}">{escape(label)}</text>'
     )
 
@@ -365,21 +366,21 @@ def figure_02(path: Path) -> Path:
         subtitle="Topic segmentation module overview",
     )
     stages = (
-        (40, "Speaker-labelled\nUtterances", "process"),
-        (200, "Lexical\nCohesion", "process"),
-        (360, "Multi-scale\nDepth", "process"),
-        (520, "Adaptive\nThreshold", "process"),
-        (680, "Merge Short\nSegments", "process"),
-        (840, "Streaming\nConfirmation", "process"),
-        (1000, "Committed Topic\nSegments", "output"),
+        (30, 120, "Speaker\ntagged\nUtterances", "process", None),
+        (175, 150, "Lexical\nCohesion", "process", 1),
+        (350, 150, "Multi-scale\nDepth", "process", 2),
+        (525, 150, "Adaptive\nThreshold", "process", 3),
+        (700, 150, "Merge Short\nSegments", "process", 4),
+        (875, 150, "Streaming\nConfirmation", "process", 5),
+        (1050, 120, "Committed\nTopic\nSegments", "output", None),
     )
-    for step, (x, title, state) in enumerate(stages, start=1):
+    for x, width, title, state, step in stages:
         add_box(
             lines,
             x=x,
             y=160,
-            width=130,
-            height=100,
+            width=width,
+            height=112,
             title=title,
             state=state,
             step=step,
@@ -387,10 +388,10 @@ def figure_02(path: Path) -> Path:
     for index in range(len(stages) - 1):
         add_arrow(
             lines,
-            x1=stages[index][0] + 130,
-            y1=210,
+            x1=stages[index][0] + stages[index][1],
+            y1=216,
             x2=stages[index + 1][0],
-            y2=210,
+            y2=216,
             state="output" if index == len(stages) - 2 else "flow",
         )
     add_panel(
@@ -495,10 +496,10 @@ def figure_03(path: Path) -> Path:
         subtitle="Multi-scale depth aggregation",
     )
     panels = (
-        (50, "1  Similarity Profile"),
-        (330, "2  Depth by Radius"),
-        (610, "3  Z-score Normalization"),
-        (890, "4  Mean Aggregation"),
+        (50, "Input — Similarity Profile"),
+        (330, "1  Depth by Radius"),
+        (610, "2  Z-score Normalization"),
+        (890, "3  Mean Aggregation"),
     )
     for x, title in panels:
         add_panel(lines, x=x, y=145, width=240, height=385, title=title)
@@ -631,7 +632,14 @@ def figure_04(path: Path) -> Path:
         title="MODULE 4 — TOPIC SEGMENTATION",
         subtitle="Adaptive candidate selection",
     )
-    add_panel(lines, x=55, y=150, width=520, height=370, title="Aggregated Depth")
+    add_panel(
+        lines,
+        x=55,
+        y=150,
+        width=520,
+        height=370,
+        title="Input — Aggregated Depth",
+    )
     add_box(
         lines,
         x=625,
@@ -640,6 +648,7 @@ def figure_04(path: Path) -> Path:
         height=105,
         title="Mean and Standard\nDeviation",
         subtitle="local statistics",
+        step=1,
     )
     add_box(
         lines,
@@ -649,19 +658,37 @@ def figure_04(path: Path) -> Path:
         height=95,
         title="tau = mu + alpha sigma",
         subtitle="local threshold",
+        step=2,
     )
     add_box(
         lines,
         x=930,
-        y=245,
+        y=175,
         width=220,
-        height=145,
+        height=115,
+        title="Candidate\nSelection",
+        subtitle="depth > threshold",
+        step=3,
+    )
+    add_box(
+        lines,
+        x=930,
+        y=395,
+        width=220,
+        height=100,
         title="Candidate Set",
         subtitle="accepted boundary indices",
+        state="output",
     )
     add_arrow(lines, x1=575, y1=228, x2=625, y2=228)
     add_arrow(lines, x1=740, y1=280, x2=740, y2=335)
-    add_arrow(lines, x1=855, y1=382, x2=930, y2=382)
+    add_arrow(lines, x1=855, y1=382, x2=900, y2=382)
+    lines.append(
+        f'<path d="M 900 382 L 900 232 L 930 232" fill="none" '
+        f'stroke="{ARROW_PRIMARY}" stroke-width="2.5" '
+        'marker-end="url(#arrow-primary)"/>'
+    )
+    add_arrow(lines, x1=1040, y1=290, x2=1040, y2=395, state="output")
 
     lines.append(
         f'<line x1="92" y1="430" x2="540" y2="430" stroke="{BORDER_NAVY}" '
@@ -701,14 +728,14 @@ def figure_04(path: Path) -> Path:
     )
     for index, cx in zip((4, 7), (1010, 1070), strict=True):
         lines.append(
-            f'<circle cx="{cx}" cy="335" r="15" fill="#eff6ff" '
-            f'stroke="{BORDER_NAVY}" stroke-width="1.5" '
+            f'<circle cx="{cx}" cy="468" r="15" fill="#f0fdf4" '
+            f'stroke="{OUTPUT_GREEN}" stroke-width="1.5" '
             f'data-candidate-index="{index}"/>'
         )
         add_text(
             lines,
             x=cx,
-            y=340,
+            y=473,
             text=str(index),
             size=12,
             weight=700,
@@ -991,19 +1018,19 @@ def figure_08(path: Path) -> Path:
         subtitle="ViT5 chunk summarization",
     )
     stages = (
-        (40, "Speaker-labelled\nUtterances", "process"),
-        (230, "Task\nFormatting", "process"),
-        (420, "Tokenization", "process"),
-        (610, "Fine-tuned\nViT5-base", "process"),
-        (800, "Chunk\nSummary", "process"),
-        (990, "Store and\nEmit", "output"),
+        (30, 145, "Speaker-labelled\nUtterances", "process", None),
+        (205, 165, "Task\nFormatting", "process", 1),
+        (400, 165, "Tokenization", "process", 2),
+        (595, 165, "Fine-tuned\nViT5-base", "process", 3),
+        (790, 165, "Store and\nEmit", "process", 4),
+        (985, 185, "Emitted Chunk\nSummary", "output", None),
     )
-    for step, (x, title, state) in enumerate(stages, start=1):
+    for x, width, title, state, step in stages:
         add_box(
             lines,
             x=x,
             y=175,
-            width=160,
+            width=width,
             height=120,
             title=title,
             state=state,
@@ -1012,7 +1039,7 @@ def figure_08(path: Path) -> Path:
     for index in range(len(stages) - 1):
         add_arrow(
             lines,
-            x1=stages[index][0] + 160,
+            x1=stages[index][0] + stages[index][1],
             y1=235,
             x2=stages[index + 1][0],
             y2=235,
@@ -1044,22 +1071,24 @@ def figure_09(path: Path) -> Path:
         subtitle="BARTpho topic titling",
     )
     stages = (
-        (25, 135, "ordered-summaries", "Ordered Chunk\nSummaries", "process"),
-        (180, 140, "all-summaries-ready", "All summaries\nready", "process"),
-        (340, 105, "join", 'Join with\n" / "', "process"),
-        (465, 145, "truncate", "Keep Last 1,500\nCharacters", "process"),
-        (630, 105, "prefix", "Add Task\nPrefix", "process"),
-        (755, 105, "tokenization", "Tokenization", "process"),
+        (20, 130, "ordered-summaries", "Ordered Chunk\nSummaries", "process", None, 0),
+        (165, 135, "all-summaries-ready", "All summaries\nready", "process", None, 0),
+        (315, 110, "join", 'Join with\n" / "', "process", 1, 1),
+        (440, 150, "truncate", "Keep Last 1,500\nCharacters", "process", 2, 2),
+        (605, 110, "prefix", "Add Task\nPrefix", "process", 3, 3),
+        (730, 115, "tokenization", "Tokenization", "process", 4, 4),
         (
-            880,
-            180,
+            860,
+            190,
             "bartpho-inference",
             "Fine-tuned\nBARTpho-syllable-base",
             "process",
+            5,
+            5,
         ),
-        (1080, 95, "topic-title", "Topic\nTitle", "output"),
+        (1065, 115, "topic-title", "Topic\nTitle", "output", None, 6),
     )
-    for order, (x, width, stage, title, state) in enumerate(stages, start=1):
+    for x, width, stage, title, state, step, order in stages:
         lines.append(f'<g data-stage="{stage}" data-order="{order}">')
         add_box(
             lines,
@@ -1069,7 +1098,7 @@ def figure_09(path: Path) -> Path:
             height=125,
             title=title,
             state=state,
-            step=order,
+            step=step,
         )
         if stage == "all-summaries-ready":
             lines.append(
@@ -1078,7 +1107,7 @@ def figure_09(path: Path) -> Path:
             )
         lines.append("</g>")
     for index in range(len(stages) - 1):
-        x, width, _, _, _ = stages[index]
+        x, width, _, _, _, _, _ = stages[index]
         next_x = stages[index + 1][0]
         add_arrow(
             lines,

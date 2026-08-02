@@ -31,6 +31,16 @@ def _visible_text(path: Path) -> str:
     )
 
 
+def _numbered_steps(path: Path) -> list[int]:
+    """Return only explicitly numbered processing steps, excluding data nodes."""
+    root = ET.fromstring(path.read_text())
+    return [
+        int(element.get("data-step", "0"))
+        for element in root.iter("{http://www.w3.org/2000/svg}circle")
+        if element.get("data-step")
+    ]
+
+
 def test_generate_all_writes_nine_white_svg_figures_in_order(tmp_path: Path) -> None:
     """Catch missing, reordered, or non-publication-canvas figure output."""
     outputs = generate_all(tmp_path)
@@ -65,6 +75,28 @@ def test_generate_all_keeps_visible_svg_text_english_only(tmp_path: Path) -> Non
     )
 
     assert not re.search(r"[À-ỹĐđ]", visible_text)
+
+
+def test_figures_number_only_real_internal_modules_or_processing_steps(
+    tmp_path: Path,
+) -> None:
+    """Keep inputs, outputs, prerequisites, and states out of module numbering."""
+    outputs = generate_all(tmp_path)
+
+    assert _numbered_steps(outputs[0]) == [1, 2, 3, 4, 5]
+    assert _numbered_steps(outputs[1]) == [1, 2, 3, 4, 5]
+    assert _numbered_steps(outputs[5]) == [1, 2, 3]
+    assert _numbered_steps(outputs[7]) == [1, 2, 3, 4]
+    assert _numbered_steps(outputs[8]) == [1, 2, 3, 4, 5]
+
+
+def test_shared_typography_is_large_enough_for_report_embedding(tmp_path: Path) -> None:
+    """Prevent a return to presentation-scale labels that shrink in the report."""
+    documents = [path.read_text() for path in generate_all(tmp_path)]
+
+    assert all('font-size="28"' in document for document in documents)
+    assert all('font-size="17"' in document for document in documents)
+    assert all('font-size="14"' in document for document in documents)
 
 
 def test_figure_01_shows_the_five_module_pipeline_without_internal_metrics(
@@ -103,7 +135,7 @@ def test_figure_02_shows_the_module_flow_and_streaming_windows_without_formulas(
     assert all(
         label in figure
         for label in (
-            "Speaker-labelled Utterances",
+            "Speaker tagged Utterances",
             "Lexical Cohesion",
             "Multi-scale Depth",
             "Adaptive Threshold",
@@ -118,6 +150,7 @@ def test_figure_02_shows_the_module_flow_and_streaming_windows_without_formulas(
     )
     assert "tau =" not in figure
     assert "p_L" not in figure
+    assert _numbered_steps(path) == [1, 2, 3, 4, 5]
     root = ET.fromstring(path.read_text())
     cells_by_window: dict[str, list[str]] = {}
     for cell in root.iter("{http://www.w3.org/2000/svg}rect"):
