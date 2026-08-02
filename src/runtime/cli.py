@@ -22,6 +22,7 @@ from src.types.utterance import Utterance
 logger = get_logger("src.runtime.cli")
 
 def _load_transcript(file: TextIO) -> DialogueTranscript:
+    """Đọc dữ liệu bản ghi từ file JSON và chuyển đổi thành đối tượng DialogueTranscript."""
     raw = json.load(file)
     if isinstance(raw, dict):
         # Single transcript object
@@ -30,7 +31,7 @@ def _load_transcript(file: TextIO) -> DialogueTranscript:
         path = getattr(file, "name", "<stdin>")
         raise ValueError(f"{path} must contain a non-empty JSON array of transcripts")
 
-    # For MVP: process only the first transcript
+    # Xử lý bản ghi cuộc họp đầu tiên trong mảng dữ liệu
     item = raw[0]
     utterances_raw = item.get("utterances") or item.get("flat_texts") or []
     utts = [
@@ -45,6 +46,7 @@ def _load_transcript(file: TextIO) -> DialogueTranscript:
 
 
 def cmd_process(args: argparse.Namespace) -> int:
+    """Thực thi lệnh xử lý batch cho file bản ghi cuộc họp và in ra kết quả."""
     logger.info("cli process start file=%s output=%s", args.file.name, args.output or "-")
     transcript = _load_transcript(args.file)
     orchestrator = StreamingOrchestrator()
@@ -67,6 +69,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 
 
 def cmd_stream(args: argparse.Namespace) -> int:
+    """Thực thi lệnh xử lý stream phát sự kiện trực tiếp cho bản ghi cuộc họp."""
     if getattr(args, "pretty", False):
         import logging
         logging.getLogger().setLevel(logging.ERROR)
@@ -79,7 +82,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
     seg_count = 0
     final_recap: dict | None = None
     
-    # State tracking for pretty print
+    # Theo dõi trạng thái phục vụ in định dạng đẹp (pretty print)
     segment_id_to_num: dict[str, int] = {}
     segment_chunk_counts: dict[str, int] = {}
 
@@ -105,7 +108,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
                 print(f"Chủ đề: {title}\n" + "-" * 40)
                 sys.stdout.flush()
         else:
-            # NDJSON output: one event per line
+            # Đầu ra định dạng NDJSON: mỗi sự kiện xuất ra trên một dòng JSON
             print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
 
     if args.output and final_recap is not None:
@@ -120,6 +123,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Xây dựng và cấu hình bộ đọc tham số dòng lệnh ArgumentParser."""
     parser = argparse.ArgumentParser(prog="src.runtime.cli")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -138,6 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Điểm nhập chính (entry point) để thực thi CLI runner."""
     parser = build_parser()
     args = parser.parse_args(argv)
     request_id = uuid.uuid4().hex[:12]
@@ -157,6 +162,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _suggest_fix_for_cli_error(exc: BaseException) -> str:
+    """Đề xuất hướng khắc phục lỗi tương ứng cho các ngoại lệ phát sinh khi chạy CLI."""
     msg = str(exc).lower()
     if isinstance(exc, json.JSONDecodeError):
         return "provide a valid UTF-8 JSON file containing a transcript array"

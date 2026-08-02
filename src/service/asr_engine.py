@@ -33,6 +33,7 @@ class AsrEngine:
     """
 
     def __init__(self, config: AsrConfig | None = None) -> None:
+        """Khởi tạo công cụ nhận dạng tiếng nói ASR, VAD và nhận diện người nói."""
         self.config = config or AsrConfig()
         self.asr_engine: Optional[sherpa_onnx.OnlineRecognizer] = None
         self.embedding_extractor: Optional[sherpa_onnx.SpeakerEmbeddingExtractor] = None
@@ -40,7 +41,7 @@ class AsrEngine:
         self._init_engines()
 
     def _validate_paths(self) -> None:
-        """Checks if all required model files exist before proceeding."""
+        """Kiểm tra sự tồn tại của các tệp mô hình ASR và VAD bắt buộc."""
         required_paths = {
             "ASR Encoder": self.config.encoder,
             "ASR Decoder": self.config.decoder,
@@ -54,7 +55,7 @@ class AsrEngine:
                 raise FileNotFoundError(f"{label} not found at: {path}")
 
     def _init_engines(self) -> None:
-        """Load the OnlineRecognizer + Speaker Embedding + Silero VAD config."""
+        """Nạp các mô hình OnlineRecognizer, SpeakerEmbeddingExtractor và cấu hình VAD."""
         self._validate_paths()
 
         model_type = getattr(self.config, "model_type", "transducer")
@@ -78,7 +79,7 @@ class AsrEngine:
         )
         logger.info("ASR Model loaded: Zipformer 30M-RNNT Streaming Transducer [provider=%s]", self.config.provider)
 
-        # Load Speaker Embedding Extractor
+        # Nạp mô hình trích xuất đặc trưng người nói (Speaker Embedding Extractor)
         if Path(self.config.speaker_embed).exists():
             logger.info("Speaker/Diarization Model loading: WeSpeaker ResNet34 LM [path=%s]...", self.config.speaker_embed)
             embedding_config = sherpa_onnx.SpeakerEmbeddingExtractorConfig(
@@ -95,7 +96,7 @@ class AsrEngine:
                 self.config.speaker_embed,
             )
 
-        # Probe the Silero VAD to learn its window size once.
+        # Thử nghiệm Silero VAD để xác định kích thước cửa sổ xử lý (window size)
         cfg = sherpa_onnx.VadModelConfig()
         cfg.silero_vad.model = self.config.silero_vad
         cfg.silero_vad.min_silence_duration = self.config.min_silence_duration
@@ -112,7 +113,7 @@ class AsrEngine:
         logger.info("VAD Model ready: Silero VAD [path=%s, window=%d samples]", self.config.silero_vad, self.vad_window_size)
 
     def create_vad(self) -> sherpa_onnx.VoiceActivityDetector:
-        """Create a per-connection VAD so two clients don't cross-contaminate."""
+        """Tạo đối tượng phát hiện khoảng lặng VAD riêng biệt cho từng kết nối WebSocket."""
         cfg = sherpa_onnx.VadModelConfig()
         cfg.silero_vad.model = self.config.silero_vad
         cfg.silero_vad.min_silence_duration = self.config.min_silence_duration
@@ -123,14 +124,14 @@ class AsrEngine:
         return sherpa_onnx.VoiceActivityDetector(cfg, buffer_size_in_seconds=120)
 
     def create_stream(self) -> sherpa_onnx.OnlineStream:
-        """Create a per-connection online stream for continuous real-time ASR decoding."""
+        """Tạo luồng nhận dạng trực tuyến phục vụ giải mã ASR real-time."""
         assert self.asr_engine is not None, "ASR engine not initialized"
         return self.asr_engine.create_stream()
 
     def decode_stream_step(
         self, stream: sherpa_onnx.OnlineStream, chunk: np.ndarray, sample_rate: int = 16000
     ) -> str:
-        """Accept an audio chunk, decode ready frames, and return current partial transcript."""
+        """Nạp một khung âm thanh, giải mã các khung đã sẵn sàng và trả về chuỗi văn bản tạm thời."""
         assert self.asr_engine is not None, "ASR engine not initialized"
         stream.accept_waveform(sample_rate, chunk)
         while self.asr_engine.is_ready(stream):
@@ -140,19 +141,17 @@ class AsrEngine:
         return text.strip().lower()
 
     def reset_stream(self, stream: sherpa_onnx.OnlineStream) -> None:
-        """Reset an online stream state for the next utterance."""
+        """Đặt lại trạng thái luồng giải mã ASR cho câu thoại tiếp theo."""
         assert self.asr_engine is not None, "ASR engine not initialized"
         self.asr_engine.reset(stream)
 
     def decode_segment(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
-        """Run the recognizer over one speech segment; return stripped lowercase text."""
+        """Giải mã một đoạn âm thanh tiếng nói hoàn chỉnh và trả về văn bản dạng chữ thường."""
         assert self.asr_engine is not None, "ASR engine not initialized"
         stream = self.create_stream()
         self.decode_stream_step(stream, audio, sample_rate)
 
-        # Zipformer is chunked streaming ASR. Add the documented 0.4 s zero
-        # tail and explicitly finish input so the recognizer can emit frames
-        # buffered at the end of a VAD-delimited utterance.
+        # Bổ sung khoảng đệm đuôi 0.4s và kết thúc đầu vào để mô hình Zipformer phát nốt các khung hình còn lại.
         stream.accept_waveform(sample_rate, np.zeros(int(sample_rate * 0.4), dtype=np.float32))
         stream.input_finished()
         while self.asr_engine.is_ready(stream):
@@ -167,19 +166,7 @@ class AsrEngine:
         audio: np.ndarray,
         registered_speakers: dict[str, np.ndarray],
     ) -> str:
-        """Identify or register a speaker from an audio segment.
-
-        Logic copied from send_utterance() speaker identification block
-        in the reference backend.
-
-        Args:
-            audio: Float32 audio samples at 16kHz.
-            registered_speakers: Mutable dict of {name: embedding}.
-                New speakers are registered in-place.
-
-        Returns:
-            Speaker name (e.g. "Speaker 01").
-        """
+        """Nhận diện người nói hoặc đăng ký người nói mới từ đoạn âm thanh."""
         speaker_name = "Speaker 01"
         if self.embedding_extractor is None:
             return speaker_name
@@ -190,11 +177,11 @@ class AsrEngine:
             stream.input_finished()
             embedding = np.array(self.embedding_extractor.compute(stream), dtype=np.float32)
 
-            # Normalize embedding
+            # Chuẩn hóa vectơ nhúng (embedding normalization)
             norm_new = np.linalg.norm(embedding)
             emb_new_norm = embedding / norm_new if norm_new > 1e-6 else embedding
 
-            # Search matching speaker
+            # Tìm kiếm người nói khớp nhất trong danh sách đã đăng ký
             matched_name = None
             best_score = -1.0
 

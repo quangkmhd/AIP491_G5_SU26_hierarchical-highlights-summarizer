@@ -86,6 +86,7 @@ class SlidingTextTilingConfig(ConfigBase):
 
     @model_validator(mode="after")
     def _validate_invariants(self) -> "SlidingTextTilingConfig":
+        """Kiểm tra các bất biến cấu hình hợp lệ của SlidingTextTilingConfig (radii và stride)."""
         if not self.radii:
             raise ValueError("radii must be a non-empty list of positive integers")
         for r in self.radii:

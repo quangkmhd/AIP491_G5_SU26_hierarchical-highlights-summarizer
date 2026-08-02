@@ -25,7 +25,7 @@ from ._base import ConfigBase
 from .abstractive import AbstractiveConfig
 from .chunking import ChunkingConfig
 from .language import LanguageConfig
-from .text_tiling import SlidingTextTilingConfig
+from .sliding_text_tiling import SlidingTextTilingConfig
 
 
 def _default_env_file() -> str | None:

@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.service.sliding_text_tiling import SlidingTextTilingService
-from src.config.text_tiling import SlidingTextTilingConfig
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
 
 # Define paths
 EVAL_FILE = "/home/quangnhvn34/dev/me/AIP491/tools/15-Meeting-summary/data/eval_vi/dialseg_711.json"

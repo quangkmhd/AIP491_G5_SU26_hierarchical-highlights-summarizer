@@ -23,6 +23,7 @@ from src.eval.segmentation_metrics import f1_score, pk, win_diff
 
 
 def _ends_from_sizes(sizes: list[int]) -> list[int]:
+    """Tính các chỉ số kết thúc phân đoạn từ danh sách kích thước từng phân đoạn."""
     ends: list[int] = []
     cursor = 0
     for s in sizes:
@@ -32,6 +33,7 @@ def _ends_from_sizes(sizes: list[int]) -> list[int]:
 
 
 def evaluate_corpus(corpus: Corpus, data_root: Path) -> dict:
+    """Đánh giá chất lượng phân đoạn trên toàn bộ tập dữ liệu corpus được chỉ định."""
     loader = EvalLoader(data_root)
     result = loader.load(corpus)
     pk_scores: list[float] = []
@@ -53,6 +55,7 @@ def evaluate_corpus(corpus: Corpus, data_root: Path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Thực thi chương trình đánh giá phân đoạn chủ đề qua CLI."""
     parser = argparse.ArgumentParser(prog="src.eval.run_segmentation_eval")
     parser.add_argument("--corpus", choices=[c.value for c in Corpus], default="meeting_committee")
     parser.add_argument("--data-root", type=Path, default=Path("data/eval_vi"))

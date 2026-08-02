@@ -21,8 +21,8 @@ from sklearn.metrics import f1_score
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data import Corpus, EvalLoader
-from src.config.text_tiling import SlidingTextTilingConfig
-from src.segmenters.sliding_texttiling import (
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
+from src.service.sliding_text_tiling import (
     bow, cosine, similarity_scores, multiscale_depth, merge_small_segments, DEFAULT_RADII
 )
 

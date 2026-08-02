@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from src.config.errors import ConfigError
-from src.config.text_tiling import SlidingTextTilingConfig
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
 
 
 class DefaultsTests(unittest.TestCase):

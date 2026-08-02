@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from src.config.text_tiling import SlidingTextTilingConfig
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
 from src.data import Corpus, EvalLoader
 from src.service import SlidingTextTilingService
 

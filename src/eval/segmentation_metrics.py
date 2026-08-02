@@ -11,12 +11,7 @@ import numpy as np
 
 
 def pk(predicted: list[int], true: list[int], window: int | None = None) -> float:
-    """P_k error (Beeferman et al., 1999).
-
-    predicted: list of segment-end indices (inclusive), e.g. [13, 18, 22]
-    true: same format
-    window: sliding window size; defaults to half the median true segment length
-    """
+    """Tính chỉ số chỉ số chỉ số chỉ số độ lỗi P_k (Beeferman et al., 1999) giữa ranh giới dự đoán và thực tế."""
     n = _total(predicted, true)
     if n < 2:
         return 0.0
@@ -37,7 +32,7 @@ def pk(predicted: list[int], true: list[int], window: int | None = None) -> floa
 
 
 def win_diff(predicted: list[int], true: list[int], window: int | None = None) -> float:
-    """Win-Diff (Pevzner and Hearst, 2002)."""
+    """Tính chỉ số độ lỗi Win-Diff (Pevzner and Hearst, 2002)."""
     n = _total(predicted, true)
     if n < 2:
         return 0.0
@@ -56,11 +51,7 @@ def win_diff(predicted: list[int], true: list[int], window: int | None = None) -
 
 
 def f1_score(predicted: list[int], true: list[int]) -> float:
-    """F1 score (macro) treating each segment as a positive class member.
-
-    Computes precision and recall at the segment level: a predicted segment
-    is correct if its boundaries exactly match a true segment.
-    """
+    """Tính điểm F1-score ở cấp độ phân đoạn giữa dự đoán và nhãn chuẩn."""
     if not predicted or not true:
         return 0.0
     n = _total(predicted, true)
@@ -77,10 +68,7 @@ def f1_score(predicted: list[int], true: list[int]) -> float:
 
 
 def _to_boundary_set(ends: list[int], n: int) -> list[int]:
-    """Convert a list of segment-end indices to a 0/1 boundary array of length n.
-
-    Boundary at position i means a segment ENDS at index i.
-    """
+    """Chuyển đổi danh sách ranh giới kết thúc phân đoạn thành mảng nhị phân 0/1 độ dài n."""
     out = [0] * n
     for e in ends:
         if 0 <= e < n:
@@ -89,11 +77,7 @@ def _to_boundary_set(ends: list[int], n: int) -> list[int]:
 
 
 def _segments_from_ends(ends: list[int], n: int | None = None) -> list[tuple[int, int]]:
-    """Convert end indices to (start, end) tuples.
-
-    When `n` is provided, force the final segment to cover through n - 1
-    even if the supplied boundary list stops early.
-    """
+    """Chuyển đổi các chỉ số ranh giới kết thúc thành danh sách các cặp (bắt đầu, kết thúc)."""
     if not ends:
         return []
     result: list[tuple[int, int]] = []
@@ -107,6 +91,7 @@ def _segments_from_ends(ends: list[int], n: int | None = None) -> list[tuple[int
 
 
 def _median_segment_length(ends: list[int]) -> int:
+    """Tính độ dài trung vị của các phân đoạn từ danh sách chỉ số ranh giới kết thúc."""
     segs = _segments_from_ends(ends)
     if not segs:
         return 1
@@ -115,5 +100,5 @@ def _median_segment_length(ends: list[int]) -> int:
 
 
 def _total(predicted: list[int], true: list[int]) -> int:
-    """Total number of utterances (ground truth length)."""
+    """Tính tổng số câu thoại từ danh sách nhãn ranh giới chuẩn."""
     return (max(true) + 1) if true else 0

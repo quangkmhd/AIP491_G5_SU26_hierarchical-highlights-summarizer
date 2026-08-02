@@ -25,11 +25,7 @@ class RepoIOError(Exception):
 
 
 def read_json_file(path: str | Path) -> Any:
-    """Read and JSON-parse a file with utf-8 encoding.
-
-    Raises:
-        RepoIOError: if the file is missing or the JSON is malformed.
-    """
+    """Đọc và giải mã dữ liệu file JSON với chuẩn mã hóa UTF-8."""
     p = Path(path)
     if not p.is_file():
         raise RepoIOError(f"File not found: {p}")
@@ -41,15 +37,7 @@ def read_json_file(path: str | Path) -> Any:
 
 
 def write_json_file(path: str | Path, payload: Any) -> Path:
-    """Write `payload` as JSON to `path` atomically.
-
-    Atomicity (I1): the payload is written to a sibling temp file and
-    then `os.replace`-d onto the final path. A crash mid-write leaves
-    the temp file (which the next call cleans up) and the original
-    `path` is never partially overwritten.
-
-    Returns the final path.
-    """
+    """Ghi dữ liệu JSON xuống đường dẫn một cách an toàn (atomic write)."""
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp_path: Path | None = None

@@ -11,17 +11,18 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np
 
-from src.config.text_tiling import SlidingTextTilingConfig
-from src.segmenters import (
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
+from src.service.sliding_text_tiling import (
     DEFAULT_RADII,
+    SegmentEvent,
+    SlidingTextTilingService,
     cosine,
+    depth_scores,
     find_boundaries,
     multiscale_depth,
     normalize,
     similarity_scores,
 )
-from src.segmenters.sliding_texttiling import depth_scores  # internal helper — test directly
-from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
 
 
 class SimilarityScoresTests(unittest.TestCase):

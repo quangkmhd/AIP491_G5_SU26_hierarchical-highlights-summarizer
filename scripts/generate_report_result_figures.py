@@ -11,7 +11,7 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_ROOT = ROOT.parent / "16-dts-tsl"
+MODEL_ROOT = ROOT if (ROOT / "models").is_dir() else ROOT.parent / "16-dts-tsl"
 ASSETS = ROOT / "report_compilation" / "assets"
 DATA = ROOT / "data"
 
@@ -145,6 +145,22 @@ def eval_history(path: Path) -> list[dict]:
     return sorted(rows, key=lambda row: float(row["epoch"]))
 
 
+def bartpho_eval_history(state_path: Path, final_metrics_path: Path) -> list[dict]:
+    """Combine checkpoint history with the separately persisted epoch-5 evaluation."""
+    rows = eval_history(state_path)
+    final = json.loads(final_metrics_path.read_text(encoding="utf-8"))
+    final_epoch = float(final["epoch"])
+    if not any(float(row["epoch"]) == final_epoch for row in rows):
+        rows.append({
+            "epoch": final_epoch,
+            "eval_loss": final["final_val_loss"],
+            "eval_rouge1": final["final_val_rouge1"],
+            "eval_rouge2": final["final_val_rouge2"],
+            "eval_rougeL": final["final_val_rougeL"],
+        })
+    return sorted(rows, key=lambda row: float(row["epoch"]))
+
+
 def training_history_figure(
     rows: list[dict], name: str, model_name: str, best_epoch: int, checkpoint_label: str,
     evaluation_note: str | None = None,
@@ -216,7 +232,7 @@ def main() -> None:
     configure_style()
     dataset_length_comparison()
     alimeeting_length_distribution()
-    vit5_path = MODEL_ROOT / "outputs/chunk_summarizer/vit5-chunk-summarizer-v1/checkpoint-7900/trainer_state.json"
+    vit5_path = MODEL_ROOT / "models/vit5-chunk-summarizer-v1/trainer_state.json"
     bartpho_path = MODEL_ROOT / "models/bartpho-topic-titler-v2/checkpoint-184/trainer_state.json"
     training_history_figure(
         eval_history(vit5_path),
@@ -227,7 +243,10 @@ def main() -> None:
         evaluation_note="Tập con validation cố định gồm 200 mẫu",
     )
     training_history_figure(
-        eval_history(bartpho_path),
+        bartpho_eval_history(
+            bartpho_path,
+            MODEL_ROOT / "models/bartpho-topic-titler-v2/final_val_metrics.json",
+        ),
         "bartpho_training_history_new",
         "BARTpho",
         best_epoch=4,

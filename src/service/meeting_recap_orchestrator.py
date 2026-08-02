@@ -28,7 +28,7 @@ from enum import Enum
 from typing import Any, Iterator
 from uuid import uuid4
 
-from src.config.text_tiling import SlidingTextTilingConfig
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
 from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
 from src.service.sliding_text_tiling import SlidingTextTilingService
@@ -76,6 +76,7 @@ class StreamingOrchestrator:
         chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
+        """Khởi tạo điều phối viên pipeline StreamingOrchestrator."""
         self.logger = get_logger("src.service.orchestrator")
         self.tiler = tiler or SlidingTextTilingService(SlidingTextTilingConfig())
         self.chunker = chunker or ChunkingService()
@@ -84,19 +85,7 @@ class StreamingOrchestrator:
     def process_stream(
         self, transcript: DialogueTranscript
     ) -> Iterator[OrchestratorEvent]:
-        """Process a transcript; yield events as the pipeline produces them.
-
-        Phase 1 — utterance intake: yields utterance-accepted events for
-        every utterance after the first.
-
-        Phase 2 — batch segmentation: runs SlidingTextTilingService.process()
-        directly on the utterance texts to detect topic boundaries using
-        multi-scale depth scoring and adaptive thresholding.
-
-        Phase 3 — segment assembly: yields chunk-closed, segment-closed,
-        and title-emitted for each detected segment. Yields meeting-completed
-        at the end with the final HierarchicalRecap.
-        """
+        """Xử lý một bản ghi hội thoại và phát ra các sự kiện trong luồng pipeline."""
         t0 = time.perf_counter()
         meeting_id = uuid4()
         n = len(transcript.utterances)
@@ -129,22 +118,21 @@ class StreamingOrchestrator:
     def _process_stream_body(  # type: ignore[no-untyped-def]
         self, transcript, t0, meeting_id, segments,
     ):
+        """Thực hiện nội dung chính của luồng xử lý stream bao gồm phân đoạn và tóm tắt."""
         all_utterances = transcript.utterances
 
-        # Phase 1: Utterance intake — emit utterance-accepted for every
-        # utterance after the first (the first is the anchor).
+        # Giai đoạn 1: Tiếp nhận câu thoại — phát sự kiện utterance-accepted cho từng câu thoại từ câu thứ 2.
         for idx, utt in enumerate(all_utterances[1:], start=1):
             yield OrchestratorEvent(
                 type=RecapEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
             )
 
-        # Phase 2: Batch segmentation using SlidingTextTilingService.
-        # The service takes raw utterance texts (not pre-computed scores).
+        # Giai đoạn 2: Phân đoạn theo batch sử dụng dịch vụ SlidingTextTilingService.
         utterance_texts = [u.text for u in all_utterances]
         seg_events = self.tiler.process(utterance_texts)
 
-        # Build segment utterance ranges from boundaries.
+        # Xây dựng phạm vi câu thoại cho từng phân đoạn từ các ranh giới.
         seg_ranges = [(e.utterances_start, e.utterances_end) for e in seg_events]
 
         self.logger.info(
@@ -158,7 +146,7 @@ class StreamingOrchestrator:
                 i + 1, s, e, e - s + 1, utt_texts,
             )
 
-        # Phase 3: Build segments, emit events.
+        # Giai đoạn 3: Khởi tạo phân đoạn và phát các sự kiện tương ứng.
         for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
             segment_utts = all_utterances[start_utt:end_utt + 1]
             seg = SegmentResult(
@@ -231,17 +219,17 @@ class StreamingOrchestrator:
     def process_batch(
         self, transcript: DialogueTranscript
     ) -> HierarchicalRecap:
-        """Process a transcript; return the final HierarchicalRecap."""
+        """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp hoàn chỉnh."""
         recap_dict: dict[str, Any] = {}
         for event in self.process_stream(transcript):
             if event.type == RecapEventType.MEETING_COMPLETED:
                 recap_dict = event.data["hierarchical_recap"]
         return HierarchicalRecap.model_validate(recap_dict)
 
-    # --- Streaming / incremental interface ---
+    # --- Giao diện xử lý tăng tiến / streaming ---
 
     def reset_incremental(self) -> None:
-        """Reset internal state for a new incremental streaming session."""
+        """Đặt lại trạng thái xử lý tăng tiến cho một phiên làm việc streaming mới."""
         self._incremental_utterances: list[Utterance] = []
         self._incremental_segments: list[SegmentResult] = []
         self._incremental_meeting_id = uuid4()
@@ -252,11 +240,7 @@ class StreamingOrchestrator:
     def accept_utterance(
         self, text: str, speaker: str, index: int,
     ) -> Iterator[OrchestratorEvent]:
-        """Accept a single utterance from realtime ASR output.
-
-        Feeds the utterance into SlidingTextTilingService (Code B streaming mode).
-        Yields OrchestratorEvents whenever new boundaries are committed.
-        """
+        """Tiếp nhận một câu thoại từ ASR real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
         if not hasattr(self, "_incremental_utterances"):
             self.reset_incremental()
 
@@ -275,7 +259,7 @@ class StreamingOrchestrator:
     def _process_streaming_segment_events(
         self, seg_events: list[SegmentEvent],
     ) -> Iterator[OrchestratorEvent]:
-        """Process newly committed SegmentEvents into chunks, abstractive summaries, and titles."""
+        """Xử lý các sự kiện phân đoạn trong streaming để tạo khối, tóm tắt và sinh tiêu đề."""
         all_utterances = self._incremental_utterances
 
         for e in seg_events:
@@ -328,7 +312,7 @@ class StreamingOrchestrator:
             )
 
     def flush_and_finalize(self) -> Iterator[OrchestratorEvent]:
-        """Process remaining utterances and emit meeting-completed."""
+        """Xả nốt các câu thoại cuối cùng và phát ra sự kiện hoàn thành cuộc họp."""
         if not hasattr(self, "_incremental_utterances"):
             return
 

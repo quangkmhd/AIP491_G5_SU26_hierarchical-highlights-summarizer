@@ -1,0 +1,112 @@
+{
+  "generated_at": "2026-08-02T12:05:25.146854+00:00",
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-28-generic-x86_64-with-glibc2.39",
+  "repeats": 3,
+  "configuration": {
+    "block_size": 2,
+    "radii": [
+      3,
+      5,
+      10,
+      15,
+      20
+    ],
+    "alpha": 1.2,
+    "agg": "mean",
+    "normalize_mode": "zscore",
+    "min_segment_ratio": 0.2,
+    "window_size": 40,
+    "stride": 5,
+    "lookahead": 20
+  },
+  "corpora": {
+    "dialseg_711": {
+      "samples": 711,
+      "utterances": 19350,
+      "pk": 0.36569947714636264,
+      "window_diff": 0.37430687592559664,
+      "macro_f1": 0.7077066515750173,
+      "mean_processing_ms_per_utterance": 0.032494274659739475,
+      "p95_update_latency_ms": 0.0003210006980225444,
+      "mean_commit_delay_utterances": 27.08823529411765,
+      "p95_commit_delay_utterances": 36.0,
+      "online_boundaries": 68,
+      "flushed_boundaries": 2278
+    },
+    "doc2dial": {
+      "samples": 3270,
+      "utterances": 42585,
+      "pk": 0.5098636278905351,
+      "window_diff": 0.5166320160736987,
+      "macro_f1": 0.6827020058129722,
+      "mean_processing_ms_per_utterance": 0.05135569408629761,
+      "p95_update_latency_ms": 0.00040099985199049115,
+      "mean_commit_delay_utterances": 0.0,
+      "p95_commit_delay_utterances": 0.0,
+      "online_boundaries": 0,
+      "flushed_boundaries": 8948
+    },
+    "meeting_ami": {
+      "samples": 137,
+      "utterances": 73379,
+      "pk": 0.6426535168651675,
+      "window_diff": 0.9889189256143653,
+      "macro_f1": 0.4708838617102964,
+      "mean_processing_ms_per_utterance": 0.09393923474475348,
+      "p95_update_latency_ms": 0.4843270042329092,
+      "mean_commit_delay_utterances": 21.578797004092348,
+      "p95_commit_delay_utterances": 27.0,
+      "online_boundaries": 12951,
+      "flushed_boundaries": 381
+    },
+    "meeting_committee": {
+      "samples": 36,
+      "utterances": 7477,
+      "pk": 0.5709061922489147,
+      "window_diff": 0.8532303871566151,
+      "macro_f1": 0.5287620244071704,
+      "mean_processing_ms_per_utterance": 0.23696301279538498,
+      "p95_update_latency_ms": 1.5103679943422321,
+      "mean_commit_delay_utterances": 21.552608311229,
+      "p95_commit_delay_utterances": 26.0,
+      "online_boundaries": 1131,
+      "flushed_boundaries": 105
+    },
+    "meeting_icsi": {
+      "samples": 59,
+      "utterances": 48321,
+      "pk": 0.6162118399309362,
+      "window_diff": 1.0,
+      "macro_f1": 0.4605992381881363,
+      "mean_processing_ms_per_utterance": 0.10634052841756947,
+      "p95_update_latency_ms": 0.5416829022578895,
+      "mean_commit_delay_utterances": 21.531697810386333,
+      "p95_commit_delay_utterances": 27.0,
+      "online_boundaries": 8723,
+      "flushed_boundaries": 163
+    },
+    "tiage": {
+      "samples": 500,
+      "utterances": 7802,
+      "pk": 0.46642285902503294,
+      "window_diff": 0.4900001484023223,
+      "macro_f1": 0.6668524550831395,
+      "mean_processing_ms_per_utterance": 0.04258971913172028,
+      "p95_update_latency_ms": 0.00040099985199049115,
+      "mean_commit_delay_utterances": 0.0,
+      "p95_commit_delay_utterances": 0.0,
+      "online_boundaries": 0,
+      "flushed_boundaries": 1394
+    }
+  },
+  "aggregate": {
+    "pk_macro": 0.5286262521844914,
+    "window_diff_macro": 0.7038480588620998,
+    "macro_f1_macro": 0.5862510394627887,
+    "processing_ms_per_utterance_weighted": 0.0852200029292476,
+    "mean_commit_delay_utterances_weighted": 21.575919206050802,
+    "total_samples": 4713,
+    "total_utterances": 198914
+  }
+}

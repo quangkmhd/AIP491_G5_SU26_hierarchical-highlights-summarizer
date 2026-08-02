@@ -28,11 +28,7 @@ class ChunkingService:
     CHUNK_SIZE: int = Chunk.MAX_CHUNK_SIZE
 
     def chunk(self, utterances: list[Utterance]) -> list[Chunk]:
-        """Slice utterances into ordered Chunks of <= CHUNK_SIZE.
-
-        Empty input raises ValueError. Otherwise returns floor(n / CHUNK_SIZE)
-        + (1 if n % CHUNK_SIZE else 0) chunks.
-        """
+        """Chia danh sách các câu thoại thành danh sách các khối Chunk (tối đa 8 câu/khối)."""
         if not utterances:
             raise ValueError("Cannot chunk empty utterance list")
         chunks: list[Chunk] = []
@@ -48,11 +44,7 @@ class ChunkingService:
         return chunks
 
     def chunk_indices(self, n_utterances: int) -> list[tuple[int, int]]:
-        """Return (start, end_inclusive) index pairs for each chunk.
-
-        Useful for callers that already have the utterances and just want
-        the slicing boundaries.
-        """
+        """Tính toán cặp chỉ số (bắt đầu, kết thúc) cho từng khối Chunk từ tổng số câu thoại."""
         if n_utterances <= 0:
             raise ValueError(f"n_utterances must be > 0; got {n_utterances}")
         result: list[tuple[int, int]] = []

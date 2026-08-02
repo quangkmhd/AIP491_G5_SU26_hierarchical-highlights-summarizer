@@ -48,7 +48,7 @@ REQUIRED_FILES = {
 
 
 def _tokenizer_compat_kwargs(path: Path) -> dict[str, Any]:
-    """Normalize legacy tokenizer metadata for newer Transformers loaders."""
+    """Chuẩn hóa tham số cấu hình tokenizer cũ cho tương thích với Transformers mới."""
     config_path = path / "tokenizer_config.json"
     config = json.loads(config_path.read_text(encoding="utf-8"))
     if isinstance(config.get("extra_special_tokens"), list):
@@ -57,6 +57,7 @@ def _tokenizer_compat_kwargs(path: Path) -> dict[str, Any]:
 
 
 def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
+    """Nạp mô hình seq2seq và tokenizer từ đĩa lên GPU CUDA."""
     if not torch.cuda.is_available():
         raise ModelLoadError(
             "CUDA is unavailable; fix: run the recap service on the configured CUDA host"
@@ -90,11 +91,13 @@ class ModelLoader:
     _instance_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self) -> None:
+        """Khởi tạo đối tượng nạp mô hình ModelLoader và bộ nhớ đệm cache."""
         self._cache: dict[ModelKind, ModelHandle] = {}
         self._cache_lock = threading.Lock()
 
     @classmethod
     def instance(cls) -> ModelLoader:
+        """Trả về singleton instance của ModelLoader."""
         with cls._instance_lock:
             if cls._instance is None:
                 cls._instance = cls()
@@ -102,10 +105,12 @@ class ModelLoader:
 
     @classmethod
     def reset_instance(cls) -> None:
+        """Đặt lại singleton instance của ModelLoader về None."""
         with cls._instance_lock:
             cls._instance = None
 
     def _load(self, kind: ModelKind, path: Path) -> ModelHandle:
+        """Quản lý việc nạp mô hình vào cache hoặc lấy từ cache ra."""
         with self._cache_lock:
             if kind not in self._cache:
                 self._cache[kind] = _load_seq2seq_handle(kind, path)
@@ -118,7 +123,9 @@ class ModelLoader:
             return self._cache[kind]
 
     def load_chunk_summarizer(self) -> ModelHandle:
+        """Nạp mô hình ViT5 Chunk Summarizer."""
         return self._load(ModelKind.CHUNK_SUMMARIZER, CHUNK_SUMMARIZER_PATH)
 
     def load_topic_titler(self) -> ModelHandle:
+        """Nạp mô hình BARTpho Topic Titler."""
         return self._load(ModelKind.TOPIC_TITLER, TOPIC_TITLER_PATH)

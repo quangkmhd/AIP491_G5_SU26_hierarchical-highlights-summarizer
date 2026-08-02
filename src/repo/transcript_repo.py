@@ -51,7 +51,7 @@ class TranscriptRepo:
     _VI_FIELD: str = "utterances_vi"
 
     def load_all(self, path: str | Path) -> list[DialogueTranscript]:
-        """Load every dialogue in `path` as a `DialogueTranscript`."""
+        """Nạp toàn bộ các cuộc thoại từ file JSON thành danh sách DialogueTranscript."""
         records = self._read_json(path)
         transcripts = [self._build_transcript(rec) for rec in records]
         logger.info(
@@ -65,7 +65,7 @@ class TranscriptRepo:
     def get_by_dial_id(
         self, path: str | Path, dial_id: int
     ) -> DialogueTranscript:
-        """Return the single dialogue with matching `dial_id`."""
+        """Lấy một cuộc thoại duy nhất khớp với dial_id từ file dữ liệu."""
         for t in self.load_all(path):
             if t.metadata.get("dial_id") == str(dial_id):
                 logger.debug("transcript found path=%s dial_id=%s utterances=%d", path, dial_id, len(t.utterances))
@@ -77,6 +77,7 @@ class TranscriptRepo:
     # -- internals ------------------------------------------------------------
 
     def _read_json(self, path: str | Path) -> list[dict]:
+        """Đọc và kiểm tra cấu hình danh sách các bản ghi từ file JSON."""
         p = Path(path)
         try:
             data = read_json_file(p)
@@ -91,11 +92,12 @@ class TranscriptRepo:
 
     @staticmethod
     def _strip_inline_placeholders(text: str) -> str:
-        """Remove inline `{...}` annotations and collapse whitespace."""
+        """Loại bỏ các ký tự chú thích nội dòng dạng {...} và làm sạch khoảng trắng."""
         cleaned = _PLACEHOLDER_PATTERN.sub(" ", text)
         return re.sub(r"\s+", " ", cleaned).strip()
 
     def _build_transcript(self, record: dict) -> DialogueTranscript:
+        """Chuyển đổi một bản ghi dict thành đối tượng DialogueTranscript hoàn chỉnh."""
         try:
             texts = record[self._VI_FIELD]
             dial_id = record["dial_id"]
@@ -104,10 +106,7 @@ class TranscriptRepo:
                 f"Missing required field {exc} in record {record.get('dial_id')!r}"
             ) from exc
 
-        # Drop empty / placeholder utterances, recording the original indices.
-        # Speaker labels (C2) track the ORIGINAL index, not the post-filter
-        # position, so dropping an utterance does not shift everyone else's
-        # speaker tag.
+        # Bỏ qua các câu thoại trống hoặc ký tự giữ chỗ, ghi lại chỉ số gốc của từng câu thoại.
         kept_utterances: list[Utterance] = []
         dropped_indices: list[int] = []
         for original_idx, raw in enumerate(texts):

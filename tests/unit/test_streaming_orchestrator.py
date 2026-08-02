@@ -256,7 +256,7 @@ class StreamingOrchestratorEventTests(unittest.TestCase):
     def test_custom_tiler_pluggable(self) -> None:
         """Caller can pass a SlidingTextTilingService directly via the
         orchestrator's `tiler` constructor arg."""
-        from src.config.text_tiling import SlidingTextTilingConfig
+        from src.config.sliding_text_tiling import SlidingTextTilingConfig
         cfg = SlidingTextTilingConfig(radii=[3, 5], alpha=0.5, min_segment_ratio=0.1)
         tiler = SlidingTextTilingService(cfg)
         orch = StreamingOrchestrator(tiler=tiler, summarizer=FakeSummarizer())

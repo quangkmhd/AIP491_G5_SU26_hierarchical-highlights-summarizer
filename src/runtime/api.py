@@ -38,7 +38,7 @@ except ImportError:
 
 
 def _decode_pcm_float32(payload: bytes) -> np.ndarray:
-    """Validate and decode one headerless Float32 PCM WebSocket frame."""
+    """Giải mã và kiểm định một khung dữ liệu âm thanh PCM Float32 từ WebSocket."""
     if len(payload) % np.dtype(np.float32).itemsize:
         raise ValueError("audio frame byte length must be a multiple of 4 for Float32 PCM")
     chunk = np.frombuffer(payload, dtype=np.float32)
@@ -48,14 +48,11 @@ def _decode_pcm_float32(payload: bytes) -> np.ndarray:
 
 
 def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
-    """Build a FastAPI app with the streaming endpoint wired to `orchestrator`."""
+    """Khởi tạo và cấu hình ứng dụng FastAPI web server với các endpoint streaming và WebSocket ASR."""
     app = FastAPI(title="Meeting Recap", version="0.1.0")
     logger = get_logger("src.runtime.api")
 
-    # Request-id + timing middleware. Tags every log call within a request
-    # with a request_id (taken from the X-Request-Id header if the client
-    # sent one, otherwise generated) and an `event` tag identifying the
-    # HTTP method + path.
+    # Middleware tạo request-id và đo thời gian xử lý HTTP request.
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
         rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
@@ -67,7 +64,7 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
             try:
                 response = await call_next(request)
             except Exception as e:  # noqa: BLE001
-                # Unhandled error: log with request context, surface as 500
+                # Lỗi chưa được xử lý: ghi log cùng ngữ cảnh request và trả về lỗi 500
                 log_error_with_fix(
                     logger, e,
                     fix="check server logs for the traceback; report a bug if reproducible",
@@ -90,18 +87,14 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
             )
             return response
 
-    # CORS: local development permits any origin so the static file://
-    # page can call the API.  In production this must be an explicit
-    # allowlist — see FastAPI docs (cors.md): wildcard + credentials
-    # is rejected, and `["*"]` exposes every browser-trusted origin.
+    # Cấu hình CORS cho phép các domain gọi API.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_methods=["POST", "GET", "OPTIONS"],
         allow_headers=["Content-Type"],
     )
-    # Serve the static UI -- prefer the React frontend build if available,
-    # otherwise fall back to the legacy src/ui directory.
+    # Phục vụ giao diện người dùng tĩnh (ưu tiên React build từ thư mục frontend/dist)
     dist_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     ui_dir = Path(__file__).resolve().parent.parent / "ui"
     if dist_dir.is_dir():
@@ -124,7 +117,7 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
 
-    # --- ASR Engine initialization ---
+    # --- Khởi tạo công cụ ASR ---
     asr_engine_instance = None
     if _ASR_AVAILABLE:
         try:
@@ -148,8 +141,7 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):  # type: ignore[no-untyped-def]
-        # For 4xx we expect callers to fix something; surface a `fix` field
-        # so they know what to do.
+        # Đối với lỗi 4xx, trả về thông tin chi tiết kèm gợi ý hướng xử lý (fix)
         fix = _suggest_fix_for_http(exc)
         logger.warning("HTTPException status=%d detail=%s", exc.status_code, exc.detail, extra={"fix": fix, "status_code": exc.status_code})
         return JSONResponse(
@@ -183,7 +175,7 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
     @app.exception_handler(LoggableError)
     async def loggable_error_handler(request: Request, exc: LoggableError):  # type: ignore[no-untyped-def]
-        # LoggableError carries its own fix; surface it in the response.
+        # Lỗi LoggableError mang theo thông tin gợi ý sửa lỗi fix/hint tương ứng
         log_error_with_fix(logger, exc)
         return JSONResponse(
             status_code=500,
@@ -197,7 +189,7 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):  # type: ignore[no-untyped-def]
-        # Service-layer ValueErrors (e.g. empty transcript) become 400 with a fix
+        # Chuyển đổi ngoại lệ ValueError từ tầng service thành HTTP status 400
         fix = _suggest_fix_for_value_error(exc)
         log_error_with_fix(logger, exc, fix=fix)
         return JSONResponse(
@@ -399,11 +391,7 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
 
 def _materialize(payload: TranscriptIngestionRequest) -> DialogueTranscript:
-    """Convert a TranscriptIngestionRequest to a DialogueTranscript.
-
-    Delegates to the schema's materialize() method which also enforces
-    MAX_UTTERANCES and carries language + metadata forward.
-    """
+    """Chuyển đổi yêu cầu nạp bản ghi thành đối tượng DialogueTranscript."""
     return payload.materialize()
 
 
@@ -415,7 +403,7 @@ def _materialize(payload: TranscriptIngestionRequest) -> DialogueTranscript:
 
 
 def _suggest_fix_for_http(exc: HTTPException) -> str:
-    """Map common 4xx status codes to actionable fix suggestions."""
+    """Đề xuất gợi ý xử lý tương ứng cho các mã lỗi HTTP 4xx/5xx."""
     if exc.status_code == 422:
         return "check the request body matches the schema; see response.detail for field errors"
     if exc.status_code == 400:
@@ -430,7 +418,7 @@ def _suggest_fix_for_http(exc: HTTPException) -> str:
 
 
 def _request_log_level(request: Request) -> int:
-    """Keep static asset access logs out of INFO-level operational output."""
+    """Xác định mức độ log phù hợp cho từng đường dẫn request để tránh rác log."""
     if request.method == "GET" and request.url.path in {"/", "/favicon.ico"}:
         return 10
     if request.method == "GET" and request.url.path.startswith("/static/"):
@@ -439,7 +427,7 @@ def _request_log_level(request: Request) -> int:
 
 
 def _suggest_fix_for_value_error(exc: ValueError) -> str:
-    """Map common ValueError messages to fix suggestions."""
+    """Đề xuất hướng xử lý cho các lỗi ValueError xuất phát từ dữ liệu đầu vào."""
     msg = str(exc).lower()
     if "empty" in msg and ("utterance" in msg or "transcript" in msg):
         return "provide at least one utterance in `utterances` or `flat_texts`"
@@ -455,7 +443,7 @@ def _suggest_fix_for_value_error(exc: ValueError) -> str:
 
 
 def _suggest_fix_for_validation(exc: RequestValidationError) -> str:
-    """Map FastAPI/Pydantic request validation errors to actionable fixes."""
+    """Đề xuất hướng sửa lỗi cho các ngoại lệ kiểm định dữ liệu Pydantic/FastAPI."""
     text = " ".join(str(err.get("msg", "")) for err in exc.errors()).lower()
     if "utterances" in text or "flat_texts" in text or "at least one" in text:
         return "provide at least one non-empty item in `utterances` or `flat_texts`"

@@ -10,11 +10,15 @@ from .model_loader import ModelHandle, ModelKind
 
 
 class ChunkSummarizer(Protocol):
-    def summarize(self, formatted_utterances: str) -> str: ...
+    def summarize(self, formatted_utterances: str) -> str:
+        """Định nghĩa giao thức tóm tắt khối câu thoại."""
+        ...
 
 
 class TopicTitler(Protocol):
-    def generate_title(self, joined_summaries: str) -> str: ...
+    def generate_title(self, joined_summaries: str) -> str:
+        """Định nghĩa giao thức sinh tiêu đề cho phân đoạn."""
+        ...
 
 
 class GenerationError(RuntimeError):
@@ -28,6 +32,7 @@ class _Seq2SeqGenerator:
     expected_kind: ModelKind
 
     def __init__(self, handle: ModelHandle) -> None:
+        """Khởi tạo generator Seq2Seq với mô hình và tokenizer tương ứng."""
         if handle.kind is not self.expected_kind:
             raise ValueError(f"expected {self.expected_kind.value}, got {handle.kind.value}")
         self._model = handle.model
@@ -35,6 +40,7 @@ class _Seq2SeqGenerator:
         self._device = handle.device
 
     def _generate(self, body: str, task_name: str) -> str:
+        """Thực hiện quá trình mã hóa input và sinh văn bản đầu ra bằng mô hình seq2seq."""
         try:
             encoded = self._tokenizer(
                 self.prefix + body,
@@ -71,6 +77,7 @@ class ViT5ChunkSummarizer(_Seq2SeqGenerator):
     expected_kind = ModelKind.CHUNK_SUMMARIZER
 
     def summarize(self, formatted_utterances: str) -> str:
+        """Tóm tắt khối thoại bằng mô hình ViT5."""
         return self._generate(formatted_utterances, "chunk_summarizer")
 
 
@@ -81,4 +88,5 @@ class BARTphoTopicTitler(_Seq2SeqGenerator):
     expected_kind = ModelKind.TOPIC_TITLER
 
     def generate_title(self, joined_summaries: str) -> str:
+        """Sinh tiêu đề bằng mô hình BARTpho."""
         return self._generate(joined_summaries, "topic_titler")

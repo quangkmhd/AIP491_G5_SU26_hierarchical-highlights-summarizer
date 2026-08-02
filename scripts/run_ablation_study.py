@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data import Corpus, EvalLoader  # noqa: E402
 from src.service.sliding_text_tiling import SlidingTextTilingService  # noqa: E402
-from src.config.text_tiling import SlidingTextTilingConfig  # noqa: E402
+from src.config.sliding_text_tiling import SlidingTextTilingConfig  # noqa: E402
 
 logging.disable(logging.CRITICAL)
 

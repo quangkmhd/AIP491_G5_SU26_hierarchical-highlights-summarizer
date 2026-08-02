@@ -39,7 +39,7 @@ class RecapRepo:
     """Read/write `HierarchicalRecap` objects as local JSON files."""
 
     def write(self, recap: HierarchicalRecap, path: str | Path) -> Path:
-        """Serialize `recap` to `path` atomically. Returns the path."""
+        """Ghi đối tượng HierarchicalRecap xuống file JSON một cách an toàn (atomic write)."""
         p = Path(path)
         self._check_extension(p)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +72,7 @@ class RecapRepo:
         return p
 
     def read(self, path: str | Path) -> HierarchicalRecap:
-        """Load and validate the JSON at `path` as a `HierarchicalRecap`."""
+        """Đọc và kiểm định dữ liệu JSON từ file thành đối tượng HierarchicalRecap."""
         p = Path(path)
         self._check_extension(p)
         try:
@@ -90,6 +90,7 @@ class RecapRepo:
 
     @staticmethod
     def _check_extension(p: Path) -> None:
+        """Kiểm tra định dạng đuôi file xem có phải là file .json hay không."""
         if p.suffix.lower() not in _VALID_EXTENSIONS:
             raise RecapRepoError(
                 f"Recap file must have a .json extension, got {p.suffix!r} ({p})"

@@ -23,7 +23,7 @@ from .chunking import ChunkingConfig
 from .errors import ConfigError
 from .language import LanguageConfig
 from .recap import MeetingRecapConfig
-from .text_tiling import SlidingTextTilingConfig
+from .sliding_text_tiling import SlidingTextTilingConfig
 
 __all__ = [
     "AsrConfig",

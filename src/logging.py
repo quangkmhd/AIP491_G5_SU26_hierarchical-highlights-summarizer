@@ -132,12 +132,7 @@ class HumanFormatter(logging.Formatter):
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Return a configured logger under the `src.*` namespace.
-
-    Idempotent: calling twice with the same name returns the same logger.
-    The first call configures the root logger with our handlers; later
-    calls only fetch the named logger.
-    """
+    """Trả về đối tượng logger đã được cấu hình thuộc namespace `src.*`."""
     logger = logging.getLogger(name)
     if not _root_configured:
         _configure_root()
@@ -148,17 +143,7 @@ _root_configured = False
 
 
 def _configure_root() -> None:
-    """Configure the root logger with console + file handlers.
-
-    Level can be overridden via env var `MEETING_RECAP_LOG_LEVEL`
-    (e.g. DEBUG, INFO, WARNING). Format defaults to human; set
-    `MEETING_RECAP_LOG_FORMAT=json` for machine-readable output.
-
-    Logs are written to both stderr and ``logs/run.log`` (relative to
-    the current working directory). The file handler always uses DEBUG
-    level so full detail is captured on disk even when the console
-    shows only INFO.
-    """
+    """Cấu hình root logger hệ thống với console stream và file log quay vòng."""
     global _root_configured
     if _root_configured:
         return
@@ -191,9 +176,7 @@ def _configure_root() -> None:
     root.addHandler(file_handler)
     root.setLevel(logging.DEBUG)  # root DEBUG; handlers filter independently
 
-    # Quiet down noisy third-party loggers. We set them to ERROR so
-    # only actionable errors appear; the user can override per-logger
-    # via MEETING_RECAP_LOG_<LOGGER>_LEVEL.
+    # Tắt thông báo rác từ các thư viện bên thứ 3 (đặt mức ERROR để tránh rác log console)
     for noisy in (
         "transformers", "urllib3", "asyncio", "httpx", "httpcore",
         "huggingface_hub", "filelock", "numexpr", "torchao",
@@ -213,18 +196,7 @@ def _configure_root() -> None:
 def request_context(
     request_id: str | None = None, event: str = ""
 ) -> Iterator[str]:
-    """Set the current request_id + event for the duration of a block.
-
-    Usage:
-        with request_context(event="process") as rid:
-            logger.info("starting")
-            # ... do work ...
-            logger.info("done")
-
-    If `request_id` is None, a uuid4 hex is generated. The yielded value
-    is the request_id (whether generated or supplied) so callers can
-    include it in API responses for log correlation.
-    """
+    """Thiết lập ngữ cảnh request_id và sự kiện cho khối mã trong duy nhất khoảng thời gian thực thi."""
     rid = request_id or _uuid4().hex[:12]
     rid_token = _request_id.set(rid)
     evt_token = _event.set(event or "-")
@@ -243,12 +215,7 @@ def log_error_with_fix(
     hint: str = "",
     level: int = logging.ERROR,
 ) -> None:
-    """Log an error with a `fix` field attached for log aggregation.
-
-    This is the canonical pattern for service-layer error paths. The
-    `fix` field shows up in the JSON log so operators can search
-    `fix:*` in their log aggregator.
-    """
+    """Ghi log lỗi kèm theo gợi ý sửa lỗi (fix hint) phục vụ truy vết hệ thống."""
     extra: dict[str, Any] = {"fix": fix}
     if hint:
         extra["hint"] = hint

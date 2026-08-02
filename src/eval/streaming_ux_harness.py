@@ -35,6 +35,7 @@ class ParticipantRatings:
     notes: str = ""
 
     def __post_init__(self) -> None:
+        """Kiểm tra tính hợp lệ của các điểm đánh giá trong khoảng [1, 5]."""
         for name, value in [
             ("comfort_with_skeleton", self.comfort_with_skeleton),
             ("discoverability", self.discoverability),
@@ -45,7 +46,7 @@ class ParticipantRatings:
 
 
 def _synthetic_participant(participant_id: int) -> ParticipantRatings:
-    """Return a synthetic participant's ratings (for the harness structural test)."""
+    """Sinh ngẫu nhiên đánh giá giả lập của người tham gia cho mục đích kiểm thử cấu trúc."""
     return ParticipantRatings(
         participant_id=participant_id,
         time_to_first_chapter_s=2.5 + 0.5 * participant_id,  # 2.5s, 3.0s, ...
@@ -60,11 +61,12 @@ def collect_ratings(
     n_participants: int = 7,
     rater: Callable[[int], ParticipantRatings] = _synthetic_participant,
 ) -> list[ParticipantRatings]:
-    """Collect ratings from `rater(participant_id)` for participants 1..N."""
+    """Thu thập kết quả đánh giá từ danh sách người tham gia."""
     return [rater(pid) for pid in range(1, n_participants + 1)]
 
 
 def aggregate(ratings: list[ParticipantRatings]) -> dict:
+    """Tính trung bình cộng các chỉ số đánh giá UX của người dùng từ danh sách ratings."""
     return {
         "n_participants": len(ratings),
         "mean_time_to_first_chapter_s": mean(r.time_to_first_chapter_s for r in ratings),
@@ -75,6 +77,7 @@ def aggregate(ratings: list[ParticipantRatings]) -> dict:
 
 
 def render_markdown(ratings: list[ParticipantRatings], agg: dict) -> str:
+    """Xuất báo cáo tổng hợp đánh giá trải nghiệm người dùng dạng văn bản Markdown."""
     lines = [
         "# Streaming UX Report",
         "",
@@ -103,6 +106,7 @@ def render_markdown(ratings: list[ParticipantRatings], agg: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Thực thi harness thu thập và xuất báo cáo trải nghiệm người dùng qua CLI."""
     parser = argparse.ArgumentParser(prog="src.eval.streaming_ux_harness")
     parser.add_argument("--participants", "-n", type=int, default=7, help="N participants (default 7)")
     parser.add_argument("--output", "-o", type=Path, default=Path("docs/generated/streaming-ux-report.md"))

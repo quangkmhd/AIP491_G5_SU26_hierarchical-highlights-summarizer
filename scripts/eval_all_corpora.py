@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data import Corpus, EvalLoader
 from src.service.sliding_text_tiling import SlidingTextTilingService
-from src.config.text_tiling import SlidingTextTilingConfig
+from src.config.sliding_text_tiling import SlidingTextTilingConfig
 
 def boundaries_to_binary(boundary_indices, total_entries):
     binary_list = [0] * total_entries

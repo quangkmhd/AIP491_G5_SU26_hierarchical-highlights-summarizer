@@ -25,6 +25,7 @@ class HierarchicalSummarizationService:
         topic_titler: TopicTitler | None = None,
         loader: ModelLoader | None = None,
     ) -> None:
+        """Khởi tạo dịch vụ tóm tắt phân cấp và sinh tiêu đề."""
         model_loader = loader or ModelLoader.instance()
         self._chunk_summarizer = chunk_summarizer or ViT5ChunkSummarizer(
             model_loader.load_chunk_summarizer()
@@ -35,14 +36,17 @@ class HierarchicalSummarizationService:
 
     @staticmethod
     def _format_utterances(utterances: list[Utterance]) -> str:
+        """Định dạng danh sách câu thoại thành chuỗi văn bản đầu vào cho mô hình tóm tắt."""
         return "\n".join(f"- {utterance.speaker}: {utterance.text}" for utterance in utterances)
 
     def abstractive(self, chunk: Chunk, chapter_number: int = 1, chunk_index: int = 0) -> str:
+        """Sinh câu tóm tắt trừu tượng cho một khối câu thoại."""
         if not chunk.utterances:
             return "Đoạn trống"
         return self._chunk_summarizer.summarize(self._format_utterances(chunk.utterances))
 
     def title(self, segment: SegmentResult, chapter_number: int = 1) -> str:
+        """Sinh tiêu đề cho phân đoạn chủ đề từ danh sách các câu tóm tắt khối."""
         summaries = [
             chunk.rolling_summary.strip()
             for chunk in segment.chunks
@@ -54,4 +58,5 @@ class HierarchicalSummarizationService:
         return self._topic_titler.generate_title(joined[-self.TITLE_INPUT_MAX_CHARS:])
 
     def abstractive_utterances(self, utterances: list[Utterance]) -> str:
+        """Tóm tắt trực tiếp từ danh sách các đối tượng Utterance."""
         return self.abstractive(Chunk(utterances=utterances))
