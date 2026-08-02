@@ -492,8 +492,8 @@ def figure_03(path: Path) -> Path:
     svg_open(
         lines,
         height=720,
-        title="MODULE 4 — TOPIC SEGMENTATION",
-        subtitle="Multi-scale depth aggregation",
+        title="SUBMODULE 4.2 — MULTI-SCALE DEPTH",
+        subtitle="Depth scoring, normalization, and aggregation",
     )
     panels = (
         (50, "Input — Similarity Profile"),
@@ -629,8 +629,8 @@ def figure_04(path: Path) -> Path:
     svg_open(
         lines,
         height=620,
-        title="MODULE 4 — TOPIC SEGMENTATION",
-        subtitle="Adaptive candidate selection",
+        title="SUBMODULE 4.3 — ADAPTIVE THRESHOLD",
+        subtitle="Local thresholding and boundary candidate selection",
     )
     add_panel(
         lines,
@@ -750,8 +750,8 @@ def figure_05(path: Path) -> Path:
     svg_open(
         lines,
         height=670,
-        title="MODULE 4 — TOPIC SEGMENTATION",
-        subtitle="Streaming boundary confirmation",
+        title="SUBMODULE 4.5 — STREAMING CONFIRMATION",
+        subtitle="Delayed boundary confirmation across overlapping windows",
     )
     frames = (
         (55, "Window t", "Candidate", 190, 105, "process"),
@@ -927,8 +927,8 @@ def figure_07(path: Path) -> Path:
     svg_open(
         lines,
         height=590,
-        title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
-        subtitle="Utterance chunking",
+        title="SUBMODULE 5.1 — UTTERANCE CHUNKING",
+        subtitle="Chronological non-overlapping chunk construction",
     )
     add_panel(
         lines,
@@ -1014,8 +1014,8 @@ def figure_08(path: Path) -> Path:
     svg_open(
         lines,
         height=590,
-        title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
-        subtitle="ViT5 chunk summarization",
+        title="SUBMODULE 5.2 — CHUNK SUMMARIZATION",
+        subtitle="ViT5 inference for one utterance chunk",
     )
     stages = (
         (30, 145, "Speaker-labelled\nUtterances", "process", None),
@@ -1067,8 +1067,8 @@ def figure_09(path: Path) -> Path:
     svg_open(
         lines,
         height=620,
-        title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
-        subtitle="BARTpho topic titling",
+        title="SUBMODULE 5.3 — TOPIC TITLING",
+        subtitle="BARTpho inference from ordered chunk summaries",
     )
     stages = (
         (20, 130, "ordered-summaries", "Ordered Chunk\nSummaries", "process", None, 0),

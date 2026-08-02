@@ -53,17 +53,20 @@ def test_generate_all_writes_nine_white_svg_figures_in_order(tmp_path: Path) -> 
     assert all('fill="#ffffff"' in path.read_text() for path in outputs)
 
 
-def test_generate_all_uses_the_required_english_title_families(tmp_path: Path) -> None:
-    """Catch figures that lose their report-level module context."""
+def test_generate_all_titles_each_detail_with_its_actual_submodule(tmp_path: Path) -> None:
+    """Keep overview titles on parent modules and detail titles on submodules."""
     outputs = generate_all(tmp_path)
     documents = [path.read_text() for path in outputs]
 
     assert "SYSTEM OVERVIEW — FIVE-MODULE PIPELINE" in documents[0]
-    assert all("MODULE 4 — TOPIC SEGMENTATION" in document for document in documents[1:5])
-    assert all(
-        "MODULE 5 — HIERARCHICAL SUMMARIZATION" in document
-        for document in documents[5:]
-    )
+    assert "MODULE 4 — TOPIC SEGMENTATION" in documents[1]
+    assert "SUBMODULE 4.2 — MULTI-SCALE DEPTH" in documents[2]
+    assert "SUBMODULE 4.3 — ADAPTIVE THRESHOLD" in documents[3]
+    assert "SUBMODULE 4.5 — STREAMING CONFIRMATION" in documents[4]
+    assert "MODULE 5 — HIERARCHICAL SUMMARIZATION" in documents[5]
+    assert "SUBMODULE 5.1 — UTTERANCE CHUNKING" in documents[6]
+    assert "SUBMODULE 5.2 — CHUNK SUMMARIZATION" in documents[7]
+    assert "SUBMODULE 5.3 — TOPIC TITLING" in documents[8]
 
 
 def test_generate_all_keeps_visible_svg_text_english_only(tmp_path: Path) -> None:

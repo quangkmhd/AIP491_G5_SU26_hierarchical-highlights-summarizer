@@ -8,8 +8,8 @@ text { font-family: Arial, Helvetica, sans-serif; }
 <marker id="arrow-output" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#2e7d32"/></marker>
 </defs>
 <rect width="1200" height="670" fill="#ffffff"/>
-<text x="60" y="58" font-size="28" font-weight="700" fill="#111827">MODULE 4 — TOPIC SEGMENTATION</text>
-<text x="60" y="88" font-size="17" fill="#6b7280">Streaming boundary confirmation</text>
+<text x="60" y="58" font-size="28" font-weight="700" fill="#111827">SUBMODULE 4.5 — STREAMING CONFIRMATION</text>
+<text x="60" y="88" font-size="17" fill="#6b7280">Delayed boundary confirmation across overlapping windows</text>
 <line x1="60" y1="108" x2="1140" y2="108" stroke="#1f3a5f" stroke-width="2"/>
 <line x1="355" y1="330" x2="410" y2="330" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
 <line x1="710" y1="330" x2="765" y2="330" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
