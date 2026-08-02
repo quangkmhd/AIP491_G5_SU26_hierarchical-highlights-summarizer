@@ -3,5 +3,4 @@
 These plans are currently driving work. Each plan should have exactly one
 clearly owned current step.
 
-No execution plan is currently active. The model-loader plan is archived at
-[`../completed/model-002-model-loader.md`](../completed/model-002-model-loader.md).
+- [`report-figures-1-9-redesign.md`](report-figures-1-9-redesign.md) — current step: Task 2, Build the Deterministic Diagram Generator.
