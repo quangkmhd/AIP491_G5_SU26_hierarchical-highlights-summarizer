@@ -18,7 +18,7 @@ from .meeting_recap_orchestrator import (
     RecapEventType,
     StreamingOrchestrator,
 )
-from .text_tiling import SegmentEvent, SlidingTextTilingService
+from .sliding_text_tiling import SegmentEvent, SlidingTextTilingService
 
 __all__ = [
     "AsrEngine",

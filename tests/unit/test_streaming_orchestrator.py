@@ -24,7 +24,7 @@ from src.service import (
 )
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
-from src.service.text_tiling import SegmentEvent
+from src.service.sliding_text_tiling import SegmentEvent
 
 
 def _t(texts: list[str]) -> DialogueTranscript:

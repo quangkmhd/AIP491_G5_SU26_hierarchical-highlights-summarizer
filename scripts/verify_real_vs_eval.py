@@ -5,7 +5,7 @@ import os
 # Add current path to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.service.text_tiling import SlidingTextTilingService
+from src.service.sliding_text_tiling import SlidingTextTilingService
 from src.config.text_tiling import SlidingTextTilingConfig
 
 # Define paths

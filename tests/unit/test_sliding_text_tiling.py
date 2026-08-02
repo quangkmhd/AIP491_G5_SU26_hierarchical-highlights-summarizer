@@ -21,7 +21,7 @@ from src.segmenters import (
     similarity_scores,
 )
 from src.segmenters.sliding_texttiling import depth_scores  # internal helper — test directly
-from src.service.text_tiling import SegmentEvent, SlidingTextTilingService
+from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
 
 
 class SimilarityScoresTests(unittest.TestCase):

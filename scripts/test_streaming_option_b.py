@@ -249,7 +249,7 @@ def run_evaluation():
             n = len(utts)
 
             # --- OPTION A ---
-            from src.service.text_tiling import SlidingTextTilingService
+            from src.service.sliding_text_tiling import SlidingTextTilingService
             service_a = SlidingTextTilingService(config=config)
             events_a = service_a.process(utts)
             seg_a = [e.utterances_end - e.utterances_start + 1 for e in events_a]

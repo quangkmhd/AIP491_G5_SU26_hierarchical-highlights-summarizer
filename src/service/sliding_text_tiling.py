@@ -52,7 +52,7 @@ class SlidingTextTilingService:
     """
 
     def __init__(self, config: SlidingTextTilingConfig | None = None) -> None:
-        self.logger = get_logger("src.service.text_tiling")
+        self.logger = get_logger("src.service.sliding_text_tiling")
         self.config = config or SlidingTextTilingConfig()
         self._segment_counter = 0
         if self.config.use_stopwords:
