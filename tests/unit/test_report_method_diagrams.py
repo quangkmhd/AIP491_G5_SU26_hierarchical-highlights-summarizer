@@ -97,7 +97,8 @@ def test_figure_02_shows_the_module_flow_and_streaming_windows_without_formulas(
     tmp_path: Path,
 ) -> None:
     """Catch omitted segmentation stages, window progression, or duplicated formulas."""
-    figure = _visible_text(generate_all(tmp_path)[1])
+    path = generate_all(tmp_path)[1]
+    figure = _visible_text(path)
 
     assert all(
         label in figure
@@ -117,6 +118,28 @@ def test_figure_02_shows_the_module_flow_and_streaming_windows_without_formulas(
     )
     assert "tau =" not in figure
     assert "p_L" not in figure
+    root = ET.fromstring(path.read_text())
+    cells_by_window: dict[str, list[str]] = {}
+    for cell in root.iter("{http://www.w3.org/2000/svg}rect"):
+        if window := cell.get("data-window"):
+            cells_by_window.setdefault(window, []).append(cell.get("data-utterance", ""))
+    assert cells_by_window == {
+        "t": [f"u{index}" for index in range(1, 9)],
+        "t+1": [f"u{index}" for index in range(5, 13)],
+        "t+2": [f"u{index}" for index in range(9, 17)],
+    }
+    assert set(cells_by_window["t"]) & set(cells_by_window["t+1"]) == {
+        "u5",
+        "u6",
+        "u7",
+        "u8",
+    }
+    assert set(cells_by_window["t+1"]) & set(cells_by_window["t+2"]) == {
+        "u9",
+        "u10",
+        "u11",
+        "u12",
+    }
 
 
 def test_figure_03_connects_multiscale_depth_to_mean_aggregation(
@@ -136,18 +159,22 @@ def test_figure_03_connects_multiscale_depth_to_mean_aggregation(
             "S_i",
             "p_L",
             "p_R",
-            "d_i^(r) = max(0, p_L - S_i) + max(0, p_R - S_i)",
-            "D_i = (1 / |R|) sum z_i^(r)",
+            "D_r(i) = (p_L(i,r) + p_R(i,r) - 2S_i) / 2",
+            "D_hat_r(i) = (D_r(i) - mu_r) / (sigma_r + epsilon)",
+            "D_bar(i) = (1 / |R|) sum_{r in R} D_hat_r(i)",
         )
     )
     assert figure.count("Similarity Profile") == 1
+    assert "d_i^(r)" not in figure
+    assert "z_i^(r)" not in figure
 
 
 def test_figure_04_distinguishes_accepted_and_rejected_candidates(
     tmp_path: Path,
 ) -> None:
     """Catch a missing threshold decision or irrelevant sensitivity analysis."""
-    figure = _visible_text(generate_all(tmp_path)[3])
+    path = generate_all(tmp_path)[3]
+    figure = _visible_text(path)
 
     assert all(
         label in figure
@@ -161,6 +188,24 @@ def test_figure_04_distinguishes_accepted_and_rejected_candidates(
         )
     )
     assert "alpha sensitivity" not in figure.lower()
+    root = ET.fromstring(path.read_text())
+    accepted = {
+        marker.get("data-index")
+        for marker in root.iter("{http://www.w3.org/2000/svg}circle")
+        if marker.get("data-profile-state") == "accepted"
+    }
+    rejected = {
+        marker.get("data-index")
+        for marker in root.iter("{http://www.w3.org/2000/svg}circle")
+        if marker.get("data-profile-state") == "rejected"
+    }
+    candidates = {
+        marker.get("data-candidate-index")
+        for marker in root.iter("{http://www.w3.org/2000/svg}circle")
+        if marker.get("data-candidate-index")
+    }
+    assert accepted == candidates == {"4", "7"}
+    assert rejected == {"6"}
 
 
 def test_figure_05_commits_a_fixed_global_candidate_after_lookahead(
@@ -192,3 +237,22 @@ def test_figure_05_commits_a_fixed_global_candidate_after_lookahead(
         if element.get("marker-end")
     ]
     assert {arrow.get("stroke") for arrow in chronological_arrows} == {"#3b6ea8"}
+    position_markers = [
+        element
+        for element in root.iter("{http://www.w3.org/2000/svg}line")
+        if element.get("data-global-position") == "g"
+    ]
+    local_positions = [
+        int(marker.get("x1", "0")) - int(marker.get("data-frame-x", "0"))
+        for marker in position_markers
+    ]
+    lookahead_widths = [
+        int(element.get("width", "0"))
+        for element in root.iter("{http://www.w3.org/2000/svg}rect")
+        if element.get("data-lookahead") == "remaining"
+    ]
+    assert len(position_markers) == 3
+    assert local_positions == sorted(local_positions, reverse=True)
+    assert len(set(local_positions)) == 3
+    assert lookahead_widths == sorted(lookahead_widths, reverse=True)
+    assert len(set(lookahead_widths)) == 3

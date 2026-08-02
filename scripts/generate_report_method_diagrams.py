@@ -401,6 +401,15 @@ def figure_02(path: Path) -> Path:
         height=245,
         title="Streaming windows",
     )
+    add_text(
+        lines,
+        x=1080,
+        y=365,
+        text="same ID + fill = repeated context",
+        size=12,
+        fill=TEXT_SECONDARY,
+        anchor="end",
+    )
     lines.append(
         f'<line x1="190" y1="485" x2="1010" y2="485" stroke="{ARROW_PRIMARY}" '
         'stroke-width="2"/>'
@@ -417,8 +426,12 @@ def figure_02(path: Path) -> Path:
         fill=TEXT_SECONDARY,
         anchor="middle",
     )
-    window_xs = (175, 470, 765)
-    for index, x in enumerate(window_xs):
+    windows = (
+        (175, "t", range(1, 9), "u5-u8 repeated"),
+        (470, "t+1", range(5, 13), "u5-u8 | u9-u12"),
+        (765, "t+2", range(9, 17), "u9-u12 repeated"),
+    )
+    for x, window_name, utterance_ids, context_label in windows:
         lines.append(
             f'<rect x="{x}" y="395" width="260" height="70" rx="8" '
             f'fill="#ffffff" stroke="{BORDER_NAVY}" stroke-width="1.5"/>'
@@ -427,21 +440,37 @@ def figure_02(path: Path) -> Path:
             lines,
             x=x + 14,
             y=418,
-            text=("Window t", "Window t+1", "Window t+2")[index],
+            text=f"Window {window_name}",
             size=13,
             weight=700,
         )
-        for cell in range(8):
-            fill = "#e5e7eb" if cell < 2 or cell > 5 else "#dbeafe"
+        for cell, utterance_id in enumerate(utterance_ids):
+            if 5 <= utterance_id <= 8:
+                fill = "#dbeafe"
+            elif 9 <= utterance_id <= 12:
+                fill = "#bfdbfe"
+            else:
+                fill = "#e5e7eb"
+            cell_x = x + 14 + cell * 29
             lines.append(
-                f'<rect x="{x + 14 + cell * 29}" y="432" width="24" height="18" '
-                f'rx="3" fill="{fill}" stroke="#cbd5e1" stroke-width="1"/>'
+                f'<rect x="{cell_x}" y="432" width="24" height="18" rx="3" '
+                f'fill="{fill}" stroke="#94a3b8" stroke-width="1" '
+                f'data-window="{window_name}" data-utterance="u{utterance_id}"/>'
+            )
+            add_text(
+                lines,
+                x=cell_x + 12,
+                y=446,
+                text=f"u{utterance_id}",
+                size=12,
+                fill=TEXT_PRIMARY,
+                anchor="middle",
             )
         add_text(
             lines,
             x=x + 130,
             y=462,
-            text="overlap" if index < 2 else "latest context",
+            text=context_label,
             size=12,
             fill=TEXT_SECONDARY,
             anchor="middle",
@@ -572,16 +601,23 @@ def figure_03(path: Path) -> Path:
     add_rule_pill(
         lines,
         x=100,
-        y=580,
+        y=560,
         width=1000,
-        label="d_i^(r) = max(0, p_L - S_i) + max(0, p_R - S_i)",
+        label="D_r(i) = (p_L(i,r) + p_R(i,r) - 2S_i) / 2",
     )
     add_rule_pill(
         lines,
         x=100,
-        y=630,
+        y=610,
         width=1000,
-        label="D_i = (1 / |R|) sum z_i^(r)",
+        label="D_hat_r(i) = (D_r(i) - mu_r) / (sigma_r + epsilon)",
+    )
+    add_rule_pill(
+        lines,
+        x=100,
+        y=660,
+        width=1000,
+        label="D_bar(i) = (1 / |R|) sum_{r in R} D_hat_r(i)",
     )
     svg_close(lines)
     return write_svg(lines, path)
@@ -641,13 +677,17 @@ def figure_04(path: Path) -> Path:
         f'L 355 285 L 400 365 L 445 345 L 490 352 L 540 395" fill="none" '
         f'stroke="{ARROW_PRIMARY}" stroke-width="3"/>'
     )
-    lines.append(f'<circle cx="220" cy="250" r="7" fill="{BORDER_NAVY}"/>')
     lines.append(
-        f'<circle cx="355" cy="285" r="7" fill="{BORDER_NAVY}"/>'
+        f'<circle cx="220" cy="250" r="7" fill="{BORDER_NAVY}" '
+        'data-profile-state="accepted" data-index="4"/>'
+    )
+    lines.append(
+        f'<circle cx="355" cy="285" r="7" fill="{BORDER_NAVY}" '
+        'data-profile-state="accepted" data-index="7"/>'
     )
     lines.append(
         '<circle cx="310" cy="342" r="7" fill="#ffffff" stroke="#6b7280" '
-        'stroke-width="2"/>'
+        'stroke-width="2" data-profile-state="rejected" data-index="6"/>'
     )
     add_text(lines, x=220, y=232, text="Accepted", size=12, weight=700, anchor="middle")
     add_text(
@@ -659,10 +699,11 @@ def figure_04(path: Path) -> Path:
         fill=TEXT_SECONDARY,
         anchor="middle",
     )
-    for index, cx in enumerate((980, 1040, 1100), start=1):
+    for index, cx in zip((4, 7), (1010, 1070), strict=True):
         lines.append(
             f'<circle cx="{cx}" cy="335" r="15" fill="#eff6ff" '
-            f'stroke="{BORDER_NAVY}" stroke-width="1.5"/>'
+            f'stroke="{BORDER_NAVY}" stroke-width="1.5" '
+            f'data-candidate-index="{index}"/>'
         )
         add_text(
             lines,
@@ -720,7 +761,8 @@ def figure_05(path: Path) -> Path:
         marker_x = frame_x + local_g
         lines.append(
             f'<line x1="{marker_x}" y1="305" x2="{marker_x}" y2="382" '
-            f'stroke="{stroke}" stroke-width="3"/>'
+            f'stroke="{stroke}" stroke-width="3" data-global-position="g" '
+            f'data-frame-x="{frame_x}"/>'
         )
         lines.append(
             f'<circle cx="{marker_x}" cy="{axis_y}" r="7" fill="{fill}" '
@@ -747,7 +789,8 @@ def figure_05(path: Path) -> Path:
         bar_x = frame_x + 145
         lines.append(
             f'<rect x="{bar_x}" y="445" width="{remaining}" height="16" rx="8" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="1.5"/>'
+            f'fill="{fill}" stroke="{stroke}" stroke-width="1.5" '
+            'data-lookahead="remaining"/>'
         )
         add_text(
             lines,
