@@ -821,35 +821,288 @@ def figure_05(path: Path) -> Path:
 
 
 def figure_06(path: Path) -> Path:
-    return _render_foundation(
-        path,
+    lines: list[str] = []
+    svg_open(
+        lines,
+        height=560,
         title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
         subtitle="Hierarchical summarization module overview",
     )
+    stages = (
+        (45, "Committed Topic\nSegment", None),
+        (240, "Non-overlapping\nChunks", 1),
+        (435, "ViT5 Chunk\nSummaries", 2),
+        (630, "BARTpho Topic\nTitle", 3),
+    )
+    for x, title, step in stages:
+        add_box(
+            lines,
+            x=x,
+            y=235,
+            width=155,
+            height=112,
+            title=title,
+            step=step,
+        )
+    for index in range(len(stages) - 1):
+        add_arrow(
+            lines,
+            x1=stages[index][0] + 155,
+            y1=291,
+            x2=stages[index + 1][0],
+            y2=291,
+        )
+
+    add_arrow(lines, x1=785, y1=291, x2=825, y2=291, state="output")
+    add_panel(
+        lines,
+        x=825,
+        y=155,
+        width=330,
+        height=315,
+        title="Hierarchical Recap",
+        state="output",
+    )
+    lines.append(
+        '<rect x="855" y="225" width="270" height="50" rx="8" '
+        f'fill="#ffffff" stroke="{OUTPUT_GREEN}" stroke-width="1.5"/>'
+    )
+    add_text(
+        lines,
+        x=990,
+        y=255,
+        text="Topic Title",
+        size=14,
+        fill=OUTPUT_GREEN,
+        weight=700,
+        anchor="middle",
+    )
+    for index, y in enumerate((300, 345, 390), start=1):
+        lines.append(
+            f'<rect x="855" y="{y}" width="270" height="34" rx="6" '
+            f'fill="#ffffff" stroke="{OUTPUT_GREEN}" stroke-width="1.25"/>'
+        )
+        add_text(
+            lines,
+            x=875,
+            y=y + 22,
+            text=f"{index}  Chunk summary",
+            size=12,
+            fill=TEXT_PRIMARY,
+            weight=600,
+        )
+    svg_close(lines)
+    return write_svg(lines, path)
 
 
 def figure_07(path: Path) -> Path:
-    return _render_foundation(
-        path,
+    lines: list[str] = []
+    svg_open(
+        lines,
+        height=590,
         title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
         subtitle="Utterance chunking",
     )
+    add_panel(
+        lines,
+        x=50,
+        y=145,
+        width=1100,
+        height=285,
+        title="Committed Topic Segment — 21 utterances",
+    )
+    chunks = (
+        (120, 330, 1, range(1, 9), "8 utterances"),
+        (450, 330, 2, range(9, 17), "8 utterances"),
+        (800, 280, 3, range(17, 22), "5 utterances"),
+    )
+    fills = ("#eff6ff", "#e8f1fb", "#f1f5f9")
+    for (x, width, chunk, utterances, count_label), fill in zip(
+        chunks, fills, strict=True
+    ):
+        lines.append(
+            f'<rect x="{x}" y="220" width="{width}" height="125" rx="8" '
+            f'fill="#ffffff" stroke="{BORDER_NAVY}" stroke-width="1.5"/>'
+        )
+        add_text(
+            lines,
+            x=x + width // 2,
+            y=247,
+            text=f"Chunk {chunk} — {count_label}",
+            size=13,
+            weight=700,
+            anchor="middle",
+        )
+        utterance_ids = list(utterances)
+        cell_width = 32
+        gap = 5
+        strip_width = len(utterance_ids) * cell_width + (len(utterance_ids) - 1) * gap
+        cell_x = x + (width - strip_width) // 2
+        for offset, utterance_id in enumerate(utterance_ids):
+            current_x = cell_x + offset * (cell_width + gap)
+            lines.append(
+                f'<rect x="{current_x}" y="275" width="{cell_width}" height="36" '
+                f'rx="4" fill="{fill}" stroke="#94a3b8" stroke-width="1" '
+                f'data-chunk="{chunk}" data-utterance="u{utterance_id}"/>'
+            )
+            add_text(
+                lines,
+                x=current_x + cell_width // 2,
+                y=298,
+                text=f"u{utterance_id}",
+                size=12,
+                anchor="middle",
+            )
+    lines.append(
+        f'<line x1="120" y1="380" x2="1080" y2="380" stroke="{ARROW_PRIMARY}" '
+        'stroke-width="2"/>'
+    )
+    lines.append(
+        f'<polygon points="1080,380 1068,374 1068,386" fill="{ARROW_PRIMARY}"/>'
+    )
+    add_text(
+        lines,
+        x=600,
+        y=405,
+        text="chronological order",
+        size=12,
+        fill=TEXT_SECONDARY,
+        anchor="middle",
+    )
+    add_rule_pill(lines, x=170, y=485, width=230, label="Chronological")
+    add_rule_pill(lines, x=485, y=485, width=230, label="No overlap")
+    add_rule_pill(
+        lines,
+        x=800,
+        y=485,
+        width=230,
+        label="Never cross a topic boundary",
+    )
+    svg_close(lines)
+    return write_svg(lines, path)
 
 
 def figure_08(path: Path) -> Path:
-    return _render_foundation(
-        path,
+    lines: list[str] = []
+    svg_open(
+        lines,
+        height=590,
         title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
         subtitle="ViT5 chunk summarization",
     )
+    stages = (
+        (40, "Speaker-labelled\nUtterances", "process"),
+        (230, "Task\nFormatting", "process"),
+        (420, "Tokenization", "process"),
+        (610, "Fine-tuned\nViT5-base", "process"),
+        (800, "Chunk\nSummary", "process"),
+        (990, "Store and\nEmit", "output"),
+    )
+    for step, (x, title, state) in enumerate(stages, start=1):
+        add_box(
+            lines,
+            x=x,
+            y=175,
+            width=160,
+            height=120,
+            title=title,
+            state=state,
+            step=step,
+        )
+    for index in range(len(stages) - 1):
+        add_arrow(
+            lines,
+            x1=stages[index][0] + 160,
+            y1=235,
+            x2=stages[index + 1][0],
+            y2=235,
+            state="output" if index == len(stages) - 2 else "flow",
+        )
+
+    add_panel(lines, x=50, y=390, width=1100, height=130, title="Decoding constraints")
+    lines.append('<g data-constraint-footer="vit5">')
+    constraints = (
+        (105, 190, "max input: 512 tokens"),
+        (305, 150, "beam size: 4"),
+        (465, 150, "no sampling"),
+        (625, 190, "no-repeat 3-gram"),
+        (825, 230, "max output: 128 tokens"),
+    )
+    for x, width, label in constraints:
+        add_rule_pill(lines, x=x, y=460, width=width, label=label)
+    lines.append("</g>")
+    svg_close(lines)
+    return write_svg(lines, path)
 
 
 def figure_09(path: Path) -> Path:
-    return _render_foundation(
-        path,
+    lines: list[str] = []
+    svg_open(
+        lines,
+        height=620,
         title="MODULE 5 — HIERARCHICAL SUMMARIZATION",
         subtitle="BARTpho topic titling",
     )
+    stages = (
+        (25, 135, "ordered-summaries", "Ordered Chunk\nSummaries", "process"),
+        (180, 140, "all-summaries-ready", "All summaries\nready", "process"),
+        (340, 105, "join", 'Join with\n" / "', "process"),
+        (465, 145, "truncate", "Keep Last 1,500\nCharacters", "process"),
+        (630, 105, "prefix", "Add Task\nPrefix", "process"),
+        (755, 105, "tokenization", "Tokenization", "process"),
+        (
+            880,
+            180,
+            "bartpho-inference",
+            "Fine-tuned\nBARTpho-syllable-base",
+            "process",
+        ),
+        (1080, 95, "topic-title", "Topic\nTitle", "output"),
+    )
+    for order, (x, width, stage, title, state) in enumerate(stages, start=1):
+        lines.append(f'<g data-stage="{stage}" data-order="{order}">')
+        add_box(
+            lines,
+            x=x,
+            y=180,
+            width=width,
+            height=125,
+            title=title,
+            state=state,
+            step=order,
+        )
+        if stage == "all-summaries-ready":
+            lines.append(
+                f'<rect x="{x + 6}" y="186" width="{width - 12}" height="113" '
+                f'rx="7" fill="none" stroke="{BORDER_NAVY}" stroke-width="1"/>'
+            )
+        lines.append("</g>")
+    for index in range(len(stages) - 1):
+        x, width, _, _, _ = stages[index]
+        next_x = stages[index + 1][0]
+        add_arrow(
+            lines,
+            x1=x + width,
+            y1=242,
+            x2=next_x,
+            y2=242,
+            state="output" if index == len(stages) - 2 else "flow",
+        )
+
+    add_panel(lines, x=50, y=405, width=1100, height=130, title="Decoding constraints")
+    lines.append('<g data-constraint-footer="bartpho">')
+    constraints = (
+        (95, 210, "max input: 1,024 tokens"),
+        (315, 150, "beam size: 4"),
+        (475, 150, "no sampling"),
+        (635, 190, "no-repeat 3-gram"),
+        (835, 240, "max output: 200 tokens"),
+    )
+    for x, width, label in constraints:
+        add_rule_pill(lines, x=x, y=475, width=width, label=label)
+    lines.append("</g>")
+    svg_close(lines)
+    return write_svg(lines, path)
 
 
 FIGURES: tuple[tuple[str, Callable[[Path], Path]], ...] = (

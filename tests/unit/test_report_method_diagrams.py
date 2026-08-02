@@ -256,3 +256,140 @@ def test_figure_05_commits_a_fixed_global_candidate_after_lookahead(
     assert len(set(local_positions)) == 3
     assert lookahead_widths == sorted(lookahead_widths, reverse=True)
     assert len(set(lookahead_widths)) == 3
+
+
+def test_figure_06_shows_the_module_flow_and_nested_recap_without_parameters(
+    tmp_path: Path,
+) -> None:
+    """Catch missing Module 5 stages, recap hierarchy, or leaked focused detail."""
+    figure = _visible_text(generate_all(tmp_path)[5])
+
+    assert all(
+        label in figure
+        for label in (
+            "Committed Topic Segment",
+            "Non-overlapping Chunks",
+            "ViT5 Chunk Summaries",
+            "BARTpho Topic Title",
+            "Hierarchical Recap",
+            "Topic Title",
+            "1  Chunk summary",
+            "2  Chunk summary",
+            "3  Chunk summary",
+        )
+    )
+    assert all(
+        parameter not in figure
+        for parameter in (
+            "512 tokens",
+            "1,024 tokens",
+            "beam size",
+            "no sampling",
+            "no-repeat",
+        )
+    )
+
+
+def test_figure_07_groups_twenty_one_utterances_into_three_non_overlapping_chunks(
+    tmp_path: Path,
+) -> None:
+    """Catch incorrect chunk sizes, chronology, overlap, or topic-boundary rules."""
+    path = generate_all(tmp_path)[6]
+    figure = _visible_text(path)
+
+    assert all(
+        label in figure
+        for label in (
+            "8 utterances",
+            "5 utterances",
+            "Chronological",
+            "No overlap",
+            "Never cross a topic boundary",
+        )
+    )
+    root = ET.fromstring(path.read_text())
+    chunks: dict[str, list[str]] = {}
+    for cell in root.iter("{http://www.w3.org/2000/svg}rect"):
+        if chunk := cell.get("data-chunk"):
+            chunks.setdefault(chunk, []).append(cell.get("data-utterance", ""))
+    assert chunks == {
+        "1": [f"u{index}" for index in range(1, 9)],
+        "2": [f"u{index}" for index in range(9, 17)],
+        "3": [f"u{index}" for index in range(17, 22)],
+    }
+
+
+def test_figure_08_shows_vit5_inference_and_one_constraint_footer(
+    tmp_path: Path,
+) -> None:
+    """Catch an incomplete ViT5 path, missing settings, or unrelated training detail."""
+    path = generate_all(tmp_path)[7]
+    figure = _visible_text(path)
+
+    assert all(
+        label in figure
+        for label in (
+            "Speaker-labelled Utterances",
+            "Task Formatting",
+            "Tokenization",
+            "Fine-tuned ViT5-base",
+            "Chunk Summary",
+            "Store and Emit",
+            "max input: 512 tokens",
+            "beam size: 4",
+            "no sampling",
+            "no-repeat 3-gram",
+            "max output: 128 tokens",
+        )
+    )
+    assert "training history" not in figure.lower()
+    assert "dataset statistics" not in figure.lower()
+    root = ET.fromstring(path.read_text())
+    footers = [
+        element
+        for element in root.iter("{http://www.w3.org/2000/svg}g")
+        if element.get("data-constraint-footer") == "vit5"
+    ]
+    assert len(footers) == 1
+
+
+def test_figure_09_waits_for_all_summaries_before_bartpho_titling(
+    tmp_path: Path,
+) -> None:
+    """Catch a missing titling transform, synchronization gate, or decode setting."""
+    path = generate_all(tmp_path)[8]
+    figure = _visible_text(path)
+
+    assert all(
+        label in figure
+        for label in (
+            "Ordered Chunk Summaries",
+            'Join with " / "',
+            "Keep Last 1,500 Characters",
+            "Add Task Prefix",
+            "Tokenization",
+            "All summaries ready",
+            "Fine-tuned BARTpho-syllable-base",
+            "Topic Title",
+            "max input: 1,024 tokens",
+            "beam size: 4",
+            "no sampling",
+            "no-repeat 3-gram",
+            "max output: 200 tokens",
+        )
+    )
+    assert "raw utterances" not in figure.lower()
+    assert "training metrics" not in figure.lower()
+    root = ET.fromstring(path.read_text())
+    stages = {
+        element.get("data-stage"): int(element.get("data-order", "0"))
+        for element in root.iter("{http://www.w3.org/2000/svg}g")
+        if element.get("data-stage")
+    }
+    assert stages["all-summaries-ready"] < stages["bartpho-inference"]
+    footers = [
+        element
+        for element in root.iter("{http://www.w3.org/2000/svg}g")
+        if element.get("data-constraint-footer") == "bartpho"
+    ]
+    assert len(footers) == 1
