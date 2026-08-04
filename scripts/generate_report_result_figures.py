@@ -161,6 +161,13 @@ def bartpho_eval_history(state_path: Path, final_metrics_path: Path) -> list[dic
     return sorted(rows, key=lambda row: float(row["epoch"]))
 
 
+def persisted_eval_history(path: Path) -> list[dict]:
+    """Load the complete Trainer log history persisted after early stopping."""
+    history = json.loads(path.read_text(encoding="utf-8"))
+    rows = [row for row in history if "eval_loss" in row]
+    return sorted(rows, key=lambda row: float(row["epoch"]))
+
+
 def training_history_figure(
     rows: list[dict], name: str, model_name: str, best_epoch: int, checkpoint_label: str,
     evaluation_note: str | None = None,
@@ -233,7 +240,10 @@ def main() -> None:
     dataset_length_comparison()
     alimeeting_length_distribution()
     vit5_path = MODEL_ROOT / "models/vit5-chunk-summarizer-v1/trainer_state.json"
-    bartpho_path = MODEL_ROOT / "models/bartpho-topic-titler-v2/checkpoint-184/trainer_state.json"
+    bartpho_history_path = (
+        ROOT
+        / "training-eval-suite/outputs/topic_titler/bartpho-topic-titler-v2/training_history.json"
+    )
     training_history_figure(
         eval_history(vit5_path),
         "vit5_training_history",
@@ -243,16 +253,12 @@ def main() -> None:
         evaluation_note="Tập con validation cố định gồm 200 mẫu",
     )
     training_history_figure(
-        bartpho_eval_history(
-            bartpho_path,
-            MODEL_ROOT / "models/bartpho-topic-titler-v2/final_val_metrics.json",
-        ),
+        persisted_eval_history(bartpho_history_path),
         "bartpho_training_history_new",
         "BARTpho",
-        best_epoch=4,
+        best_epoch=5,
         checkpoint_label="Checkpoint được chọn",
-        evaluation_note="Tập validation gồm 326 mẫu chủ đề",
-        annotate_min_loss=False,
+        evaluation_note="327 mẫu validation · dừng sớm tại epoch 8 (patience = 3)",
     )
 
 

@@ -7,7 +7,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from src.repo.model_loader import ModelHandle, ModelKind, ModelLoadError, ModelLoader
+from src.repo.model_loader import (
+    TOPIC_TITLER_PATH,
+    ModelHandle,
+    ModelKind,
+    ModelLoadError,
+    ModelLoader,
+)
 
 
 def _handle(kind: ModelKind) -> ModelHandle:
@@ -32,6 +38,9 @@ class ModelLoaderTests(unittest.TestCase):
             {kind.name for kind in ModelKind},
             {"CHUNK_SUMMARIZER", "TOPIC_TITLER"},
         )
+
+    def test_topic_titler_uses_selected_checkpoint(self) -> None:
+        self.assertEqual(TOPIC_TITLER_PATH.name, "checkpoint-230")
 
     @mock.patch("src.repo.model_loader._load_seq2seq_handle")
     def test_handles_cache_independently(self, load: mock.Mock) -> None:

@@ -94,26 +94,14 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
         allow_methods=["POST", "GET", "OPTIONS"],
         allow_headers=["Content-Type"],
     )
-    # Phục vụ giao diện người dùng tĩnh (ưu tiên React build từ thư mục frontend/dist)
+    # Phục vụ giao diện người dùng tĩnh (React build từ thư mục frontend/dist)
     dist_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
-    ui_dir = Path(__file__).resolve().parent.parent / "ui"
     if dist_dir.is_dir():
         app.mount("/assets", StaticFiles(directory=str(dist_dir / "assets")), name="frontend-assets")
 
         @app.get("/")
         async def index() -> FileResponse:
             return FileResponse(str(dist_dir / "index.html"))
-    elif ui_dir.is_dir():
-        app.mount("/static", StaticFiles(directory=str(ui_dir)), name="ui-static")
-
-        @app.get("/")
-        async def index() -> FileResponse:  # type: ignore[no-redef]
-            index_path = ui_dir / "index.html"
-            if not index_path.is_file():
-                return JSONResponse(
-                    content={"detail": "UI not built"}, status_code=404
-                )
-            return FileResponse(str(index_path))
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
 
@@ -132,11 +120,11 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
     logger.info(
         "AI System Initialized:\n"
-        "  [Title Model]   : BARTpho Topic Titler (models/bartpho-topic-titler-v2)\n"
-        "  [Summary Model] : ViT5 Chunk Summarizer (models/vit5-chunk-summarizer-v1)\n"
-        "  [ASR Engine]    : Zipformer 30M-RNNT Transducer Streaming (models/Zipformer-30M-RNNT-Streaming-6000h)\n"
-        "  [Speaker Model] : WeSpeaker ResNet34 LM (models/diarization_models/wespeaker_en_voxceleb_resnet34_LM.onnx)\n"
-        "  [VAD Engine]    : Silero VAD (models/silero_vad.onnx)"
+        "  [Title Model]   : BARTpho Topic Titler\n"
+        "  [Summary Model] : ViT5 Chunk Summarizer\n"
+        "  [ASR Engine]    : Zipformer 30M-RNNT Transducer Streaming\n"
+        "  [Speaker Model] : WeSpeaker ResNet34 LM\n"
+        "  [VAD Engine]    : Silero VAD\n"
     )
 
     @app.exception_handler(HTTPException)

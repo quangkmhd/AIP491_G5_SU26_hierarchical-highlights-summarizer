@@ -16,7 +16,9 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 logger = logging.getLogger("src.repo.model_loader")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHUNK_SUMMARIZER_PATH = PROJECT_ROOT / "models" / "vit5-chunk-summarizer-v1"
-TOPIC_TITLER_PATH = PROJECT_ROOT / "models" / "bartpho-topic-titler-v2"
+TOPIC_TITLER_PATH = (
+    PROJECT_ROOT / "models" / "bartpho-topic-titler-v2" / "checkpoint-230"
+)
 
 
 class ModelKind(str, Enum):

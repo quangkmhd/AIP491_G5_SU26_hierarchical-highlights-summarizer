@@ -720,18 +720,18 @@ Khóa luận sử dụng một bộ dữ liệu cuộc họp tiếng Việt đ�
 
 **Quy trình chuyển ngữ và giới hạn dữ liệu:** Hy-MT2-1.8B chuyển ngữ các lượt lời sang tiếng Việt nhưng giữ nguyên thứ tự và nhãn ranh giới chuẩn vàng (gold-standard labels). Dữ liệu sau chuyển ngữ được chuẩn hóa về ký tự, chữ số và ranh giới lượt lời. Do nghiên cứu chưa thực hiện đánh giá chất lượng bản dịch trên một tập mẫu có thể tái lập, ảnh hưởng của sai lệch dịch máy được xem là một giới hạn của bộ dữ liệu và được cân nhắc khi phân tích kết quả thực nghiệm.
 
-**Phân chia dữ liệu huấn luyện và đánh giá:** Hai mô hình sinh văn bản sử dụng 295 cuộc họp làm nguồn tạo mẫu huấn luyện và validation. Trong lần huấn luyện tạo ra các kết quả được báo cáo, các khối của ViT5 và các chủ đề của BARTpho được chia ngẫu nhiên theo tỷ lệ 90/10 ở cấp mẫu với hạt giống bằng 42. ViT5 sử dụng 25.272 mẫu huấn luyện và 2.807 mẫu validation, trong khi BARTpho sử dụng lần lượt 2.937 và 326 mẫu. Sau khi chọn checkpoint, hai mô hình được đánh giá trên 65 cuộc họp độc lập, không thuộc nguồn 295 cuộc họp ban đầu.
+**Phân chia dữ liệu huấn luyện và đánh giá:** Hai mô hình sinh văn bản sử dụng 295 cuộc họp làm nguồn tạo mẫu huấn luyện và validation. Trong lần huấn luyện tạo ra các kết quả được báo cáo, các khối của ViT5 và các chủ đề của BARTpho được chia ngẫu nhiên theo tỷ lệ 90/10 với hạt giống bằng 42. ViT5 sử dụng 25.272 mẫu huấn luyện và 2.807 mẫu validation. Đối với BARTpho, phép chia được thực hiện ở cấp cuộc họp, gồm 266 cuộc họp tạo ra 2.936 mẫu huấn luyện và 29 cuộc họp tạo ra 327 mẫu validation. Sau khi chọn checkpoint, hai mô hình được đánh giá trên 65 cuộc họp độc lập, không thuộc nguồn 295 cuộc họp ban đầu.
 
 **Bảng 5: Phân chia dữ liệu cho huấn luyện và đánh giá hai mô hình sinh văn bản**
 
 | Tập dữ liệu | Phạm vi cuộc họp | Mẫu ViT5 (khối) | Mẫu BARTpho (chủ đề) | Vai trò |
 | :--- | :--- | ---: | ---: | :--- |
-| Huấn luyện (Train) | Trích từ 295 cuộc họp | 25.272 | 2.937 | Tối ưu tham số mô hình |
-| Validation | Trích từ cùng 295 cuộc họp | 2.807 | 326 | Theo dõi huấn luyện và chọn checkpoint |
+| Huấn luyện (Train) | Trích từ 295 cuộc họp | 25.272 | 2.936 | Tối ưu tham số mô hình |
+| Validation | Trích từ cùng 295 cuộc họp | 2.807 | 327 | Theo dõi huấn luyện và chọn checkpoint |
 | Đánh giá (Evaluation) | 65 cuộc họp độc lập | 6.038 | 736 | Đánh giá mô hình sau khi hoàn tất huấn luyện |
 | **Tổng số được sử dụng** | **360 cuộc họp phân biệt** | **34.117** | **3.999** | — |
 
-Do train và validation được chia ở cấp mẫu, các mẫu thuộc cùng một cuộc họp có thể xuất hiện trong cả hai tập. Hạn chế này chỉ ảnh hưởng đến phép theo dõi và lựa chọn checkpoint; tập đánh giá cuối cùng vẫn gồm 65 cuộc họp độc lập với nguồn huấn luyện.
+Đối với ViT5, train và validation được chia ở cấp mẫu nên các khối thuộc cùng một cuộc họp có thể xuất hiện trong cả hai tập. BARTpho được chia ở cấp cuộc họp nên không có sự giao nhau giữa 266 cuộc họp huấn luyện và 29 cuộc họp validation. Tập đánh giá cuối cùng của cả hai mô hình gồm 65 cuộc họp độc lập với nguồn huấn luyện.
 
 **Bộ dữ liệu cho khâu nhận dạng tiếng nói và phân định người nói (Datasets for ASR and Speaker Diarization):**
 
@@ -789,14 +789,19 @@ Các giá trị trong Bảng 6 là cấu hình được dùng để tái lập k
 
 **Bảng 8: Cấu hình siêu tham số thiết lập cho huấn luyện mô hình BARTpho**
 
-| Siêu tham số | Giá trị thiết lập |
-|---|---|
-| Mô hình nền (Base model) | `vinai/bartpho-syllable-base` |
-| Bộ tối ưu hóa (Optimizer) | AdamW |
-| Tốc độ học (Learning rate) | $5\times10^{-5}$ |
-| Kích thước lô mỗi GPU / Tích lũy (Batch size per GPU / Accumulation) | 4 / 16 (Batch hiệu dụng = 64) |
-| Giới hạn token đầu vào/đầu ra (Input/Target length limits) | 1.024 (giữ 1.500 ký tự cuối) / 200 tokens |
-| Hàm mất mát (Loss function) | Sequence NLL Loss |
+| Siêu tham số                                                         | Giá trị thiết lập                         |
+| -------------------------------------------------------------------- | ----------------------------------------- |
+| Mô hình nền (Base model)                                             | `vinai/bartpho-syllable-base`             |
+| Bộ tối ưu hóa (Optimizer)                                            | AdamW                                     |
+| Tốc độ học (Learning rate)                                           | $3\times10^{-5}$                          |
+| Suy giảm trọng số / Khởi động (Weight decay / Warmup)                | 0,01 / 0,06                               |
+| Kích thước lô mỗi GPU / Tích lũy (Batch size per GPU / Accumulation) | 4 / 16 (Batch hiệu dụng = 64)             |
+| Số lượng epoch tối đa (Max epochs)                                   | 20                                        |
+| Kiên nhẫn dừng sớm (Early stopping patience)                         | 3 epochs, theo ROUGE-L                    |
+| Độ chính xác (Precision)                                             | fp16                                      |
+| Giới hạn token đầu vào/đầu ra (Input/Target length limits)           | 1.024 (giữ 1.500 ký tự cuối) / 200 tokens |
+| Hàm mất mát (Loss function)                                          | Sequence NLL Loss                         |
+| Phương pháp giải mã (Decoding method)                                | Beam search (width = 4), không lặp 3-gram |
 
 **Phương pháp so sánh:** Multi-Scale Sliding TextTiling được đối chiếu với NLTK TextTiling và TextTiling từ vựng đơn phạm vi. NLTK TextTiling sử dụng kích thước khối $w=20$ và bước khối $k=10$. Baseline đơn phạm vi sử dụng cùng biểu diễn lượt lời với phương pháp đề xuất nhưng chỉ tính điểm sâu tại $R=\{3\}$, không chuẩn hóa Z-score, không dùng cửa sổ trượt và không gộp phân đoạn ngắn. Hai baseline không cần huấn luyện và được chạy lại trên đúng 4.713 hội thoại dùng để đánh giá phương pháp đề xuất.
 
@@ -857,10 +862,10 @@ Chế độ luồng được đánh giá bằng cách đưa lần lượt từng
 
 **Bảng 12: Chất lượng và chi phí xử lý của Multi-Scale Sliding TextTiling trong chế độ luồng**
 
-| Chế độ | $P_k$ TB ↓ | WD TB ↓ | Macro-$F_1$ TB ↑ | Thời gian xử lý/lượt lời ↓ | Độ trễ chốt TB ↓ |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| Cửa sổ theo lô | **0,5259** | **0,6531** | **0,6089** | — | — |
-| Luồng tăng dần | 0,5286 | 0,7038 | 0,5863 | **0,0852 ms** | **21,58 lượt lời** |
+| Chế độ         | $P_k$ TB ↓ |    WD TB ↓ | Macro-$F_1$ TB ↑ | Thời gian xử lý/lượt lời ↓ |   Độ trễ chốt TB ↓ |
+| :------------- | ---------: | ---------: | ---------------: | -------------------------: | -----------------: |
+| Cửa sổ theo lô | **0,5259** | **0,6531** |       **0,6089** |                          — |                  — |
+| Luồng tăng dần |     0,5286 |     0,7038 |           0,5863 |              **0,0852 ms** | **21,58 lượt lời** |
 
 So với chế độ theo lô, chế độ luồng làm $P_k$ tăng 0,0027, WindowDiff tăng 0,0507 và macro-$F_1$ giảm 0,0226. Mức giảm tập trung ở các cuộc họp dài như AMI, QMSum và ICSI; các hội thoại ngắn hơn cửa sổ $W=40$ chỉ được quyết định khi kết thúc đầu vào nên không tạo ranh giới trực tuyến. Đối với các ranh giới được công bố trước khi kết thúc hội thoại, độ trễ trung bình là 21,58 lượt lời, gần với vùng nhìn trước thiết kế. Thời gian xử lý trung bình 0,0852 ms trên mỗi lượt lời cho thấy chi phí riêng của thuật toán nhỏ, nhưng chưa phản ánh độ trễ của toàn bộ pipeline âm thanh và sinh văn bản.
 
@@ -884,33 +889,36 @@ ViT5 đạt ROUGE-1, ROUGE-2 và ROUGE-L lần lượt là 0,7265, 0,4854 và 0,
 
 #### 5.2.5. Kết quả tạo tiêu đề BARTpho (BARTpho Topic Titling Results)
 
-BARTpho được theo dõi trên 326 mẫu validation bằng validation loss và ba chỉ số ROUGE. Qua năm epoch, validation loss giảm liên tục từ 2,1087 xuống 1,9626. Tuy nhiên, ROUGE-L đạt giá trị cao nhất 0,3585 tại epoch 4 rồi giảm nhẹ xuống 0,3576 tại epoch 5. Vì ROUGE-L là tiêu chí lựa chọn mô hình, checkpoint tại epoch 4, tương ứng bước 184, được giữ lại cho phép đánh giá cuối cùng. Diễn biến này được minh họa trong Hình 12 và trình bày chi tiết tại Bảng 14.
+BARTpho được huấn luyện với giới hạn tối đa 20 epoch và được đánh giá sau mỗi epoch trên 327 mẫu validation. ROUGE-L được dùng làm tiêu chí lựa chọn checkpoint, kết hợp dừng sớm với patience bằng 3. Kết quả tốt nhất xuất hiện tại epoch 5, khi validation loss đạt 1,4750 và ROUGE-L đạt 0,3828. Trong ba epoch tiếp theo, ROUGE-L không vượt giá trị này, nên quá trình tự dừng tại epoch 8 và khôi phục checkpoint-230 của epoch 5. Diễn biến huấn luyện được minh họa trong Hình 12 và trình bày tại Bảng 14.
 
-![Diễn biến validation loss và ba chỉ số ROUGE của BARTpho trên 326 mẫu validation qua năm epoch](assets/bartpho_training_history_new.png)
+![Diễn biến validation loss và ba chỉ số ROUGE của BARTpho trên 327 mẫu validation; checkpoint tốt nhất tại epoch 5 và dừng sớm tại epoch 8](assets/bartpho_training_history_new.png)
 
-**Hình 12: Diễn biến validation loss và ROUGE-1, ROUGE-2, ROUGE-L của BARTpho trên 326 mẫu validation qua năm epoch.**
+**Hình 12: Diễn biến validation loss và ROUGE-1, ROUGE-2, ROUGE-L của BARTpho trên 327 mẫu validation; checkpoint tốt nhất được chọn tại epoch 5 và huấn luyện dừng sớm tại epoch 8.**
 
-**Bảng 14: Diễn biến đánh giá BARTpho qua năm epoch**
+**Bảng 14: Diễn biến đánh giá BARTpho đến thời điểm dừng sớm**
 
 | Epoch | Validation Loss | ROUGE-1 | ROUGE-2 | ROUGE-L | Ghi chú |
 |---|---:|---:|---:|---:|---|
 | 1 | 2,1087 | 0,4534 | 0,1779 | 0,3363 | Bắt đầu huấn luyện |
 | 2 | 2,0336 | 0,4716 | 0,1955 | 0,3495 | Các chỉ số tiếp tục cải thiện |
 | 3 | 1,9911 | 0,4745 | 0,1959 | 0,3501 | Validation loss tiếp tục giảm |
-| **4** | 1,9772 | 0,4781 | 0,2038 | **0,3585** | **Checkpoint được chọn theo ROUGE-L** |
-| 5 | **1,9626** | **0,4785** | **0,2090** | 0,3576 | Loss thấp nhất nhưng ROUGE-L giảm nhẹ |
+| 4 | 1,9772 | 0,4781 | 0,2038 | 0,3585 | Các chỉ số tiếp tục cải thiện |
+| **5** | **1,4750** | **0,5032** | **0,2334** | **0,3828** | **Checkpoint được chọn theo ROUGE-L** |
+| 6 | 1,5098 | 0,4885 | 0,2179 | 0,3680 | Không cải thiện lần 1 |
+| 7 | 1,5292 | 0,4876 | 0,2147 | 0,3641 | Không cải thiện lần 2 |
+| 8 | 1,5727 | 0,4854 | 0,2163 | 0,3661 | Không cải thiện lần 3; dừng sớm |
 
-Epoch 5 đạt validation loss, ROUGE-1 và ROUGE-2 tốt hơn epoch 4, nhưng ROUGE-L giảm 0,0009. Kết quả này cho thấy loss tiếp tục phản ánh khả năng dự đoán token trên validation, trong khi chất lượng chuỗi sinh theo tiêu chí chính không còn cải thiện. Do đó, việc chọn epoch 4 không dựa trên điểm loss thấp nhất mà tuân theo tiêu chí ROUGE-L đã xác định trước trong thiết kế thực nghiệm.
+Tại epoch 5, cả validation loss và ba chỉ số ROUGE đều đạt kết quả tốt nhất. Từ epoch 6 đến epoch 8, validation loss tăng và ROUGE-L dao động trong khoảng 0,3641–0,3680 nhưng không vượt 0,3828. Vì vậy, điều kiện dừng sớm được kích hoạt sau ba lần đánh giá liên tiếp không cải thiện. Cách lựa chọn này tránh tiếp tục tối ưu khi chất lượng chuỗi sinh trên validation đã suy giảm, đồng thời bảo đảm checkpoint cuối cùng tuân theo tiêu chí ROUGE-L được xác định trước.
 
-Sau khi cố định mô hình tại epoch 4, checkpoint-184 được đánh giá trên 736 phân đoạn thuộc 65 cuộc họp. Quá trình sinh sử dụng beam search với bốn chùm, độ dài đầu vào tối đa 1.024 token và độ dài đầu ra tối đa 200 token. Kết quả được trình bày trong Bảng 15.
+Sau khi cố định mô hình tại epoch 5, checkpoint-230 được đánh giá trên 736 phân đoạn thuộc 65 cuộc họp độc lập. Quá trình sinh sử dụng beam search với bốn chùm, độ dài đầu vào tối đa 1.024 token và độ dài đầu ra tối đa 200 token. Kết quả được trình bày trong Bảng 15.
 
 **Bảng 15: Kết quả tạo tiêu đề chủ đề của BARTpho trên tập đánh giá**
 
 | Mô hình | ROUGE-Max-1 ↑ | ROUGE-Max-2 ↑ | ROUGE-Max-L ↑ | Quy mô đánh giá |
 | :--- | ---: | ---: | ---: | :--- |
-| BARTpho sau tinh chỉnh (checkpoint-184) | **0,5315** | **0,2872** | **0,4428** | 736 phân đoạn thuộc 65 cuộc họp |
+| BARTpho sau tinh chỉnh (checkpoint-230) | **0,5351** | **0,2830** | **0,4442** | 736 phân đoạn thuộc 65 cuộc họp |
 
-Trên tập đánh giá, checkpoint-184 đạt ROUGE-Max-1, ROUGE-Max-2 và ROUGE-Max-L lần lượt là **0,5315**, **0,2872** và **0,4428**. Mỗi chỉ số được lấy theo tiêu đề tham chiếu phù hợp nhất rồi tính trung bình trên toàn bộ chủ đề. Kết quả cho thấy BARTpho sau tinh chỉnh có thể tạo tiêu đề từ dãy bản tóm tắt khối, nhưng chưa xác định riêng đóng góp của tiền tố tác vụ, phép lấy phần cuối đầu vào hoặc beam search. Cách tính ROUGE-Max phù hợp với dữ liệu có nhiều tiêu đề tham chiếu, nhưng có thể cho kết quả cao hơn đánh giá một tham chiếu. Tương tự ViT5, chưa có kết quả đối chứng được tái lập trên cùng tập dữ liệu nên các giá trị này không được diễn giải như bằng chứng về ưu thế tương đối.
+Trên tập đánh giá, checkpoint-230 đạt ROUGE-Max-1, ROUGE-Max-2 và ROUGE-Max-L lần lượt là **0,5351**, **0,2830** và **0,4442**. Mỗi chỉ số được lấy theo tiêu đề tham chiếu phù hợp nhất rồi tính trung bình trên toàn bộ chủ đề. Kết quả cho thấy BARTpho sau tinh chỉnh có thể tạo tiêu đề từ dãy bản tóm tắt khối, nhưng chưa xác định riêng đóng góp của tiền tố tác vụ, phép lấy phần cuối đầu vào hoặc beam search. Cách tính ROUGE-Max phù hợp với dữ liệu có nhiều tiêu đề tham chiếu, nhưng có thể cho kết quả cao hơn đánh giá một tham chiếu. Tương tự ViT5, chưa có kết quả đối chứng được tái lập trên cùng tập dữ liệu nên các giá trị này không được diễn giải như bằng chứng về ưu thế tương đối.
 
 #### 5.2.6. Phân tích lỗi định tính (Qualitative Error Analysis)
 
@@ -918,7 +926,7 @@ Các chỉ số ROUGE phản ánh mức độ tương đồng với văn bản t
 
 Đối với ViT5, trường hợp có điểm cao giữ đúng nhận định chính về hạn chế của khuyến khích bằng tiền và chỉ thay đổi cách diễn đạt. Ngược lại, ở trường hợp điểm thấp, đầu vào thảo luận về phòng tập và thiết bị thể dục nhưng mô hình sinh nội dung liên quan đến thanh toán và thương mại điện thoại. Đây là lỗi sinh thông tin không xuất hiện trong khối lượt lời, cho thấy điểm ROUGE trung bình tương đối cao không loại trừ nguy cơ sai lệch ở từng mẫu.
 
-Đối với BARTpho, trường hợp tốt tạo được tiêu đề ngắn gọn và giữ đúng chủ đề nâng cao tính chủ động của nhân viên. Trường hợp điểm thấp lại mô tả an toàn khu dân cư trong khi nội dung tham chiếu liên quan đến phân công công việc. Lỗi này cho thấy mô hình có thể tạo câu tiêu đề đúng hình thức nhưng không đại diện cho phân đoạn đầu vào. Hai nhóm lỗi trên cần được xem xét cùng kết quả định lượng, đặc biệt khi hệ thống được sử dụng để theo dõi nội dung cuộc họp theo thời gian thực.
+Đối với BARTpho, trường hợp tốt tạo được tiêu đề trùng với tham chiếu về việc mời người dẫn chương trình và khách mời. Trường hợp điểm thấp lại đề cập ngân sách giải thưởng trong khi tiêu đề tham chiếu liên quan đến việc duy trì trật tự. Lỗi này cho thấy mô hình có thể tạo câu tiêu đề đúng hình thức nhưng không đại diện cho phân đoạn đầu vào. Hai nhóm lỗi trên cần được xem xét cùng kết quả định lượng, đặc biệt khi hệ thống được sử dụng để theo dõi nội dung cuộc họp theo thời gian thực.
 
 #### 5.2.7. Phân tích tổng hợp (Overall Analysis)
 
@@ -938,9 +946,7 @@ Phép triệt tiêu làm rõ rằng chuẩn hóa cục bộ và gộp phân đo�
 
 ### 5.4. Hạn chế của thực nghiệm (Experimental Limitations)
 
-Thực nghiệm còn bốn hạn chế chính. Thứ nhất, các bộ dữ liệu phân đoạn được chuyển ngữ sang tiếng Việt nhưng chưa có phép đánh giá chất lượng bản dịch trên một tập mẫu có thể tái lập, nên sai lệch dịch máy có thể ảnh hưởng đến tín hiệu liên kết từ vựng. Thứ hai, train và validation của hai mô hình sinh văn bản được chia ở cấp mẫu; mặc dù tập đánh giá cuối cùng gồm 65 cuộc họp độc lập, kết quả validation vẫn có thể chịu ảnh hưởng khi các mẫu từ cùng một cuộc họp xuất hiện ở cả hai tập.
 
-Thứ ba, nghiên cứu chưa có kết quả đối chứng được tái lập cho ViT5 và BARTpho trên cùng giao thức. Vì vậy, các điểm ROUGE chỉ phản ánh chất lượng tuyệt đối của checkpoint được chọn, chưa đo được mức cải thiện do tinh chỉnh hoặc do từng lựa chọn tiền xử lý và giải mã. Cuối cùng, phép đo streaming hiện chỉ bao phủ mô-đun phân đoạn trên văn bản đầu vào. Real-Time Factor của luồng âm thanh, mức sử dụng bộ nhớ, chất lượng ASR, sai số phân định người nói và độ trễ đầu cuối vẫn chưa được đo trên một giao thức thống nhất. Các nội dung này cần được bổ sung trước khi đưa ra kết luận đầy đủ về khả năng triển khai thời gian thực của toàn hệ thống.
 
 
 ---
@@ -1203,7 +1209,7 @@ Phụ lục này trình bày một trường hợp có điểm cao và một tr�
 
 | Mức kết quả | Dự đoán | Tham chiếu | ROUGE-1 / ROUGE-2 / ROUGE-L |
 | :--- | :--- | :--- | :---: |
-| Cao | Thảo luận về việc nâng cao tinh thần chủ động của nhân viên | Ý kiến về việc nâng cao tinh thần và tính chủ động của nhân viên | 0,8372 / 0,7805 / 0,8372 |
-| Thấp | Thảo luận về vấn đề an toàn của khu dân cư | Sắp xếp công việc cho những người đã hoàn thành nhiệm vụ | 0,2778 / 0,0000 / 0,1111 |
+| Cao | Vấn đề liên quan đến việc mời người dẫn chương trình và khách mời | Vấn đề liên quan đến việc mời người dẫn chương trình và khách mời | 1,0000 / 1,0000 / 1,0000 |
+| Thấp | Thảo luận về ngân sách cho giải thưởng và giải thưởng | Khuyến nghị để sinh viên của khoa duy trì trật tự | 0,1212 / 0,0000 / 0,1212 |
 
 Các trường hợp có điểm cao cho thấy mô hình giữ được nội dung chính dù cách diễn đạt khác với tham chiếu. Ngược lại, ví dụ điểm thấp của ViT5 xuất hiện thông tin không có trong đầu vào, còn BARTpho tạo tiêu đề lệch khỏi chủ đề cần mô tả. Kết quả này cho thấy đánh giá định lượng cần được kết hợp với phân tích định tính để nhận diện các lỗi sinh nội dung.
