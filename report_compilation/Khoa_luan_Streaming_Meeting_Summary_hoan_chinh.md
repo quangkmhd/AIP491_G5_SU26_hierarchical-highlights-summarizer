@@ -332,16 +332,16 @@ Trong toàn bộ quy trình, dữ liệu được chuyển tiếp theo thứ t�
 
 ### 3.5. Phân đoạn chủ đề hội thoại bằng  Multi-Scale Sliding TextTiling (Unsupervised Topic Segmentation with  Multi-Scale Sliding TextTiling)
 
-Chuỗi lượt lời trong cuộc họp thường gồm nhiều phát biểu ngắn, có mức độ lặp từ thấp và không chứa dấu hiệu chuyển chủ đề rõ ràng. Vì vậy, cách chia theo số lượt lời cố định có thể cắt ngang một chủ đề đang tiếp diễn hoặc gộp các nội dung không liên quan. Mô-đun này tiếp nhận liên tục các lượt lời dạng văn bản có nhãn người nói từ Mục 3.4, xác định vị trí chuyển chủ đề, rồi chuyển những phân đoạn đã ổn định sang mô-đun tóm tắt phân cấp ở Mục 3.6.
+Chuỗi lượt lời trong cuộc họp thường gồm nhiều phát biểu ngắn, ít lặp từ và không có dấu hiệu chuyển chủ đề rõ ràng. Cách chia theo số lượt lời cố định vì vậy có thể cắt ngang một chủ đề đang tiếp diễn hoặc gộp các nội dung không liên quan. Mô-đun này tiếp nhận liên tục các lượt lời có nhãn người nói từ Mục 3.4, xác định vị trí chuyển chủ đề và chuyển những phân đoạn đã ổn định sang mô-đun tóm tắt phân cấp ở Mục 3.6.
 
-TextTiling được chọn làm phương pháp nền vì không cần dữ liệu gán nhãn để huấn luyện, có phép tính liên kết từ vựng dễ giải thích và chi phí suy luận thấp hơn các phương pháp dùng mô hình ngữ nghĩa lớn. Những đặc điểm này phù hợp với yêu cầu xử lý cục bộ và cập nhật liên tục của hệ thống. Tuy nhiên, TextTiling nguyên bản được thiết kế cho tài liệu hoàn chỉnh với các khối văn bản tương đối dài [@Hearst1997]. Khi áp dụng trực tiếp cho hội thoại, các lượt lời ngắn làm tín hiệu từ vựng thiếu ổn định, một ngưỡng chung khó thích nghi với từng giai đoạn thảo luận, còn quyết định tại cuối cửa sổ dễ thay đổi khi xuất hiện thêm ngữ cảnh.
+TextTiling được chọn làm phương pháp nền vì không cần dữ liệu gán nhãn, có cơ chế liên kết từ vựng dễ giải thích và chi phí suy luận thấp. Tuy nhiên, phương pháp gốc được thiết kế cho tài liệu hoàn chỉnh gồm các khối văn bản tương đối dài [@Hearst1997]. Khi áp dụng cho hội thoại dạng luồng, lượt lời ngắn làm tín hiệu từ vựng dễ dao động; chuyển đổi chủ đề nhanh hoặc kéo dài khiến kết quả phụ thuộc vào phạm vi quan sát; còn ngưỡng tính trên toàn bộ tài liệu không thể áp dụng trực tiếp khi cuộc họp chưa kết thúc. Các ranh giới gần nhau cũng có thể tạo ra phân đoạn quá ngắn, trong khi những vị trí gần cuối cửa sổ chưa có đủ ngữ cảnh phía sau để được xác nhận ổn định.
 
-Vì vậy, khóa luận không sử dụng TextTiling nguyên trạng mà xây dựng Multi-Scale Sliding TextTiling cho dữ liệu hội thoại dạng luồng. Phương pháp mới vẫn giữ cơ sở liên kết từ vựng phi giám sát, đồng thời thay đổi đơn vị xử lý từ đoạn văn sang nhóm lượt lời, quan sát độ suy giảm ở nhiều phạm vi và quản lý ranh giới qua các cửa sổ chồng lấn. Thiết kế này nhằm giữ ưu điểm về khả năng giải thích và chi phí, nhưng giảm sự phụ thuộc vào độ dài câu thoại và toàn bộ nội dung tương lai.
+Từ những hạn chế trên, khóa luận xây dựng Multi-Scale Sliding TextTiling nhưng vẫn giữ nguyên lý suy giảm liên kết từ vựng của TextTiling. Phương pháp gộp các lượt lời ở hai phía của mỗi vị trí, tính và chuẩn hóa điểm sâu trên nhiều phạm vi, xác định ngưỡng riêng cho từng cửa sổ và loại các ranh giới yếu tạo ra phân đoạn quá ngắn. Cửa sổ trượt cùng cơ chế xác nhận trễ cho phép thuật toán tiếp nhận dữ liệu tuần tự mà không phải sửa lại các ranh giới đã công bố. Các thay đổi này lần lượt hướng đến việc ổn định tín hiệu từ vựng, quan sát chuyển đổi chủ đề ở nhiều độ dài ngữ cảnh và đáp ứng yêu cầu xử lý dạng luồng; đóng góp định lượng của từng thành phần được kiểm tra bằng phép phân tích triệt tiêu tại Mục 5.2.2.
 
 ![Quy trình tổng thể của mô-đun phân đoạn chủ đề hội thoại trong chế độ luồng](assets/fig02_topic_segmentation_module.png)
 **Hình 3. Quy trình tổng thể của mô-đun phân đoạn chủ đề hội thoại bằng Multi-Scale Sliding TextTiling, từ chuỗi lượt lời có nhãn người nói đến các phân đoạn chủ đề đã chốt trong chế độ luồng.**
 
-Như minh họa trong Hình 3, Multi-Scale Sliding TextTiling thực hiện năm bước liên tiếp: đo liên kết từ vựng giữa hai vùng hội thoại liền kề, tính điểm sâu trên nhiều phạm vi, chọn ranh giới bằng ngưỡng thích ứng, gộp các phân đoạn quá ngắn và xác nhận ranh giới trong luồng. Bốn bước đầu được lặp lại trên cửa sổ hiện tại mỗi khi có thêm dữ liệu. Bước cuối quản lý hai trạng thái gồm ứng viên đang chờ và ranh giới đã chốt. Cơ chế này tạo độ trễ có kiểm soát để thu thập đủ ngữ cảnh phía sau, đồng thời bảo đảm các phân đoạn đã công bố không bị thay đổi. Phương pháp kế thừa nguyên lý suy giảm liên kết từ vựng của TextTiling [@Hearst1997], đồng thời bổ sung xử lý theo lượt lời, điểm sâu đa phạm vi, ngưỡng cục bộ và xác nhận trễ để phù hợp với hội thoại được tiếp nhận tuần tự. Đóng góp của các thành phần này được kiểm tra riêng bằng phép phân tích triệt tiêu tại Mục 5.2.2.
+Như minh họa trong Hình 3, Multi-Scale Sliding TextTiling thực hiện năm bước liên tiếp: đo liên kết từ vựng giữa hai vùng hội thoại liền kề, tính điểm sâu trên nhiều phạm vi, chọn ranh giới bằng ngưỡng thích ứng, gộp các phân đoạn quá ngắn và xác nhận ranh giới trong luồng. Bốn bước đầu được lặp lại trên cửa sổ hiện tại mỗi khi có thêm dữ liệu. Bước cuối quản lý hai trạng thái gồm ứng viên đang chờ và ranh giới đã chốt, qua đó tạo độ trễ có kiểm soát trước khi công bố một phân đoạn.
 
 ---
 
@@ -415,6 +415,8 @@ Giả mã tập trung vào đường xử lý tăng dần, là cơ chế đượ
 
 #### 3.5.1. Tiền xử lý và tính liên kết từ vựng
 
+TextTiling đo liên kết từ vựng trên các khối có độ dài tương đối ổn định, trong khi một lượt lời hội thoại thường ngắn và chứa ít từ mang nội dung. Vì vậy phương pháp đề xuất  gộp nhiều lượt lời ở hai phía của mỗi vị trí trước khi so sánh, nhằm giảm dao động do từng phát biểu riêng lẻ gây ra.
+
 Bước đầu tiên của quá trình phân đoạn chủ đề là làm sạch các lượt lời và đo mức giống nhau về từ ngữ giữa những phần hội thoại liền kề. Trong chế độ luồng, bước này chỉ sử dụng các lượt lời thuộc cửa sổ đang được đánh giá, vì vậy không cần truy cập nội dung chưa xuất hiện. Gọi $M$ là số lượt lời trong phạm vi hiện tại; thông thường $M=W$, còn cửa sổ cuối có thể ngắn hơn. Hệ thống chuyển văn bản về chữ thường, bỏ dấu câu và loại các từ xuất hiện phổ biến nhưng ít thể hiện nội dung [@Stopwordsiso2024]. Mỗi lượt lời sau đó được biểu diễn bằng mô hình túi từ (Bag-of-Words – BoW), trong đó $\mathbf{b}_i$ ghi lại số lần xuất hiện của từng từ trong lượt lời thứ $i$.
 
 Để kiểm tra nội dung có thay đổi hay không, thuật toán xét vị trí $i$ nằm giữa hai lượt lời $u_i$ và $u_{i+1}$. Tại vị trí này, tối đa $k$ lượt lời gần nhất ở bên trái được gộp thành nhóm $\mathbf{L}_i$, còn tối đa $k$ lượt lời tiếp theo ở bên phải được gộp thành nhóm $\mathbf{R}_i$:
@@ -440,6 +442,8 @@ $$
 Giá trị $S_i$ cao nghĩa là hai nhóm sử dụng nhiều từ giống nhau và có khả năng vẫn thuộc cùng một chủ đề. Ngược lại, giá trị thấp cho thấy nội dung giữa hai nhóm có thể đã thay đổi. Việc so sánh hai nhóm lượt lời thay vì chỉ so sánh từng cặp giúp kết quả ít bị ảnh hưởng bởi những phát biểu quá ngắn hoặc chứa ít thông tin. Sau khi tính $S_i$ tại tất cả vị trí giữa các lượt lời, hệ thống thu được một chuỗi điểm tương đồng; chuỗi điểm này là đầu vào cho bước tính điểm sâu đa phạm vi ở Mục 3.5.2.
 
 #### 3.5.2. Tính điểm sâu đa phạm vi
+
+Điểm sâu của TextTiling phụ thuộc vào phạm vi dùng để quan sát vùng suy giảm liên kết từ vựng. Một phạm vi duy nhất khó phản ánh đồng thời những chuyển đổi diễn ra nhanh và những chuyển đổi kéo dài qua nhiều lượt lời. Do đó, phương pháp đề xuất tính điểm sâu trên nhiều phạm vi, chuẩn hóa từng chuỗi điểm rồi tổng hợp để xem xét ranh giới ở các độ dài ngữ cảnh khác nhau.
 
 Sau bước đo mức giống nhau về từ ngữ ở Mục 3.5.1, hệ thống thu được chuỗi điểm tương đồng $S_i$ cho cửa sổ hiện tại. Mục tiêu của bước tiếp theo là xác định những vị trí mà điểm tương đồng giảm rõ rệt so với các vị trí xung quanh. Để thực hiện, thuật toán xét vị trí $i$ rồi lần lượt kiểm tra các điểm ở bên trái và bên phải trong phạm vi $r$. Mỗi phía được dò cho đến khi điểm tương đồng bắt đầu giảm hoặc đã đi hết phạm vi. Hai giá trị cao nhất đạt được theo cách dò này được ký hiệu là $p_L(i,r)$ và $p_R(i,r)$. Khi $S_i$ thấp hơn rõ rệt so với hai giá trị ở hai phía, vị trí $i$ có khả năng nằm gần nơi chuyển chủ đề.
 
@@ -473,7 +477,9 @@ Như vậy, bước tính điểm sâu chuyển chuỗi điểm tương đồng 
 
 #### 3.5.3. Chọn ranh giới ứng viên bằng ngưỡng thích ứng
 
-Sau Mục 3.5.2, mỗi vị trí giữa hai lượt lời đã có một điểm sâu tổng hợp $\bar{D}(i)$. Điểm càng cao thì dấu hiệu thay đổi nội dung càng rõ, nhưng hệ thống vẫn cần một mức so sánh để quyết định vị trí nào đáng được giữ lại. Thay vì dùng một giá trị cố định cho mọi cuộc họp, thuật toán tạo ngưỡng từ chính các điểm sâu trong phạm vi đang xử lý.
+TextTiling xác định ngưỡng từ phân phối điểm của tài liệu hoàn chỉnh, nhưng trong chế độ luồng hệ thống chưa có toàn bộ cuộc họp tại thời điểm ra quyết định. Multi-Scale Sliding TextTiling khắc phục trở ngại này bằng cách tính lại ngưỡng trong từng cửa sổ, để tiêu chuẩn chọn ranh giới phản ánh phần hội thoại đang được xử lý.
+
+Sau Mục 3.5.2, mỗi vị trí giữa hai lượt lời đã có một điểm sâu tổng hợp $\bar{D}(i)$. Điểm càng cao thì dấu hiệu thay đổi nội dung càng rõ, nhưng hệ thống vẫn cần một mức so sánh để quyết định vị trí nào đáng được giữ lại. Thuật toán vì vậy tạo ngưỡng từ chính các điểm sâu trong phạm vi hiện tại.
 
 ![Quy trình chọn ranh giới ứng viên bằng ngưỡng thích ứng](assets/fig04_adaptive_threshold_candidates.png)
 **Hình 5. Quy trình chọn ranh giới ứng viên bằng ngưỡng thích ứng được tính cục bộ từ chuỗi điểm sâu trong từng cửa sổ.**
@@ -497,7 +503,9 @@ Kết quả của bước này là tập ứng viên $C$ cùng điểm sâu tư�
 
 #### 3.5.4. Gộp các phân đoạn quá ngắn
 
-Sau bước áp dụng ngưỡng, hai ranh giới ứng viên có thể nằm quá gần nhau và tạo thành một phân đoạn chỉ gồm vài lượt lời. Những phân đoạn như vậy thường không chứa đủ nội dung để thể hiện một chủ đề riêng và có thể làm giảm chất lượng của bước tóm tắt. Vì vậy, hệ thống kiểm tra khoảng cách giữa các ranh giới trong tập ứng viên $C$ trước khi chuyển sang bước xác nhận.
+Việc chọn độc lập các vị trí vượt ngưỡng có thể tạo ra nhiều ranh giới gần nhau và làm hội thoại bị chia vụn. Để hạn chế hiện tượng này, phương pháp đề xuất đặt độ dài tối thiểu theo kích thước cửa sổ và loại ranh giới có điểm sâu thấp hơn khi cần gộp một phân đoạn ngắn. Cách xử lý ưu tiên dấu hiệu chuyển chủ đề rõ hơn, đồng thời tạo đầu vào đủ dài cho mô-đun tóm tắt.
+
+Sau bước áp dụng ngưỡng, hệ thống kiểm tra khoảng cách giữa các ranh giới trong tập ứng viên $C$ trước khi chuyển sang bước xác nhận.
 
 Gọi $M$ là số lượt lời trong phạm vi đang xử lý và $\gamma$ là tỷ lệ độ dài tối thiểu. Số lượt lời tối thiểu của một phân đoạn được xác định bởi:
 
@@ -514,7 +522,9 @@ Trong xử lý streaming, phép gộp chỉ áp dụng cho các ứng viên đan
 
 #### 3.5.5. Xác nhận ranh giới trong chế độ luồng
 
-Các ứng viên còn lại sau Mục 3.5.4 chưa được công bố ngay vì những vị trí gần cuối cửa sổ chưa có đủ nội dung phía sau để đưa ra quyết định ổn định. Hệ thống vì vậy duy trì một tập ứng viên đang chờ giữa các lần cập nhật. Khi nhận thêm $S=5$ lượt lời, cửa sổ $W=40$ lượt lời được dịch sang phải và các ứng viên được kiểm tra lại với vùng nhìn trước $L=20$ lượt lời. Quá trình này tiếp diễn trong suốt cuộc họp; nếu luồng kết thúc trước khi đủ $W$ lượt lời, hệ thống xử lý toàn bộ số lượt lời hiện có trong một lần.
+TextTiling xử lý tài liệu đã hoàn chỉnh nên có thể sử dụng ngữ cảnh ở cả hai phía trước khi quyết định ranh giới. Trong dữ liệu dạng luồng, một ứng viên gần cuối cửa sổ chưa có đủ nội dung phía sau và có thể thay đổi khi lượt lời mới xuất hiện. Phương pháp đề xuất giữ ứng viên này ở trạng thái chờ và chỉ công bố sau khi đã quan sát đủ vùng nhìn trước, nhờ đó các phân đoạn đã chuyển sang mô-đun tiếp theo không phải điều chỉnh lại.
+
+Khi nhận thêm $S=5$ lượt lời, cửa sổ $W=40$ lượt lời được dịch sang phải và các ứng viên được kiểm tra lại với vùng nhìn trước $L=20$ lượt lời. Quá trình này tiếp diễn trong suốt cuộc họp; nếu luồng kết thúc trước khi đủ $W$ lượt lời, hệ thống xử lý toàn bộ số lượt lời hiện có trong một lần.
 
 ![Quá trình xác nhận ranh giới chủ đề trong chế độ luồng](assets/fig05_streaming_boundary_confirmation.png)
 **Hình 6. Quá trình xác nhận trễ một ranh giới ứng viên qua các cửa sổ liên tiếp trước khi công bố trong chế độ luồng.**

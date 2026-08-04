@@ -1,5 +1,7 @@
 # Unified Paper Style for Remaining Report Figures Implementation Plan
 
+> **Status (2026-08-04): Complete.** Seven target PNGs were regenerated and visually reviewed; all meet the minimum dimensions, all six report references resolve, Figure 10 remains an auxiliary unreferenced asset, and the four protected topic-segmentation PNGs retain their recorded checksums.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the seven remaining Figure 1--10 method assets with accurate, high-resolution academic diagrams that match the approved topic-segmentation visual grammar.
@@ -31,7 +33,7 @@
 - Consumes: approved figure design and report captions.
 - Produces: immutable checksums for the four completed figures and a staging directory for generated candidates.
 
-- [ ] **Step 1: Create a staging directory**
+- [x] **Step 1: Create a staging directory**
 
 Run:
 
@@ -41,7 +43,7 @@ mkdir -p tmp/imagegen/report-figures-2026-08-04
 
 Expected: the directory exists and no report asset is modified.
 
-- [ ] **Step 2: Record protected-figure checksums**
+- [x] **Step 2: Record protected-figure checksums**
 
 Run:
 
@@ -56,7 +58,7 @@ sha256sum \
 
 Expected: four checksum lines are written.
 
-- [ ] **Step 3: Confirm the target files and report references**
+- [x] **Step 3: Confirm the target files and report references**
 
 Run:
 
@@ -85,23 +87,23 @@ Expected: exit code 0.
 - Consumes: Figure 1 and Figure 2 content specifications.
 - Produces: the five-module overview and layered runtime architecture diagrams.
 
-- [ ] **Step 1: Generate Figure 1 into staging**
+- [x] **Step 1: Generate Figure 1 into staging**
 
 Use the built-in image-generation tool with the exact module sequence from the design. Require a separate input endpoint, a framed group containing exactly five numbered module cards, and a separate green output endpoint. Save the candidate as `tmp/imagegen/report-figures-2026-08-04/fig01_five_module_pipeline.png`.
 
-- [ ] **Step 2: Validate Figure 1 visually**
+- [x] **Step 2: Validate Figure 1 visually**
 
 Confirm all labels are spelled correctly, numbers 1--5 occur once, input/output are outside the module frame, arrows flow left-to-right, and no unrequested labels are present. Regenerate once with a targeted correction if any check fails.
 
-- [ ] **Step 3: Generate Figure 2 into staging**
+- [x] **Step 3: Generate Figure 2 into staging**
 
 Use the built-in image-generation tool with four horizontal layers: Client, Application Runtime, AI Services, and Local Model Runtime. Require exactly five numbered AI modules, one primary streaming path, orthogonal connectors, and no product icons. Save the candidate as `tmp/imagegen/report-figures-2026-08-04/fig02_overall_software_architecture.png`.
 
-- [ ] **Step 4: Validate Figure 2 visually**
+- [x] **Step 4: Validate Figure 2 visually**
 
 Confirm every component belongs to the correct layer, the five-module ordering matches the report, connectors do not cross text, and decorative infrastructure is absent. Regenerate once with a targeted correction if any check fails.
 
-- [ ] **Step 5: Install the accepted system figures**
+- [x] **Step 5: Install the accepted system figures**
 
 Copy the two accepted candidates to their existing `report_compilation/assets/` paths. Overwriting is authorized by the user's redesign request.
 
@@ -115,23 +117,23 @@ Copy the two accepted candidates to their existing `report_compilation/assets/` 
 - Consumes: report Sections 3.6 and 3.6.1.
 - Produces: one three-stage summarization overview and one exact 21-utterance chunking diagram.
 
-- [ ] **Step 1: Generate Figure 6 into staging**
+- [x] **Step 1: Generate Figure 6 into staging**
 
 Require one external committed-topic input, one framed group containing exactly three numbered stages, and one external hierarchical-recap output with a title above ordered summaries. Save as `tmp/imagegen/report-figures-2026-08-04/fig06_hierarchical_summarization_module.png`.
 
-- [ ] **Step 2: Validate Figure 6 visually**
+- [x] **Step 2: Validate Figure 6 visually**
 
 Confirm the stage order is chunking, ViT5 summaries, BARTpho title; input/output are outside the group; and no inference parameters appear.
 
-- [ ] **Step 3: Generate Figure 7 into staging**
+- [x] **Step 3: Generate Figure 7 into staging**
 
 Require exactly 21 compact utterance cells grouped 8, 8, and 5, plus the rules Chronological, No overlap, and Never cross a topic boundary. Save as `tmp/imagegen/report-figures-2026-08-04/fig07_utterance_chunking_detail.png`.
 
-- [ ] **Step 4: Validate Figure 7 visually**
+- [x] **Step 4: Validate Figure 7 visually**
 
 Count all cells and verify the group sizes are exactly 8, 8, and 5. Reject any candidate with full utterance prose, crossed boundaries, or extra rules.
 
-- [ ] **Step 5: Install the accepted overview and chunking figures**
+- [x] **Step 5: Install the accepted overview and chunking figures**
 
 Copy the two accepted candidates to their existing report asset paths.
 
@@ -145,23 +147,23 @@ Copy the two accepted candidates to their existing report asset paths.
 - Consumes: report Sections 3.6.2 and 3.6.3.
 - Produces: content-locked model inference diagrams with compact reproducibility notes.
 
-- [ ] **Step 1: Generate Figure 8 into staging**
+- [x] **Step 1: Generate Figure 8 into staging**
 
 Require the ordered flow Speaker-labelled Utterances, Task Formatting, Tokenization, Fine-tuned ViT5-base, Store and Emit, and Chunk Summary. Include one secondary settings note containing 512-token input, beam size 4, no sampling, no-repeat 3-gram, and 128-token output. Save as `tmp/imagegen/report-figures-2026-08-04/fig08_chunk_summarization_detail.png`.
 
-- [ ] **Step 2: Validate Figure 8 visually**
+- [x] **Step 2: Validate Figure 8 visually**
 
 Confirm model name, settings, and stage order exactly match the report; ensure the green output is the only emphasized state.
 
-- [ ] **Step 3: Generate Figure 9 into staging**
+- [x] **Step 3: Generate Figure 9 into staging**
 
 Require ordered chunk summaries, the explicit all-summaries-available precondition, join separator, 1,500-character tail, task prefix, tokenization, fine-tuned BARTpho-syllable-base, and Topic Title. Include the specified 1,024-token/beam/no-sampling/no-repeat/200-token settings note. Save as `tmp/imagegen/report-figures-2026-08-04/fig09_topic_titling_detail.png`.
 
-- [ ] **Step 4: Validate Figure 9 visually**
+- [x] **Step 4: Validate Figure 9 visually**
 
 Confirm exact punctuation in `" / "`, model name, limits, chronological order, and the precondition before title generation.
 
-- [ ] **Step 5: Install the accepted model figures**
+- [x] **Step 5: Install the accepted model figures**
 
 Copy the two accepted candidates to their existing report asset paths.
 
@@ -174,15 +176,15 @@ Copy the two accepted candidates to their existing report asset paths.
 - Consumes: the approved Figure 10 event list and runtime participants.
 - Produces: a compact swimlane diagram distinguishing calls, returns, and emitted events.
 
-- [ ] **Step 1: Generate Figure 10 into staging**
+- [x] **Step 1: Generate Figure 10 into staging**
 
 Require six participants and only the approved event vocabulary. Use solid arrows for processing calls, dashed arrows for returns, green emitted/committed events, and a two-item legend. Save as `tmp/imagegen/report-figures-2026-08-04/fig10_event_sequence.png`.
 
-- [ ] **Step 2: Validate Figure 10 visually**
+- [x] **Step 2: Validate Figure 10 visually**
 
 Confirm participant order, chronological top-to-bottom event order, consistent arrow semantics, exact event spelling, and absence of payload schemas or method names.
 
-- [ ] **Step 3: Install the accepted event-sequence figure**
+- [x] **Step 3: Install the accepted event-sequence figure**
 
 Copy the accepted candidate to `report_compilation/assets/fig10_event_sequence.png`.
 
@@ -198,15 +200,15 @@ Copy the accepted candidate to `report_compilation/assets/fig10_event_sequence.p
 - Consumes: all accepted image candidates.
 - Produces: fresh dimension, reference, checksum, and visual-review evidence.
 
-- [ ] **Step 1: Validate minimum dimensions**
+- [x] **Step 1: Validate minimum dimensions**
 
 Run `identify` for all seven target images and fail if any width is below 1,700 pixels or height below 800 pixels.
 
-- [ ] **Step 2: Verify report references**
+- [x] **Step 2: Verify report references**
 
 For every redesigned asset referenced in the report, use `rg` to confirm its existing Markdown path resolves. Record that `fig10_event_sequence.png` is an auxiliary asset if it remains unreferenced.
 
-- [ ] **Step 3: Verify protected checksums**
+- [x] **Step 3: Verify protected checksums**
 
 Run:
 
@@ -216,11 +218,11 @@ sha256sum --check tmp/imagegen/report-figures-2026-08-04/protected.sha256
 
 Expected: all four protected figures report `OK`.
 
-- [ ] **Step 4: Create and inspect a contact sheet**
+- [x] **Step 4: Create and inspect a contact sheet**
 
 Use ImageMagick `montage` to arrange the seven redesigned figures at report-like thumbnail scale. Inspect the result for small text, inconsistent stroke weight, unintended color, clipping, and cross-figure style drift.
 
-- [ ] **Step 5: Inspect the final diff**
+- [x] **Step 5: Inspect the final diff**
 
 Run:
 
@@ -231,6 +233,6 @@ git diff --stat -- report_compilation/assets
 
 Expected: the seven intended PNGs are modified; unrelated changes are preserved and unmodified by this work.
 
-- [ ] **Step 6: Report deliverables**
+- [x] **Step 6: Report deliverables**
 
 Provide clickable paths to all seven PNGs, identify the built-in image generation mode, state the verification results, and note that existing SVG/PDF files were not regenerated and therefore are not matching editable sources for the new raster artwork.
