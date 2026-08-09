@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Read only `topic_outputs.jsonl`; do not embed AI judgments or `.env` values.
+- Read only `topic_outputs.jsonl`; do not embed prior score files or credential values.
 - Preserve one WAV as one utterance and show the complete topic evidence.
 - Work on the current branch and preserve unrelated dirty files.
 - The generated page must work from `file://` without a server or CDN.

@@ -2,11 +2,11 @@
 
 ## Goal
 
-Provide one offline HTML file for manually reviewing and scoring all 246 topics from `custom-10h-full-v2`, without exposing the previous AI judgments or requiring a server.
+Provide one offline HTML file for manually reviewing and scoring all 246 topics from `custom-10h-full-v2`, without exposing prior automated scores or requiring a server.
 
 ## Data and Privacy
 
-The generator reads `topic_outputs.jsonl` only. It embeds the topic transcript, BARTpho title, and every ViT5 source chunk/summary into the generated HTML. It never reads `.env`, `ai_judgments.jsonl`, or network resources. Embedded JSON is escaped so transcript text cannot terminate the script element.
+The generator reads `topic_outputs.jsonl` only. It embeds the topic transcript, BARTpho title, and every ViT5 source chunk/summary into the generated HTML. It never reads credential files, prior score files, or network resources. Embedded JSON is escaped so transcript text cannot terminate the script element.
 
 ## Review Workflow
 
