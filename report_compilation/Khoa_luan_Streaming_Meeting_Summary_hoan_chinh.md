@@ -1237,16 +1237,17 @@ ROUGE-L trên tập con validation đạt cao nhất 0,5559 tại epoch 6, tươ
 
 **Hình 11: Diễn biến validation loss và ROUGE-1, ROUGE-2, ROUGE-L của ViT5 trên tập con validation gồm 200 mẫu qua 10 epoch**
 
-Bảng 14 báo cáo ROUGE trên toàn bộ tập validation và tập đánh giá độc lập.
+Trên toàn bộ tập validation gồm 2.807 mẫu khối, mô hình sau tinh chỉnh đạt ROUGE-1, ROUGE-2 và ROUGE-L lần lượt là 0,7302, 0,4957 và 0,5574. Khi chuyển sang tập đánh giá độc lập, ROUGE-L giảm 0,0088. Mức chênh lệch nhỏ này cho thấy checkpoint được lựa chọn duy trì chất lượng gần với kết quả trên validation. Bảng 14 tập trung so sánh mô hình nền và mô hình sau tinh chỉnh trên cùng 6.038 khối thuộc 65 cuộc họp.
 
-**Bảng 14: Kết quả tóm tắt khối của ViT5**
+**Bảng 14: So sánh mô hình ViT5 nền và sau tinh chỉnh cho tác vụ tóm tắt khối**
 
-| Phạm vi | ROUGE-1 ↑ | ROUGE-2 ↑ | ROUGE-L ↑ | Quy mô |
-| :--- | ---: | ---: | ---: | :--- |
-| Validation | 0,7302 | 0,4957 | 0,5574 | 2.807 mẫu khối |
-| Đánh giá độc lập | **0,7265** | **0,4854** | **0,5486** | 6.038 khối thuộc 65 cuộc họp |
+| Mô hình                                                |            ROUGE-1 ↑ |             ROUGE-2 ↑ |            ROUGE-L ↑ |
+| :----------------------------------------------------- | -------------------: | --------------------: | -------------------: |
+| ViT5  (`VietAI/vit5-base-vietnews-summarization`)      |               0,4991 |                0,1735 |               0,3040 |
+| ViT5 sau tinh chỉnh (`vit5-chunk-summarizer-finetune`) |           **0,7265** |            **0,4854** |           **0,5486** |
+| Mức cải thiện tuyệt đối / tương đối                    | **+0,2274 / +45,6%** | **+0,3119 / +179,8%** | **+0,2446 / +80,5%** |
 
-ROUGE-L giảm 0,0088 từ validation xuống tập đánh giá, cho thấy checkpoint duy trì mức tương đồng gần với dữ liệu lựa chọn mô hình. Tuy nhiên, ví dụ tại Phụ lục E cho thấy mô hình vẫn có thể sinh thông tin không được hỗ trợ bởi đầu vào. Chưa có ViT5 nguyên bản hoặc mô hình đối chứng được chạy trên cùng giao thức, vì vậy kết quả mới chứng minh tính khả thi của mô-đun, chưa chứng minh ưu thế tương đối của cấu hình tinh chỉnh.
+Mô hình `vit5-chunk-summarizer-finetune` cải thiện đồng thời cả ba chỉ số so với mô hình nền. Chênh lệch lớn nhất xuất hiện ở ROUGE-2, tăng 0,3119 điểm, tương đương 179,8%; kết quả này cho thấy quá trình tinh chỉnh giúp mô hình tái tạo tốt hơn các cặp token liên tiếp trong bản tóm tắt tham chiếu. ROUGE-1 và ROUGE-L tăng lần lượt 45,6% và 80,5%, qua đó xác nhận lợi ích của việc thích ứng mô hình tóm tắt tin tức sang dữ liệu hội thoại cuộc họp. Độ dài đầu ra trung vị tăng từ 59 lên 92 token cho thấy mô hình sau tinh chỉnh tạo bản tóm tắt chi tiết hơn cho mỗi khối tám lượt lời. Tuy nhiên, đầu ra dài hơn không đồng nghĩa với chính xác hơn. Ví dụ tại Phụ lục E cho thấy các trường hợp điểm thấp vẫn có thể chứa thông tin không được hỗ trợ bởi hội thoại nguồn; mức tăng ROUGE vì thế chưa thay thế được đánh giá về tính đúng sự thật.
 
 ### 5.5. Tạo tiêu đề chủ đề (Topic Titling)
 
@@ -1254,9 +1255,7 @@ Mục này trình bày môi trường tinh chỉnh, cấu hình huấn luyện, 
 
 #### 5.5.1. Hạ tầng và cấu hình (Infrastructure and Configuration)
 
-BARTpho được tinh chỉnh trên cùng máy Ubuntu, bộ xử lý Intel, RAM 16 GB và GPU NVIDIA GeForce RTX 4060 8 GB. Môi trường phần mềm dùng Python 3.12.3, PyTorch và Transformers [@Wolf2020]. Mô hình có khoảng 132 triệu tham số [@Nguyen2022].
-
-Bảng 10 trình bày cấu hình huấn luyện và giải mã của checkpoint dùng trong đánh giá.
+BARTpho được tinh chỉnh trên cùng máy Ubuntu, bộ xử lý Intel, RAM 16 GB và GPU NVIDIA GeForce RTX 4060 8 GB. Môi trường phần mềm dùng Python 3.12.3, PyTorch và Transformers [10]. Mô hình có khoảng 132 triệu tham số [10].
 
 **Bảng 10: Cấu hình huấn luyện và giải mã BARTpho**
 
@@ -1272,7 +1271,7 @@ Bảng 10 trình bày cấu hình huấn luyện và giải mã của checkpoint
 
 #### 5.5.2. Quy trình huấn luyện và đánh giá (Training and Evaluation Protocol)
 
-Với hạt giống 42, BARTpho được huấn luyện trên 2.936 mẫu chủ đề và đánh giá sau mỗi epoch trên 327 mẫu validation. Checkpoint được chọn theo ROUGE-L, không dựa trên tập đánh giá độc lập; quá trình dừng sớm nếu chỉ số không cải thiện sau ba epoch. Checkpoint được chọn sau đó được cố định để đánh giá trên 736 chủ đề thuộc 65 cuộc họp độc lập. Cấu hình không qua tìm kiếm siêu tham số toàn diện và thực nghiệm được chạy một lần.
+Với hạt giống 42, mô hình BARTpho sau tinh chỉnh `bartpho-topic-titler_finetune` được huấn luyện trên 2.936 mẫu chủ đề và đánh giá sau mỗi epoch trên 327 mẫu validation. Checkpoint được chọn theo ROUGE-L, không dựa trên tập đánh giá độc lập; quá trình dừng sớm nếu chỉ số không cải thiện sau ba epoch. Checkpoint được chọn sau đó được cố định để đánh giá trên 736 chủ đề thuộc 65 cuộc họp độc lập. Cấu hình không qua tìm kiếm siêu tham số toàn diện và thực nghiệm được chạy một lần.
 
 #### 5.5.3. Kết quả thực nghiệm (Experimental Results)
 
@@ -1282,15 +1281,17 @@ ROUGE-L trên tập validation đạt cao nhất 0,3828 tại epoch 5. Sau ba ep
 
 **Hình 12: Diễn biến validation loss và ROUGE-1, ROUGE-2, ROUGE-L của BARTpho trên 327 mẫu validation; checkpoint tốt nhất được chọn tại epoch 5 và huấn luyện dừng sớm tại epoch 8.**
 
-Vì mỗi chủ đề có thể có nhiều tiêu đề tham chiếu, ROUGE-Max lấy điểm cao nhất giữa tiêu đề dự đoán và các tiêu đề tham chiếu trước khi tính trung bình. Bảng 15 trình bày kết quả trên tập đánh giá độc lập.
+Vì mỗi chủ đề có thể có nhiều tiêu đề tham chiếu, ROUGE-Max lấy điểm cao nhất giữa tiêu đề dự đoán và các tiêu đề tham chiếu trước khi tính trung bình. Bảng 15 so sánh mô hình nền và mô hình sau tinh chỉnh trên cùng tập đánh giá độc lập gồm 736 chủ đề thuộc 65 cuộc họp.
 
-**Bảng 15: Kết quả tạo tiêu đề chủ đề của BARTpho trên tập đánh giá**
+**Bảng 15: So sánh mô hình BARTpho nền và sau tinh chỉnh cho tác vụ tạo tiêu đề chủ đề**
 
-| Mô hình | ROUGE-Max-1 ↑ | ROUGE-Max-2 ↑ | ROUGE-Max-L ↑ | Quy mô đánh giá |
-| :--- | ---: | ---: | ---: | :--- |
-| BARTpho sau tinh chỉnh (checkpoint-230) | **0,5351** | **0,2830** | **0,4442** | 736 phân đoạn thuộc 65 cuộc họp |
+| Mô hình                                                  |         ROUGE-Max-1 ↑ |         ROUGE-Max-2 ↑ |         ROUGE-Max-L ↑ |
+| :------------------------------------------------------- | --------------------: | --------------------: | --------------------: |
+| BARTpho (`vinai/bartpho-syllable-base`)                  |                0,1412 |                0,0853 |                0,1227 |
+| BARTpho sau tinh chỉnh (`bartpho-topic-titler_finetune`) |            **0,5351** |            **0,2830** |            **0,4442** |
+| Mức cải thiện tuyệt đối / tương đối                      | **+0,3939 / +278,9%** | **+0,1977 / +231,8%** | **+0,3215 / +262,0%** |
 
-Checkpoint-230 đạt ROUGE-Max-1, ROUGE-Max-2 và ROUGE-Max-L lần lượt là **0,5351**, **0,2830** và **0,4442**. ROUGE-Max không thể so sánh trực tiếp với ROUGE một tham chiếu của ViT5; ví dụ tại Phụ lục E cũng cho thấy tiêu đề sinh ra đôi khi lệch khỏi chủ đề. Do chưa có mô hình đối chứng trên cùng tập dữ liệu, kết quả chỉ xác nhận khả năng tạo tiêu đề của mô-đun, chưa đủ để kết luận BARTpho tốt hơn các lựa chọn khác.
+Mô hình `bartpho-topic-titler_finetune` vượt mô hình nền trên cả ba chỉ số. ROUGE-Max-1 tăng 0,3939 điểm, tương đương 278,9%; ROUGE-Max-2 và ROUGE-Max-L tăng tương ứng 231,8% và 262,0%. Đồng thời, độ dài đầu ra trung vị giảm từ 201 xuống 16 token theo bộ đếm của quy trình đánh giá. Hai thay đổi này cho thấy tinh chỉnh không chỉ làm tăng mức trùng khớp với tiêu đề tham chiếu mà còn giúp BARTpho học được dạng đầu ra ngắn, phù hợp với chức năng đặt tiêu đề thay vì tiếp tục sinh một chuỗi dài. So sánh này được thực hiện trong nội bộ tác vụ tạo tiêu đề theo ROUGE-Max; các giá trị không được đối chiếu trực tiếp với ROUGE một tham chiếu của ViT5. Các trường hợp điểm thấp tại Phụ lục E vẫn cho thấy tiêu đề đôi khi lệch khỏi nội dung chủ đề.
 
 
 ### 5.6. Thảo luận (Discussion)
@@ -1303,7 +1304,9 @@ Kết quả phân đoạn cho thấy phương pháp đề xuất đạt trung b�
 
 Phép triệt tiêu làm rõ rằng chuẩn hóa cục bộ và gộp phân đoạn ngắn tạo ra đóng góp trực tiếp nhất trong cấu hình hiện tại. Trái lại, cửa sổ trượt và điểm sâu đa phạm vi không cải thiện đơn điệu cả ba chỉ số khi được bổ sung riêng. Vai trò của cửa sổ trượt chủ yếu nằm ở khả năng tiếp nhận dữ liệu tăng dần, còn quét đa phạm vi cung cấp tín hiệu ở nhiều độ dài ngữ cảnh. Vì vậy, giá trị của hai thành phần này cần được đánh giá đồng thời theo chất lượng ranh giới và độ trễ vận hành thay vì chỉ dựa trên kết quả theo lô.
 
-Đối với tóm tắt phân cấp, ViT5 và BARTpho đều tạo được đầu ra có mức tương đồng đo được trên 65 cuộc họp độc lập. Dù vậy, các ví dụ định tính cho thấy cả hai mô hình vẫn có thể sinh nội dung lệch khỏi đầu vào. Kết quả hiện tại xác nhận tính khả thi của quy trình nhưng chưa chứng minh rằng các mô hình sau tinh chỉnh tốt hơn mô hình nền hoặc những kiến trúc khác, do chưa có phép so sánh được tái lập trên cùng tập đánh giá. Nhận định về hiệu quả của toàn hệ thống vì thế được giới hạn ở các thành phần đã có bằng chứng thực nghiệm.
+Đối với tóm tắt phân cấp, phép đối chứng trên 65 cuộc họp cho thấy tinh chỉnh theo tác vụ đem lại cải thiện rõ rệt ở cả hai cấp. ViT5 đạt ROUGE-L 0,5486, cao hơn mô hình nền 0,2446 điểm (80,5%); BARTpho sau tinh chỉnh đạt ROUGE-Max-L 0,4442, cao hơn mô hình nền 0,3215 điểm (262,0%). Mức tăng đặc biệt lớn của ROUGE-2 ở ViT5 và sự rút ngắn đầu ra của BARTpho cho thấy hai mô hình đã học được các vai trò khác nhau trong cấu trúc phân cấp: ViT5 bảo toàn nội dung của khối hội thoại, còn BARTpho cô đọng chuỗi tóm tắt thành tiêu đề chủ đề. Tuy nhiên, bằng chứng này chỉ xác lập ưu thế so với chính mô hình nền tương ứng trong cùng giao thức đánh giá; chưa có cơ sở để kết luận hai mô hình tốt hơn các kiến trúc tóm tắt hoặc tạo tiêu đề khác.
+
+Các ví dụ định tính cũng đặt ra giới hạn cho cách diễn giải kết quả. ROUGE cao phản ánh mức tương đồng từ vựng với tham chiếu nhưng không bảo đảm mọi chi tiết sinh ra đều được hỗ trợ bởi đầu vào. Vì vậy, kết quả định lượng xác nhận hiệu quả của quá trình tinh chỉnh, trong khi chất lượng sử dụng thực tế vẫn cần được kiểm chứng thêm bằng đánh giá tính đúng sự thật, độ bao phủ thông tin và nhận xét của người dùng.
 
 ### 5.7. Hạn chế của thực nghiệm (Experimental Limitations)
 
@@ -1311,7 +1314,7 @@ Các thực nghiệm hiện chủ yếu đánh giá từng mô-đun riêng lẻ,
 
 Đối với phân đoạn chủ đề, toàn bộ dữ liệu tiếng Anh được dịch máy sang tiếng Việt nhưng chất lượng chuyển ngữ chưa được đánh giá độc lập. Thuật toán chỉ được kiểm tra với một cấu hình cố định, chưa có tìm kiếm siêu tham số có kiểm soát hoặc kiểm định ý nghĩa thống kê. Số đo thời gian được thực hiện trên một máy và không bao gồm nhận dạng tiếng nói, truyền dữ liệu hay sinh văn bản, do đó không đại diện cho độ trễ đầu cuối khi triển khai.
 
-Hai mô hình sinh văn bản được huấn luyện một lần và chưa có baseline chạy trên cùng giao thức. Với ViT5, việc chia train và validation ở cấp mẫu cho phép các khối của cùng một cuộc họp xuất hiện ở cả hai tập, nên kết quả validation có thể lạc quan hơn thực tế. ROUGE và ROUGE-Max chủ yếu đo mức trùng khớp từ vựng, chưa phản ánh đầy đủ tính đúng sự thật, độ bao phủ thông tin và mức hữu ích của biên bản. Vì vậy, kết quả tóm tắt và tạo tiêu đề hiện chỉ xác nhận tính khả thi của hai mô-đun, chưa đủ để kết luận về ưu thế so với các mô hình khác hoặc chất lượng sử dụng trong thực tế.
+Hai mô hình sinh văn bản được huấn luyện một lần và mới được đối chứng với mô hình nền tương ứng, chưa được so sánh với các kiến trúc khác hoặc kiểm tra qua nhiều hạt giống ngẫu nhiên. Với ViT5, việc chia train và validation ở cấp mẫu cho phép các khối của cùng một cuộc họp xuất hiện ở cả hai tập, nên kết quả validation có thể lạc quan hơn thực tế. Tập đánh giá độc lập ở cấp cuộc họp hạn chế phần nào rủi ro này nhưng chưa thay thế được đánh giá chéo trên nhiều miền dữ liệu. ROUGE và ROUGE-Max chủ yếu đo mức trùng khớp từ vựng, chưa phản ánh đầy đủ tính đúng sự thật, độ bao phủ thông tin và mức hữu ích của biên bản. Do đó, kết quả hiện tại chứng minh lợi ích của tinh chỉnh so với mô hình nền trong giao thức đã thiết lập, nhưng chưa đủ để khẳng định ưu thế trước các mô hình cạnh tranh hoặc chất lượng sử dụng trong thực tế.
 
 
 
@@ -1525,7 +1528,9 @@ Doc2Dial và TIAGE không có ranh giới được công bố trước khi gọi
 
 ### B. Diễn biến huấn luyện ViT5 (ViT5 Training Progress)
 
-**Bảng B1: Validation loss và ROUGE của ViT5 trên tập con validation gồm 200 mẫu qua từng epoch**
+Phụ lục này báo cáo diễn biến huấn luyện của mô hình `vit5-chunk-summarizer-finetune`. Các giá trị không phải là kết quả của mô hình ViT5 nền được sử dụng trong phép đối chứng tại Bảng 14.
+
+**Bảng B1: Validation loss và ROUGE của `vit5-chunk-summarizer-finetune` trên tập con validation gồm 200 mẫu qua từng epoch**
 
 | Epoch | Validation loss | ROUGE-1 | ROUGE-2 | ROUGE-L | Nhận xét |
 | ---: | ---: | ---: | ---: | ---: | :--- |
@@ -1563,11 +1568,15 @@ Phụ lục này phân biệt cấu hình mặc định của phần mềm với
 | Multi-Scale Sliding TextTiling | Vùng nhìn trước $L$ | 20 lượt lời | 20 lượt lời trong đánh giá luồng; không dùng khi đánh giá theo lô |
 | Multi-Scale Sliding TextTiling | Chuẩn hóa / phép gộp điểm | Z-score / trung bình | Z-score / trung bình |
 | Phân chia khối | Số lượt lời tối đa trong một khối | 8 | 8 |
+| ViT5 | Mô hình nền / mô hình sau tinh chỉnh | `VietAI/vit5-base-vietnews-summarization` | `vit5-chunk-summarizer-finetune` |
 | ViT5 | Độ dài đầu vào / đầu ra tối đa | 512 / 128 token | 512 / 128 token |
 | ViT5 | Số chùm tìm kiếm | 4 | 4 |
+| BARTpho | Mô hình nền / mô hình sau tinh chỉnh | `vinai/bartpho-syllable-base` | `bartpho-topic-titler_finetune` |
 | BARTpho | Độ dài đầu vào | 1.024 token, lấy tối đa 1.500 ký tự cuối | Như cấu hình mặc định |
 | BARTpho | Độ dài đầu ra tối đa / số chùm tìm kiếm | 200 token / 4 | 200 token / 4 |
 | Hệ thống điều phối | Số lượt lời tối đa | 5.000 | — |
+
+Các tham số giải mã được giữ thống nhất giữa mô hình nền và mô hình sau tinh chỉnh trong từng tác vụ. Độ dài đầu ra trung vị tại Bảng 14 và Bảng 15 được tính bằng số phần tử khác token đệm trong toàn bộ chuỗi tensor do hàm sinh trả về. Cách đếm này giữ cả token đặc biệt, trong khi `max_new_tokens` chỉ giới hạn số token mới được sinh. Vì vậy, BARTpho nền có thể có độ dài được báo cáo là 201 token dù cấu hình đặt `max_new_tokens=200`; phần văn bản sau khi giải mã không chứa token đặc biệt này.
 
 ### D. Định dạng dữ liệu và sự kiện luồng (Data Formats and Streaming Events)
 
@@ -1640,18 +1649,18 @@ Kết quả cuối cùng giữ cấu trúc phân cấp từ cuộc họp đến 
 
 Phụ lục này trình bày một trường hợp có điểm cao và một trường hợp có điểm thấp của mỗi tác vụ trên dữ liệu đánh giá. Các ví dụ được lấy từ kết quả thực nghiệm thực tế nhằm bổ sung góc nhìn định tính cho các chỉ số tổng hợp trong Chương 5.
 
-**Bảng E1: Ví dụ đầu ra của mô hình tóm tắt khối ViT5**
+**Bảng E1: Ví dụ đầu ra của mô hình tóm tắt khối `vit5-chunk-summarizer-finetune`**
 
 | Mức kết quả | Đầu vào rút gọn | Dự đoán | Tham chiếu | ROUGE-1 / ROUGE-2 / ROUGE-L |
 | :--- | :--- | :--- | :--- | :---: |
 | Cao | “Chỉ dựa vào tiền để khích lệ thì không đủ... Vấn đề tư duy vẫn chưa được giải quyết.” | Người tham gia thảo luận rằng việc chỉ dựa vào tiền để khích lệ là không đủ, và vấn đề tư duy vẫn chưa được giải quyết. | Người tham gia nhận định rằng việc chỉ dựa vào tiền để khích lệ là không đủ, và vấn đề tư duy vẫn chưa được giải quyết. | 0,9351 / 0,8800 / 0,9351 |
 | Thấp | “Công ty đã xây phòng tập... bổ sung thiết bị thể dục có thể tiết kiệm chi phí.” | Các thành viên thảo luận về mục tiêu thanh toán, sử dụng tiền mặt và ứng dụng thương mại điện thoại để thúc đẩy doanh số. | Đề xuất bổ sung thiết bị thể dục sẽ giúp tiết kiệm chi phí và đáp ứng nhu cầu của nhân viên. | 0,4132 / 0,0840 / 0,2314 |
 
-**Bảng E2: Ví dụ đầu ra của mô hình tạo tiêu đề BARTpho**
+**Bảng E2: Ví dụ đầu ra của mô hình tạo tiêu đề `bartpho-topic-titler_finetune`**
 
-| Mức kết quả | Dự đoán | Tham chiếu | ROUGE-1 / ROUGE-2 / ROUGE-L |
+| Mức kết quả | Dự đoán | Tham chiếu khớp tốt nhất | ROUGE-Max-1 / ROUGE-Max-2 / ROUGE-Max-L |
 | :--- | :--- | :--- | :---: |
 | Cao | Vấn đề liên quan đến việc mời người dẫn chương trình và khách mời | Vấn đề liên quan đến việc mời người dẫn chương trình và khách mời | 1,0000 / 1,0000 / 1,0000 |
 | Thấp | Thảo luận về ngân sách cho giải thưởng và giải thưởng | Khuyến nghị để sinh viên của khoa duy trì trật tự | 0,1212 / 0,0000 / 0,1212 |
 
-Các trường hợp có điểm cao cho thấy mô hình giữ được nội dung chính dù cách diễn đạt khác với tham chiếu. Ngược lại, ví dụ điểm thấp của ViT5 xuất hiện thông tin không có trong đầu vào, còn BARTpho tạo tiêu đề lệch khỏi chủ đề cần mô tả. Kết quả này cho thấy đánh giá định lượng cần được kết hợp với phân tích định tính để nhận diện các lỗi sinh nội dung.
+Trong Bảng E2, cột tham chiếu hiển thị tiêu đề đạt mức khớp cao nhất với dự đoán trong tập các tiêu đề tham chiếu của cùng chủ đề, phù hợp với cách tính ROUGE-Max tại Mục 5.5. Các trường hợp có điểm cao cho thấy mô hình giữ được nội dung chính dù cách diễn đạt khác với tham chiếu. Ngược lại, ví dụ điểm thấp của ViT5 xuất hiện thông tin không có trong đầu vào, còn BARTpho tạo tiêu đề lệch khỏi chủ đề cần mô tả. Kết quả này cho thấy đánh giá định lượng cần được kết hợp với phân tích định tính để nhận diện các lỗi sinh nội dung.

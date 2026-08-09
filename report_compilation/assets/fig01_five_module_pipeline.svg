@@ -1,61 +1,86 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560">
-<style>
-text { font-family: Arial, Helvetica, sans-serif; }
-</style>
-<defs>
-<marker id="arrow-primary" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#3b6ea8"/></marker>
-<marker id="arrow-output" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#2e7d32"/></marker>
-</defs>
-<rect width="1200" height="560" fill="#ffffff"/>
-<text x="60" y="58" font-size="28" font-weight="700" fill="#111827">SYSTEM OVERVIEW — FIVE-MODULE PIPELINE</text>
-<text x="60" y="88" font-size="17" fill="#6b7280">End-to-end processing route</text>
-<line x1="60" y1="108" x2="1140" y2="108" stroke="#1f3a5f" stroke-width="2"/>
-<rect x="35" y="185" width="115" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<text x="53" y="216" text-anchor="start" font-size="16" font-weight="700" fill="#111827"><tspan x="53" dy="0">Audio </tspan><tspan x="53" dy="18">Stream</tspan></text>
-<rect x="180" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="202" cy="207" r="13" fill="#1f3a5f" data-step="1"/>
-<text x="202" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
-<text x="245" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="245" dy="0">Audio </tspan><tspan x="245" dy="18">Preprocessing</tspan></text>
-<rect x="340" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="362" cy="207" r="13" fill="#1f3a5f" data-step="2"/>
-<text x="362" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
-<text x="405" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="405" dy="0">Speaker </tspan><tspan x="405" dy="18">Diarization</tspan></text>
-<rect x="500" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="522" cy="207" r="13" fill="#1f3a5f" data-step="3"/>
-<text x="522" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
-<text x="565" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="565" dy="0">Automatic Speech </tspan><tspan x="565" dy="18">Recognition</tspan></text>
-<rect x="660" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="682" cy="207" r="13" fill="#1f3a5f" data-step="4"/>
-<text x="682" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
-<text x="725" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="725" dy="0">Topic </tspan><tspan x="725" dy="18">Segmentation</tspan></text>
-<rect x="820" y="185" width="130" height="112" rx="10" fill="#f8fafc" stroke="#1f3a5f" stroke-width="2"/>
-<circle cx="842" cy="207" r="13" fill="#1f3a5f" data-step="5"/>
-<text x="842" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">5</text>
-<text x="885" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#111827"><tspan x="885" dy="0">Hierarchical </tspan><tspan x="885" dy="18">Summarization</tspan></text>
-<rect x="990" y="185" width="175" height="112" rx="10" fill="#f0fdf4" stroke="#2e7d32" stroke-width="2"/>
-<text x="1008" y="216" text-anchor="start" font-size="16" font-weight="700" fill="#111827"><tspan x="1008" dy="0">Hierarchical </tspan><tspan x="1008" dy="18">Meeting Recap</tspan></text>
-<text x="1008" y="260" text-anchor="start" font-size="13" font-weight="400" fill="#6b7280">title + ordered summaries</text>
-<line x1="150" y1="241" x2="180" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
-<line x1="310" y1="241" x2="340" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
-<line x1="470" y1="241" x2="500" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
-<line x1="630" y1="241" x2="660" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
-<line x1="790" y1="241" x2="820" y2="241" stroke="#3b6ea8" stroke-width="2.5" marker-end="url(#arrow-primary)"/>
-<line x1="950" y1="241" x2="990" y2="241" stroke="#2e7d32" stroke-width="2.5" marker-end="url(#arrow-output)"/>
-<text x="60" y="375" text-anchor="start" font-size="12" font-weight="700" fill="#6b7280">Representation changes</text>
-<line x1="325" y1="320" x2="325" y2="342" stroke="#1f3a5f" stroke-width="1"/>
-<circle cx="325" cy="320" r="3" fill="#1f3a5f"/>
-<text x="325" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="325" dy="0">cleaned </tspan><tspan x="325" dy="17">speech</tspan></text>
-<line x1="485" y1="320" x2="485" y2="342" stroke="#1f3a5f" stroke-width="1"/>
-<circle cx="485" cy="320" r="3" fill="#1f3a5f"/>
-<text x="485" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="485" dy="0">speaker-labelled </tspan><tspan x="485" dy="17">audio</tspan></text>
-<line x1="645" y1="320" x2="645" y2="342" stroke="#1f3a5f" stroke-width="1"/>
-<circle cx="645" cy="320" r="3" fill="#1f3a5f"/>
-<text x="645" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="645" dy="0">speaker-labelled </tspan><tspan x="645" dy="17">utterances</tspan></text>
-<line x1="805" y1="320" x2="805" y2="342" stroke="#1f3a5f" stroke-width="1"/>
-<circle cx="805" cy="320" r="3" fill="#1f3a5f"/>
-<text x="805" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="805" dy="0">committed </tspan><tspan x="805" dy="17">topics</tspan></text>
-<line x1="970" y1="320" x2="970" y2="342" stroke="#1f3a5f" stroke-width="1"/>
-<circle cx="970" cy="320" r="3" fill="#1f3a5f"/>
-<text x="970" y="363" text-anchor="middle" font-size="12" font-weight="600" fill="#6b7280"><tspan x="970" dy="0">hierarchical </tspan><tspan x="970" dy="17">recap</tspan></text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 600" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .navy-border { stroke: #0f2b48; stroke-width: 3.5; fill: #ffffff; }
+      .green-border { stroke: #196c2e; stroke-width: 3.5; fill: #ffffff; }
+      .navy-text { fill: #0f2b48; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-anchor: middle; }
+      .title-text { font-size: 25px; font-weight: 800; letter-spacing: 0.8px; }
+      .box-header { font-size: 24px; font-weight: 800; letter-spacing: 0.5px; }
+      .step-num { font-size: 32px; font-weight: 800; }
+      .sub-text { font-size: 21px; font-weight: 700; }
+      .sub-text-small { font-size: 20px; font-weight: 700; }
+      .arrow-line { stroke: #0f2b48; stroke-width: 3.5; stroke-linecap: round; }
+    </style>
+    <marker id="arrowhead" markerWidth="14" markerHeight="10" refX="13" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <polygon points="0 0, 14 5, 0 10" fill="#0f2b48" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="1700" height="600" />
+
+  <!-- INPUT Box -->
+  <rect class="navy-border" x="60" y="190" width="160" height="280" rx="18" ry="18" />
+  <text class="navy-text box-header" x="140" y="310">INPUT</text>
+  <text class="navy-text sub-text-small" x="140" y="355" font-weight="600">Audio Stream</text>
+
+  <!-- Arrow 1: INPUT to Main Box -->
+  <line class="arrow-line" x1="220" y1="330" x2="267" y2="330" marker-end="url(#arrowhead)" />
+
+  <!-- Main Pipeline Container Outer Box -->
+  <rect class="navy-border" x="270" y="80" width="1160" height="440" rx="24" ry="24" />
+  <text class="navy-text title-text" x="850" y="145">A SPEECH-TO-SUMMARY PIPELINE FOR VIETNAMESE ONLINE MEETINGS</text>
+
+  <!-- Module 1: Audio Preprocessing -->
+  <rect class="navy-border" x="330" y="190" width="180" height="280" rx="18" ry="18" />
+  <text class="navy-text step-num" x="420" y="255">1</text>
+  <text class="navy-text sub-text" x="420" y="330">Audio</text>
+  <text class="navy-text sub-text" x="420" y="365">Preprocessing</text>
+
+  <!-- Arrow: Module 1 to Module 2 -->
+  <line class="arrow-line" x1="510" y1="330" x2="542" y2="330" marker-end="url(#arrowhead)" />
+
+  <!-- Module 2: Speaker Diarization -->
+  <rect class="navy-border" x="545" y="190" width="180" height="280" rx="18" ry="18" />
+  <text class="navy-text step-num" x="635" y="255">2</text>
+  <text class="navy-text sub-text" x="635" y="330">Speaker</text>
+  <text class="navy-text sub-text" x="635" y="365">Diarization</text>
+
+  <!-- Arrow: Module 2 to Module 3 -->
+  <line class="arrow-line" x1="725" y1="330" x2="757" y2="330" marker-end="url(#arrowhead)" />
+
+  <!-- Module 3: Automatic Speech Recognition -->
+  <rect class="navy-border" x="760" y="190" width="180" height="280" rx="18" ry="18" />
+  <text class="navy-text step-num" x="850" y="255">3</text>
+  <text class="navy-text sub-text-small" x="850" y="315">Automatic</text>
+  <text class="navy-text sub-text-small" x="850" y="345">Speech</text>
+  <text class="navy-text sub-text-small" x="850" y="375">Recognition</text>
+
+  <!-- Arrow: Module 3 to Module 4 -->
+  <line class="arrow-line" x1="940" y1="330" x2="972" y2="330" marker-end="url(#arrowhead)" />
+
+  <!-- Module 4: Topic Segmentation -->
+  <rect class="navy-border" x="975" y="190" width="180" height="280" rx="18" ry="18" />
+  <text class="navy-text step-num" x="1065" y="255">4</text>
+  <text class="navy-text sub-text" x="1065" y="330">Topic</text>
+  <text class="navy-text sub-text" x="1065" y="365">Segmentation</text>
+
+  <!-- Arrow: Module 4 to Module 5 -->
+  <line class="arrow-line" x1="1155" y1="330" x2="1187" y2="330" marker-end="url(#arrowhead)" />
+
+  <!-- Module 5: Hierarchical Summarization -->
+  <rect class="navy-border" x="1190" y="190" width="180" height="280" rx="18" ry="18" />
+  <text class="navy-text step-num" x="1280" y="255">5</text>
+  <text class="navy-text sub-text" x="1280" y="330">Hierarchical</text>
+  <text class="navy-text sub-text" x="1280" y="365">Summarization</text>
+
+  <!-- Arrow 2: Main Box to OUTPUT -->
+  <line class="arrow-line" x1="1430" y1="330" x2="1477" y2="330" marker-end="url(#arrowhead)" />
+
+  <!-- OUTPUT Box -->
+  <rect class="green-border" x="1480" y="190" width="160" height="280" rx="18" ry="18" />
+  <text class="navy-text box-header" x="1560" y="295">OUTPUT</text>
+  <text class="navy-text sub-text-small" x="1560" y="340" font-weight="600">Hierarchical</text>
+  <text class="navy-text sub-text-small" x="1560" y="375" font-weight="600">Meeting Recap</text>
 </svg>
