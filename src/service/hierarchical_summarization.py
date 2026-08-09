@@ -37,7 +37,7 @@ class HierarchicalSummarizationService:
     @staticmethod
     def _format_utterances(utterances: list[Utterance]) -> str:
         """Định dạng danh sách câu thoại thành chuỗi văn bản đầu vào cho mô hình tóm tắt."""
-        return "\n".join(f"- {utterance.speaker}: {utterance.text}" for utterance in utterances)
+        return "\n".join(f"{utterance.speaker}: {utterance.text}" for utterance in utterances)
 
     def abstractive(self, chunk: Chunk, chapter_number: int = 1, chunk_index: int = 0) -> str:
         """Sinh câu tóm tắt trừu tượng cho một khối câu thoại."""
