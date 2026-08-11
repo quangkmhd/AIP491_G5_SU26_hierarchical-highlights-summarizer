@@ -263,8 +263,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             
             <div className="p-5 space-y-3 text-sm text-slate-700">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="font-semibold">Accuracy-first</div>
-                <div className="mt-1 text-xs text-slate-500">Ưu tiên độ chính xác cho phòng họp 1–3 mét.</div>
+                <div className="font-semibold">Far-field Sensitive</div>
+                <div className="mt-1 text-xs text-slate-500">Ưu tiên giữ lại giọng nói xa trong phòng họp.</div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <div className="font-semibold">Microphone DSP</div>
