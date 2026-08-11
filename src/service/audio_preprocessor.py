@@ -22,6 +22,13 @@ class Enhancer(Protocol):
         """Return an enhanced array with the same sample count."""
 
 
+class PassthroughEnhancer:
+    """Preserve browser-processed speech when a second denoiser is not beneficial."""
+
+    def enhance(self, samples: np.ndarray) -> np.ndarray:
+        return np.asarray(samples, dtype=np.float32).copy()
+
+
 @dataclass(frozen=True, slots=True)
 class ProcessedAudioChunk:
     samples: np.ndarray
@@ -196,5 +203,6 @@ __all__ = [
     "AudioPreprocessor",
     "DeepFilterNetEnhancer",
     "Enhancer",
+    "PassthroughEnhancer",
     "ProcessedAudioChunk",
 ]

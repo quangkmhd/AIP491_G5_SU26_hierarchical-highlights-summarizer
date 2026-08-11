@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.service.audio_preprocessor import AudioPreprocessor
+from src.service.audio_preprocessor import AudioPreprocessor, PassthroughEnhancer
 
 
 class RecordingEnhancer:
@@ -79,3 +79,14 @@ def test_preprocessor_rejects_invalid_overlap() -> None:
             chunk_seconds=0.3,
             overlap_seconds=0.3,
         )
+
+
+def test_passthrough_enhancer_preserves_distant_speech_samples() -> None:
+    """Default far-field mode must not remove speech already denoised by the browser."""
+    source = np.linspace(-0.03, 0.03, 1600, dtype=np.float32)
+
+    output = PassthroughEnhancer().enhance(source)
+
+    assert output is not source
+    assert output.dtype == np.float32
+    np.testing.assert_array_equal(output, source)

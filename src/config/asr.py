@@ -77,23 +77,23 @@ class AsrConfig(ConfigBase):
 
     # VAD parameters
     vad_threshold: float = Field(
-        default=0.35,
+        default=0.25,
         ge=0.0,
         le=1.0,
         description="VAD threshold (0.0 to 1.0) for speech detection.",
     )
     min_silence_duration: float = Field(
-        default=0.25,
+        default=0.5,
         gt=0.0,
         description="Minimum duration of silence in seconds to trigger end-of-utterance.",
     )
     min_speech_duration: float = Field(
-        default=0.50,
+        default=0.25,
         gt=0.0,
         description="Minimum duration of speech in seconds to register utterance.",
     )
     max_speech_duration: float = Field(
-        default=5.0,
+        default=10.0,
         gt=0.0,
         description="Maximum duration of a single speech segment in seconds.",
     )
@@ -126,6 +126,10 @@ class AsrConfig(ConfigBase):
     preprocessing_overlap_seconds: float = Field(default=0.3, ge=0.0)
     denoiser_atten_lim_db: float = Field(default=15.0, gt=0.0)
     denoiser_post_filter: bool = Field(default=False)
+    denoiser_enabled: bool = Field(
+        default=False,
+        description="Enable DeepFilterNet after browser noise suppression.",
+    )
 
     # Speaker identification
     speaker_similarity_threshold: float = Field(

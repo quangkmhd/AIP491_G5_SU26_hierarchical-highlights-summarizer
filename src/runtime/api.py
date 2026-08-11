@@ -57,7 +57,7 @@ _ensure_ld_library_path()
 
 try:
     from src.config.asr import AsrConfig
-    from src.service.audio_preprocessor import DeepFilterNetEnhancer
+    from src.service.audio_preprocessor import DeepFilterNetEnhancer, PassthroughEnhancer
     from src.service.asr_engine import AsrEngine
     from src.service.far_field_pipeline import DefaultFarFieldSessionFactory
     _ASR_AVAILABLE = True
@@ -143,10 +143,15 @@ def create_app(
         try:
             asr_config = AsrConfig()
             asr_engine_instance = AsrEngine(asr_config)
-            enhancer = DeepFilterNetEnhancer(
-                atten_lim_db=asr_config.denoiser_atten_lim_db,
-                post_filter=asr_config.denoiser_post_filter,
-            )
+            if asr_config.denoiser_enabled:
+                enhancer = DeepFilterNetEnhancer(
+                    atten_lim_db=asr_config.denoiser_atten_lim_db,
+                    post_filter=asr_config.denoiser_post_filter,
+                )
+                logger.info("DeepFilterNet enabled for microphone audio")
+            else:
+                enhancer = PassthroughEnhancer()
+                logger.info("Far-field sensitive mode: preserving browser-processed microphone audio")
             recordings_root = Path(__file__).resolve().parents[2] / "data" / "recordings"
             resolved_audio_factory = DefaultFarFieldSessionFactory(
                 config=asr_config,

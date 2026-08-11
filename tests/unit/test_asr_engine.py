@@ -66,7 +66,11 @@ class AsrEngineTests(unittest.TestCase):
         self.assertIn("Zipformer-SSL-100h", config.tokens)
         self.assertFalse(config.emit_partials)
         self.assertEqual(config.audio_retention_hours, 24)
-        self.assertEqual(config.vad_threshold, 0.35)
+        self.assertEqual(config.vad_threshold, 0.25)
+        self.assertEqual(config.min_speech_duration, 0.25)
+        self.assertEqual(config.min_silence_duration, 0.5)
+        self.assertEqual(config.max_speech_duration, 10.0)
+        self.assertFalse(config.denoiser_enabled)
 
     def test_decode_segment_finalizes_with_float32_zero_tail(self) -> None:
         """A missing tail or end-of-input signal must not return a final transcript."""
