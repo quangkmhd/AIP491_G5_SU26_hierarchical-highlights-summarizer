@@ -33,11 +33,11 @@ class AsrConfig(ConfigBase):
         description="Forced language for multilingual ASR models.",
     )
 
-    # Streaming Transducer ASR model paths (hynt/Zipformer-30M-RNNT-Streaming-6000h)
+    # Streaming Transducer ASR model paths selected for the far-field pipeline.
     encoder: str = Field(
         default=str(
             _MODELS_DIR
-            / "Zipformer-30M-RNNT-Streaming-6000h"
+            / "Zipformer-SSL-100h"
             / "encoder-epoch-31-avg-11-chunk-32-left-128.fp16.onnx"
         ),
         description="Path to the transducer encoder model ONNX file.",
@@ -45,7 +45,7 @@ class AsrConfig(ConfigBase):
     decoder: str = Field(
         default=str(
             _MODELS_DIR
-            / "Zipformer-30M-RNNT-Streaming-6000h"
+            / "Zipformer-SSL-100h"
             / "decoder-epoch-31-avg-11-chunk-32-left-128.fp16.onnx"
         ),
         description="Path to the transducer decoder model ONNX file.",
@@ -53,13 +53,13 @@ class AsrConfig(ConfigBase):
     joiner: str = Field(
         default=str(
             _MODELS_DIR
-            / "Zipformer-30M-RNNT-Streaming-6000h"
+            / "Zipformer-SSL-100h"
             / "joiner-epoch-31-avg-11-chunk-32-left-128.fp16.onnx"
         ),
         description="Path to the transducer joiner model ONNX file.",
     )
     tokens: str = Field(
-        default=str(_MODELS_DIR / "Zipformer-30M-RNNT-Streaming-6000h" / "tokens.txt"),
+        default=str(_MODELS_DIR / "Zipformer-SSL-100h" / "tokens.txt"),
         description="Path to the tokens.txt file.",
     )
 
@@ -107,6 +107,16 @@ class AsrConfig(ConfigBase):
     provider: str = Field(
         default="cuda",
         description="Execution provider for ASR model ('cpu' or 'cuda').",
+    )
+    emit_partials: bool = Field(
+        default=False,
+        description="Whether to emit speculative partial transcripts.",
+    )
+    audio_retention_hours: int = Field(
+        default=24,
+        ge=1,
+        le=24 * 30,
+        description="Default local retention time for recoverable meeting recordings.",
     )
 
     # Speaker identification

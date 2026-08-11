@@ -13,6 +13,7 @@ import numpy as np
 sys.modules.setdefault("sherpa_onnx", ModuleType("sherpa_onnx"))
 
 from src.service.asr_engine import AsrEngine  # noqa: E402
+from src.config.asr import AsrConfig  # noqa: E402
 
 
 class _FakeStream:
@@ -52,6 +53,20 @@ class _FakeRecognizer:
 
 
 class AsrEngineTests(unittest.TestCase):
+    def test_default_config_uses_ssl_chunk_32_checkpoint(self) -> None:
+        """Changing back to the legacy checkpoint would bypass the selected model."""
+        config = AsrConfig(_env_file=None)
+
+        self.assertIn("Zipformer-SSL-100h", config.encoder)
+        self.assertIn("chunk-32-left-128", config.encoder)
+        self.assertIn("Zipformer-SSL-100h", config.decoder)
+        self.assertIn("chunk-32-left-128", config.decoder)
+        self.assertIn("Zipformer-SSL-100h", config.joiner)
+        self.assertIn("chunk-32-left-128", config.joiner)
+        self.assertIn("Zipformer-SSL-100h", config.tokens)
+        self.assertFalse(config.emit_partials)
+        self.assertEqual(config.audio_retention_hours, 24)
+
     def test_decode_segment_finalizes_with_float32_zero_tail(self) -> None:
         """A missing tail or end-of-input signal must not return a final transcript."""
         engine = object.__new__(AsrEngine)

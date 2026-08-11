@@ -4,6 +4,12 @@ No dependencies on any other layer. Pure data definitions only.
 """
 
 from ._base import BaseSchema
+from .audio import (
+    AppliedAudioSettings,
+    AudioQualityMetrics,
+    AudioSessionStart,
+    FinalUtteranceEvent,
+)
 from .hierarchical_recap import HierarchicalRecap, MeetingStatus
 # Highlight family removed in model-001+ (DR1 dropped from scope).
 from .schemas import (
@@ -17,6 +23,10 @@ from .utterance import Utterance
 __all__ = [
     # Base
     "BaseSchema",
+    "AppliedAudioSettings",
+    "AudioQualityMetrics",
+    "AudioSessionStart",
+    "FinalUtteranceEvent",
     # Domain types
     "Utterance",
     "DialogueTranscript",
