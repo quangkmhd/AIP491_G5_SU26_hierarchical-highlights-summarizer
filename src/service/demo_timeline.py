@@ -89,7 +89,7 @@ class Custom10hTimeline:
                         f"audio path is outside Custom_10h: {relative_path}"
                     )
                 sample_count = _validate_wav(wav_path)
-                if declared_samples != sample_count:
+                if abs(declared_samples - sample_count) > 1:
                     raise ValueError(
                         f"num_samples mismatch for {recording_id}: "
                         f"manifest={declared_samples}, wav={sample_count}"

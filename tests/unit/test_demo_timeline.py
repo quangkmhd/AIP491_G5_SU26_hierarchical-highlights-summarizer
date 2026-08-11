@@ -185,3 +185,39 @@ def test_manifest_uses_relative_paths_and_reproducible_hashes(tmp_path: Path) ->
     assert str(tmp_path) not in json.dumps(payload)
     assert len(payload["recordings_manifest_sha256"]) == 64
     assert len(payload["items"][0]["sha256"]) == 64
+
+
+def test_build_accepts_one_sample_manifest_rounding_and_uses_wav_frames(
+    tmp_path: Path,
+) -> None:
+    data_dir = make_custom10h_fixture(tmp_path, [("rounded_00001", 1_600)])
+    _write_manifest(
+        data_dir,
+        [_row("rounded_00001", "wavs/rounded_00001.wav", 1_599)],
+    )
+
+    timeline = Custom10hTimeline.build(
+        data_dir,
+        duration_seconds=1.0,
+        gap_seconds=0.1,
+    )
+
+    assert timeline.items[0].sample_count == 1_600
+    assert timeline.items[0].end_sample == 1_600
+
+
+def test_build_rejects_manifest_sample_mismatch_larger_than_one(
+    tmp_path: Path,
+) -> None:
+    data_dir = make_custom10h_fixture(tmp_path, [("broken_00001", 1_600)])
+    _write_manifest(
+        data_dir,
+        [_row("broken_00001", "wavs/broken_00001.wav", 1_598)],
+    )
+
+    with pytest.raises(ValueError, match="num_samples mismatch"):
+        Custom10hTimeline.build(
+            data_dir,
+            duration_seconds=1.0,
+            gap_seconds=0.1,
+        )
