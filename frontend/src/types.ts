@@ -30,6 +30,27 @@ export interface Session {
   hierarchicalRecap: any | null;
 }
 
+export interface DemoTimelineItem {
+  line_number: number;
+  recording_id: string;
+  relative_path: string;
+  sample_count: number;
+  start_sample: number;
+  end_sample: number;
+  gap_samples: number;
+  sha256: string;
+}
+
+export interface DemoTimelineManifest {
+  schema_version: number;
+  sample_rate: 16000;
+  duration_samples: number;
+  gap_samples: number;
+  padding_samples: number;
+  recordings_manifest_sha256: string;
+  items: DemoTimelineItem[];
+}
+
 // --- Recap Pipeline Events ---
 
 export interface RecapSegment {

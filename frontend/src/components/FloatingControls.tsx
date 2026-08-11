@@ -12,6 +12,7 @@ interface FloatingControlsProps {
   duration: number; // in seconds
   audioLevels: number[]; // Array of 8 float numbers representing audio frequency/volume levels
   processingState: ProcessingState;
+  startLabel?: string;
 }
 
 export const FloatingControls: React.FC<FloatingControlsProps> = ({
@@ -23,7 +24,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
   onStop,
   duration,
   audioLevels,
-  processingState
+  processingState,
+  startLabel = 'Record',
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -105,10 +107,10 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
             <button
               onClick={onStart}
               className="px-5 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium text-xs flex items-center gap-1.5 transition-all shadow-md shadow-red-200 hover:scale-105 cursor-pointer"
-              title="Start Recording"
+              title={startLabel}
             >
               <div className="w-2.5 h-2.5 bg-white rounded-full animate-ping" />
-              Record
+              {startLabel}
             </button>
           )}
         </div>

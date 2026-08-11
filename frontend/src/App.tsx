@@ -2,10 +2,13 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TranscriptPanel } from './components/TranscriptPanel';
 import { FloatingControls } from './components/FloatingControls';
+import { DemoStatus } from './components/DemoStatus';
+import { DemoAudioClient, type DemoProgress } from './audio/demoAudioClient';
 import { MeetingAudioClient, type ProcessingState } from './audio/meetingAudioClient';
 import type { Session } from './types';
 
 export default function App() {
+  const demoMode = new URLSearchParams(window.location.search).get('demo') === 'custom10h';
   const [sessions, setSessions] = useState<Session[]>(() => {
     const saved = localStorage.getItem('vietasr_sessions');
     return saved ? JSON.parse(saved) : [];
@@ -21,13 +24,27 @@ export default function App() {
   const [duration, setDuration] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(Array(8).fill(0.1));
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
+  const [demoProgress, setDemoProgress] = useState<DemoProgress>({
+    recordingId: null,
+    elapsedSamples: 0,
+    totalSamples: 0,
+  });
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
     return localStorage.getItem('vietasr_selected_device_id') || '';
   });
 
-  const audioClientRef = useRef<MeetingAudioClient | null>(null);
+  const audioClientRef = useRef<MeetingAudioClient | DemoAudioClient | null>(null);
+
+  useEffect(() => {
+    if (!demoMode) return;
+    document.body.dataset.demoState = 'idle';
+    return () => {
+      delete document.body.dataset.demoState;
+    };
+  }, [demoMode]);
 
   // Sync refs to avoid stale closures in event handlers.
   // useLayoutEffect fires synchronously after React commits DOM, before browser
@@ -79,6 +96,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (demoMode) return;
     // Populate devices on load
     updateDevices();
     
@@ -86,7 +104,7 @@ export default function App() {
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', updateDevices);
     };
-  }, []);
+  }, [demoMode]);
 
   // Timer effect
   useEffect(() => {
@@ -200,17 +218,17 @@ export default function App() {
 
   // ---- Session management helpers ----
 
-  const ensureActiveSession = () => {
+  const ensureActiveSession = (forcedTitle?: string) => {
     // Ensure an empty session exists BEFORE we connect the WebSocket.
     // By the time the first onmessage fires, activeSessionId is already
     // committed to React state and activeSessionIdRef is synced — no race.
     let id = activeSessionIdRef.current;
     const currentActive = sessionsRef.current.find(s => s.id === id) ?? null;
-    if (!id || (currentActive && currentActive.segments.length > 0)) {
+    if (forcedTitle || !id || (currentActive && currentActive.segments.length > 0)) {
       id = Date.now().toString();
       const newSession: Session = {
         id,
-        title: `VietASR Session - ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}`,
+        title: forcedTitle ?? `VietASR Session - ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}`,
         timestamp: `${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} ${new Date().toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'})}`,
         duration: 0,
         segments: [],
@@ -326,8 +344,47 @@ export default function App() {
     }
   };
 
-  const handlePauseRecording = () => audioClientRef.current?.pause();
-  const handleResumeRecording = () => audioClientRef.current?.resume();
+  const handleStartDemo = async () => {
+    if (isRecording || audioClientRef.current) return;
+    ensureActiveSession('Custom_10h · Real-time 1-hour Demo');
+    setDuration(0);
+    setDemoError(null);
+    setDemoProgress({ recordingId: null, elapsedSamples: 0, totalSamples: 0 });
+
+    const backendPort = import.meta.env.VITE_BACKEND_PORT || '8005';
+    const backendHost = window.location.port === '5173'
+      ? `${window.location.hostname}:${backendPort}`
+      : window.location.host;
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const client = new DemoAudioClient({
+      apiBaseUrl: `${protocol}//${backendHost}`,
+      socketUrl: `${socketProtocol}//${backendHost}/ws`,
+      onEvent: handleServerEvent,
+      onProgress: setDemoProgress,
+      onState: (state) => {
+        setProcessingState(state);
+        setIsRecording(['recording', 'paused', 'degraded', 'finalizing'].includes(state));
+        setIsPaused(state === 'paused');
+      },
+      onError: (error) => {
+        console.error('Demo audio pipeline failed:', error);
+        setDemoError(error.message);
+      },
+    });
+    audioClientRef.current = client;
+    try {
+      await client.start();
+    } catch {
+      setIsRecording(false);
+      setIsPaused(false);
+    } finally {
+      audioClientRef.current = null;
+    }
+  };
+
+  const handlePauseRecording = () => { void audioClientRef.current?.pause(); };
+  const handleResumeRecording = () => { void audioClientRef.current?.resume(); };
 
   const handleStopRecording = async () => {
     const client = audioClientRef.current;
@@ -339,6 +396,12 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100">
+      <DemoStatus
+        visible={demoMode}
+        state={processingState}
+        progress={demoProgress}
+        error={demoError}
+      />
       {/* Collapsible/Double Sidebar component */}
       <Sidebar
         sessions={sessions}
@@ -367,20 +430,22 @@ export default function App() {
         recapChunks={activeSession ? activeSession.recapChunks : []}
         recapTitles={activeSession ? activeSession.recapTitles : []}
         hierarchicalRecap={activeSession ? activeSession.hierarchicalRecap : null}
+        showMicrophoneSelector={!demoMode}
       />
 
       {/* Floating Pill Controls component */}
-      {(isRecording || activeSessionId) && (
+      {(isRecording || activeSessionId || demoMode) && (
         <FloatingControls
           isRecording={isRecording}
           isPaused={isPaused}
-          onStart={handleStartRecording}
+          onStart={demoMode ? handleStartDemo : handleStartRecording}
           onPause={handlePauseRecording}
           onResume={handleResumeRecording}
           onStop={handleStopRecording}
           duration={duration}
           audioLevels={audioLevels}
           processingState={processingState}
+          startLabel={demoMode ? 'Bắt đầu demo' : 'Record'}
         />
       )}
     </div>

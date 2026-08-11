@@ -1,11 +1,9 @@
-export type ProcessingState =
-  | 'idle'
-  | 'connecting'
-  | 'recording'
-  | 'paused'
-  | 'finalizing'
-  | 'degraded'
-  | 'failed';
+import {
+  AudioSessionSocket,
+  type ProcessingState,
+} from './audioSessionSocket';
+
+export type { ProcessingState } from './audioSessionSocket';
 
 export interface MeetingAudioClientOptions {
   socketUrl: string;
@@ -16,12 +14,15 @@ export interface MeetingAudioClientOptions {
   onError: (error: Error) => void;
 }
 
-const MAX_PENDING_BYTES = 8 * 1024 * 1024;
 const QUIET_LEVELS = Array(8).fill(0.1) as number[];
+
+const booleanSetting = (value: boolean | string | undefined): boolean | null => (
+  typeof value === 'boolean' ? value : null
+);
 
 export class MeetingAudioClient {
   private readonly options: MeetingAudioClientOptions;
-  private socket: WebSocket | null = null;
+  private sessionSocket: AudioSessionSocket | null = null;
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
@@ -29,8 +30,6 @@ export class MeetingAudioClient {
   private analyser: AnalyserNode | null = null;
   private sink: GainNode | null = null;
   private animationFrame: number | null = null;
-  private pendingFrames: ArrayBuffer[] = [];
-  private pendingBytes = 0;
   private ready = false;
   private paused = false;
   private stopping = false;
@@ -40,12 +39,21 @@ export class MeetingAudioClient {
   }
 
   async start(): Promise<void> {
-    if (this.socket || this.stream) {
+    if (this.sessionSocket || this.stream) {
       throw new Error('Audio session is already active');
     }
     this.options.onState('connecting');
 
     try {
+      this.sessionSocket = new AudioSessionSocket({
+        socketUrl: this.options.socketUrl,
+        onEvent: this.options.onEvent,
+        onState: (state) => {
+          this.ready = state === 'recording' || state === 'degraded';
+          this.options.onState(state);
+        },
+        onError: this.options.onError,
+      });
       const audio: MediaTrackConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
@@ -83,7 +91,19 @@ export class MeetingAudioClient {
       };
       this.updateLevels();
 
-      await this.openSocket();
+      const track = this.stream.getAudioTracks()[0];
+      if (!track) throw new Error('Microphone audio track is unavailable');
+      const settings = track.getSettings();
+      await this.sessionSocket.open({
+        sample_rate: this.audioContext.sampleRate,
+        channels: 1,
+        settings: {
+          echo_cancellation: booleanSetting(settings.echoCancellation),
+          noise_suppression: booleanSetting(settings.noiseSuppression),
+          auto_gain_control: booleanSetting(settings.autoGainControl),
+        },
+      });
+      this.ready = true;
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
       this.fail(error);
@@ -112,32 +132,10 @@ export class MeetingAudioClient {
 
     await this.flushWorklet();
 
-    if (this.socket?.readyState === WebSocket.OPEN && this.ready) {
+    if (this.sessionSocket && this.ready) {
       this.options.onState('finalizing');
       try {
-        await new Promise<void>((resolve, reject) => {
-          const timeout = window.setTimeout(
-            () => reject(new Error('Timed out while finalizing the audio session')),
-            120_000,
-          );
-          const finish = () => {
-            window.clearTimeout(timeout);
-            resolve();
-          };
-          const fail = () => {
-            window.clearTimeout(timeout);
-            reject(new Error('WebSocket closed before the session was finalized'));
-          };
-          this.socket?.addEventListener('message', (event) => {
-            try {
-              if (JSON.parse(String(event.data)).type === 'session_closed') finish();
-            } catch {
-              // The normal message handler reports malformed server messages.
-            }
-          }, { once: false });
-          this.socket?.addEventListener('close', fail, { once: true });
-          this.socket?.send(JSON.stringify({ type: 'session_end', retain }));
-        });
+        await this.sessionSocket.finish(retain);
       } catch (cause) {
         const error = cause instanceof Error ? cause : new Error(String(cause));
         this.options.onError(error);
@@ -148,81 +146,13 @@ export class MeetingAudioClient {
     this.options.onState('idle');
   }
 
-  private async openSocket(): Promise<void> {
-    const track = this.stream?.getAudioTracks()[0];
-    const context = this.audioContext;
-    if (!track || !context) throw new Error('Microphone audio graph is unavailable');
-
-    const settings = track.getSettings();
-    const socket = new WebSocket(this.options.socketUrl);
-    socket.binaryType = 'arraybuffer';
-    this.socket = socket;
-
-    await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(
-        () => reject(new Error('Timed out waiting for the ASR backend')),
-        15_000,
-      );
-      socket.onopen = () => {
-        socket.send(JSON.stringify({
-          type: 'session_start',
-          protocol_version: 1,
-          sample_rate: context.sampleRate,
-          channels: 1,
-          settings: {
-            echo_cancellation: settings.echoCancellation ?? null,
-            noise_suppression: settings.noiseSuppression ?? null,
-            auto_gain_control: settings.autoGainControl ?? null,
-          },
-        }));
-      };
-      socket.onmessage = (message) => {
-        try {
-          const event = JSON.parse(String(message.data)) as Record<string, unknown>;
-          this.options.onEvent(event);
-          if (event.type === 'session_ready') {
-            window.clearTimeout(timeout);
-            this.ready = true;
-            for (const frame of this.pendingFrames) socket.send(frame);
-            this.pendingFrames = [];
-            this.pendingBytes = 0;
-            this.options.onState('recording');
-            resolve();
-          } else if (event.type === 'processing_status' && event.degraded === true) {
-            this.options.onState('degraded');
-          } else if (event.type === 'pipeline_error') {
-            this.options.onState('failed');
-            this.options.onError(new Error(String(event.message ?? 'Audio pipeline failed')));
-          }
-        } catch (cause) {
-          this.options.onError(new Error(`Invalid server message: ${String(cause)}`));
-        }
-      };
-      socket.onerror = () => {
-        window.clearTimeout(timeout);
-        reject(new Error('Could not connect to the ASR backend'));
-      };
-      socket.onclose = () => {
-        if (!this.stopping && this.ready) {
-          this.fail(new Error('The ASR backend connection closed unexpectedly'));
-        }
-      };
-    });
-  }
-
   private acceptFrame(frame: Float32Array, allowStopping = false): void {
     if (((this.paused || this.stopping) && !allowStopping) || frame.length === 0) return;
-    const payload = frame.slice().buffer as ArrayBuffer;
-    if (this.ready && this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(payload);
-      return;
+    try {
+      this.sessionSocket?.send(frame);
+    } catch (cause) {
+      this.fail(cause instanceof Error ? cause : new Error(String(cause)));
     }
-    if (this.pendingBytes + payload.byteLength > MAX_PENDING_BYTES) {
-      this.fail(new Error('ASR backend is too slow; microphone queue exceeded 8 MB'));
-      return;
-    }
-    this.pendingFrames.push(payload);
-    this.pendingBytes += payload.byteLength;
   }
 
   private async flushWorklet(): Promise<void> {
@@ -265,8 +195,6 @@ export class MeetingAudioClient {
 
   private async cleanup(): Promise<void> {
     this.ready = false;
-    this.pendingFrames = [];
-    this.pendingBytes = 0;
     if (this.animationFrame !== null) cancelAnimationFrame(this.animationFrame);
     this.animationFrame = null;
     this.worklet?.disconnect();
@@ -283,7 +211,7 @@ export class MeetingAudioClient {
       await this.audioContext.close();
     }
     this.audioContext = null;
-    if (this.socket && this.socket.readyState < WebSocket.CLOSING) this.socket.close();
-    this.socket = null;
+    this.sessionSocket?.close();
+    this.sessionSocket = null;
   }
 }

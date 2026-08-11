@@ -18,6 +18,7 @@ interface TranscriptPanelProps {
   recapChunks: RecapChunk[];
   recapTitles: RecapTitle[];
   hierarchicalRecap: any | null;
+  showMicrophoneSelector?: boolean;
 }
 
 export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
@@ -35,7 +36,8 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   recapSegments: _recapSegments,
   recapChunks,
   recapTitles,
-  hierarchicalRecap
+  hierarchicalRecap,
+  showMicrophoneSelector = true,
 }) => {
   const [viewMode, setViewMode] = useState<'split' | 'transcript' | 'summary'>('split');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -121,7 +123,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
         {/* Header Actions */}
         <div className="flex items-center gap-2">
           {/* Microphone Selector */}
-          {devices.length > 0 && (
+          {showMicrophoneSelector && devices.length > 0 && (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white">
               <span className="text-slate-400 text-xs">🎙️</span>
               <select
@@ -217,7 +219,10 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 </div>
                 
                 {/* Speech bubble card */}
-                <div className="flex-1 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow transition-shadow">
+                <div
+                  className="flex-1 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow transition-shadow"
+                  data-testid="transcript-utterance"
+                >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-slate-700">{segment.speaker}</span>
                     <span className="text-[10px] font-mono text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
