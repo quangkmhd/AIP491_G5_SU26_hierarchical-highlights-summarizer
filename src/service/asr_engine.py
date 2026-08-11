@@ -60,7 +60,7 @@ class AsrEngine:
 
         model_type = getattr(self.config, "model_type", "transducer")
         logger.info(
-            "ASR Model loading: Zipformer 30M-RNNT Streaming (model_type=%s, provider=%s, encoder=%s)...",
+            "ASR Model loading: Zipformer SSL 100h Streaming (model_type=%s, provider=%s, encoder=%s)...",
             model_type,
             self.config.provider,
             self.config.encoder,
@@ -77,7 +77,7 @@ class AsrEngine:
             decoding_method="greedy_search",
             provider=self.config.provider,
         )
-        logger.info("ASR Model loaded: Zipformer 30M-RNNT Streaming Transducer [provider=%s]", self.config.provider)
+        logger.info("ASR Model loaded: Zipformer SSL 100h Streaming Transducer [provider=%s]", self.config.provider)
 
         # Nạp mô hình trích xuất đặc trưng người nói (Speaker Embedding Extractor)
         if Path(self.config.speaker_embed).exists():

@@ -77,7 +77,7 @@ class AsrConfig(ConfigBase):
 
     # VAD parameters
     vad_threshold: float = Field(
-        default=0.5,
+        default=0.35,
         ge=0.0,
         le=1.0,
         description="VAD threshold (0.0 to 1.0) for speech detection.",
