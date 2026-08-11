@@ -109,6 +109,18 @@ class RecordingAsr:
         return self.text
 
 
+class RecordingDiagnostics:
+    def __init__(self) -> None:
+        self.records: list[tuple[str, dict]] = []
+        self.closed: dict | None = None
+
+    def record(self, event: str, **fields) -> None:
+        self.records.append((event, fields))
+
+    def close(self, *, retain: bool = True, **fields) -> None:
+        self.closed = {"retain": retain, **fields}
+
+
 def _source() -> np.ndarray:
     return np.full(32000, 0.02, dtype=np.float32)
 
@@ -165,3 +177,32 @@ def test_empty_asr_result_does_not_emit_blank_utterance() -> None:
     )
 
     assert session.push(_source()) == ()
+
+
+def test_diagnostics_explain_empty_asr_and_session_totals() -> None:
+    diagnostics = RecordingDiagnostics()
+    session = FarFieldSession(
+        session_id="session-debug",
+        audio=RecordingAudioSession(),
+        preprocessor=OneChunkPreprocessor(),
+        vad=OneCompletedSegmentVad(),
+        diarizer=OneSpeakerDiarizer(),
+        asr=RecordingAsr(""),
+        diagnostics=diagnostics,
+    )
+
+    assert session.push(_source()) == ()
+    session.close(retain=True)
+
+    events = [event for event, _ in diagnostics.records]
+    assert events == ["source_frame", "processed_chunk", "vad_segment", "asr_result"]
+    asr_fields = diagnostics.records[-1][1]
+    assert asr_fields["empty"] is True
+    assert asr_fields["text"] == ""
+    assert diagnostics.closed == {
+        "retain": True,
+        "accepted_samples": 0,
+        "utterances": 0,
+        "empty_decodes": 1,
+        "recording_path": "session.wav",
+    }

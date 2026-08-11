@@ -21,6 +21,7 @@ from .diarization_models import (
     NoSourceSeparator,
     SherpaSpeakerEmbedder,
 )
+from .session_diagnostics import NullSessionDiagnostics, SessionDiagnostics
 
 
 class AudioSession(Protocol):
@@ -64,6 +65,11 @@ class SegmentRecognizer(Protocol):
     def decode_segment(self, samples: np.ndarray, sample_rate: int = 16000) -> str: ...
 
 
+class Diagnostics(Protocol):
+    def record(self, event: str, **fields: object) -> None: ...
+    def close(self, *, retain: bool = True, **fields: object) -> None: ...
+
+
 class FarFieldSession:
     """Own every stateful audio component for one WebSocket connection."""
 
@@ -78,6 +84,7 @@ class FarFieldSession:
         vad: VadProcessor,
         diarizer: Diarizer,
         asr: SegmentRecognizer,
+        diagnostics: Diagnostics | None = None,
     ) -> None:
         self.session_id = session_id
         self.audio = audio
@@ -85,15 +92,27 @@ class FarFieldSession:
         self.vad = vad
         self.diarizer = diarizer
         self.asr = asr
+        self.diagnostics = diagnostics or NullSessionDiagnostics()
         self._utterance_id = 0
         self._speaker_timeline = np.empty(0, dtype=np.float32)
         self._chunk_metrics: list[ProcessedAudioChunk] = []
         self._flushed = False
+        self._empty_decodes = 0
 
     def push(self, samples: np.ndarray) -> tuple[FinalUtteranceEvent, ...]:
         if self._flushed:
             raise RuntimeError("far-field session was already flushed")
         resampled = self.audio.push(samples)
+        magnitude = np.abs(samples)
+        self.diagnostics.record(
+            "source_frame",
+            samples=len(samples),
+            resampled_samples=len(resampled),
+            cumulative_samples=int(getattr(self.audio, "accepted_samples", 0)),
+            rms=float(np.sqrt(np.mean(np.square(samples, dtype=np.float64)))) if len(samples) else 0.0,
+            peak=float(np.max(magnitude)) if len(samples) else 0.0,
+            clipped=bool(np.any(magnitude >= 0.999)),
+        )
         return self._consume_resampled(resampled)
 
     def flush(self) -> tuple[FinalUtteranceEvent, ...]:
@@ -110,7 +129,15 @@ class FarFieldSession:
         return tuple(events)
 
     def close(self, *, retain: bool = True) -> Path:
-        return self.audio.close(retain=retain)
+        path = self.audio.close(retain=retain)
+        self.diagnostics.close(
+            retain=retain,
+            accepted_samples=int(getattr(self.audio, "accepted_samples", 0)),
+            utterances=self._utterance_id,
+            empty_decodes=self._empty_decodes,
+            recording_path=str(path),
+        )
+        return path
 
     def _consume_resampled(self, samples: np.ndarray) -> tuple[FinalUtteranceEvent, ...]:
         if len(samples):
@@ -121,12 +148,33 @@ class FarFieldSession:
         events: list[FinalUtteranceEvent] = []
         for chunk in chunks:
             self._chunk_metrics.append(chunk)
+            self.diagnostics.record(
+                "processed_chunk",
+                start_sample=chunk.start_sample,
+                end_sample=chunk.end_sample,
+                samples=len(chunk.samples),
+                rms=chunk.rms,
+                peak=chunk.peak,
+                clipped=chunk.clipped,
+                preprocessing_ms=chunk.preprocessing_ms,
+            )
             events.extend(self._consume_speech(self.vad.accept(chunk)))
         return events
 
     def _consume_speech(self, segments: list[VadSpeechSegment]) -> list[FinalUtteranceEvent]:
         events: list[FinalUtteranceEvent] = []
         for speech in segments:
+            speech_rms, speech_peak, speech_clipped = self._signal_metrics(speech.samples, None)
+            self.diagnostics.record(
+                "vad_segment",
+                start_sample=speech.start_sample,
+                end_sample=speech.end_sample,
+                duration_seconds=len(speech.samples) / self.sample_rate,
+                confidence=speech.confidence,
+                rms=speech_rms,
+                peak=speech_peak,
+                clipped=speech_clipped,
+            )
             speaker_audio = self._speaker_slice(speech)
             diarized = self.diarizer.process(
                 speech.samples,
@@ -139,7 +187,18 @@ class FarFieldSession:
                 started = time.perf_counter()
                 text = self.asr.decode_segment(stream.samples, self.sample_rate).strip()
                 asr_ms = (time.perf_counter() - started) * 1000
+                self.diagnostics.record(
+                    "asr_result",
+                    start_sample=speech.start_sample,
+                    end_sample=speech.end_sample,
+                    speaker=stream.speaker,
+                    text=text,
+                    empty=not bool(text),
+                    fallback=stream.fallback,
+                    asr_ms=asr_ms,
+                )
                 if not text:
+                    self._empty_decodes += 1
                     continue
                 self._utterance_id += 1
                 preprocessing_ms = metric.preprocessing_ms if metric else 0.0
@@ -288,6 +347,29 @@ class DefaultFarFieldSessionFactory:
             separator=NoSourceSeparator(),
             matching_threshold=float(getattr(self.config, "speaker_similarity_threshold")),
         )
+        diagnostics = SessionDiagnostics(
+            self.recordings_root / f"{session_id}.diagnostics.jsonl",
+            session_id,
+        )
+        settings = start.settings.model_dump(mode="json")
+        diagnostics.record(
+            "session_start",
+            source_sample_rate=start.sample_rate,
+            target_sample_rate=16000,
+            microphone_settings=settings,
+            denoiser=("deepfilternet" if bool(getattr(self.config, "denoiser_enabled")) else "passthrough"),
+            vad={
+                "threshold": float(getattr(self.config, "vad_threshold")),
+                "min_speech_duration": float(getattr(self.config, "min_speech_duration")),
+                "min_silence_duration": float(getattr(self.config, "min_silence_duration")),
+                "max_speech_duration": float(getattr(self.config, "max_speech_duration")),
+            },
+            models={
+                "encoder": str(getattr(self.config, "encoder")),
+                "vad": str(getattr(self.config, "silero_vad")),
+                "speaker": str(getattr(self.config, "speaker_embed")),
+            },
+        )
         return FarFieldSession(
             session_id=session_id,
             audio=audio,
@@ -295,6 +377,7 @@ class DefaultFarFieldSessionFactory:
             vad=vad,
             diarizer=diarizer,
             asr=self.asr,
+            diagnostics=diagnostics,
         )
 
 

@@ -53,15 +53,20 @@ def test_cleanup_only_removes_expired_recordings(tmp_path: Path) -> None:
     expired = tmp_path / "expired.wav"
     fresh = tmp_path / "fresh.wav"
     unrelated = tmp_path / "notes.txt"
-    for path in (expired, fresh, unrelated):
+    expired_diagnostics = tmp_path / "expired.diagnostics.jsonl"
+    fresh_diagnostics = tmp_path / "fresh.diagnostics.jsonl"
+    for path in (expired, fresh, unrelated, expired_diagnostics, fresh_diagnostics):
         path.write_bytes(b"data")
     old = time.time() - 25 * 60 * 60
     os.utime(expired, (old, old))
+    os.utime(expired_diagnostics, (old, old))
     os.utime(unrelated, (old, old))
 
     removed = cleanup_expired_recordings(tmp_path, retention_hours=24)
 
-    assert removed == [expired]
+    assert removed == [expired_diagnostics, expired]
     assert not expired.exists()
+    assert not expired_diagnostics.exists()
     assert fresh.exists()
+    assert fresh_diagnostics.exists()
     assert unrelated.exists()
