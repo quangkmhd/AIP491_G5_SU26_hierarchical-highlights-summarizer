@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, Square, Pause } from 'lucide-react';
+import type { ProcessingState } from '../audio/meetingAudioClient';
 
 interface FloatingControlsProps {
   isRecording: boolean;
@@ -10,6 +11,7 @@ interface FloatingControlsProps {
   onStop: () => void;
   duration: number; // in seconds
   audioLevels: number[]; // Array of 8 float numbers representing audio frequency/volume levels
+  processingState: ProcessingState;
 }
 
 export const FloatingControls: React.FC<FloatingControlsProps> = ({
@@ -20,7 +22,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
   onResume,
   onStop,
   duration,
-  audioLevels
+  audioLevels,
+  processingState
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -50,8 +53,16 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         </div>
 
         {/* 2. Timer Counter (Center) */}
-        <div className="text-sm font-mono font-semibold text-slate-700 select-none">
-          {formatTime(duration)}
+        <div className="text-center select-none">
+          <div className="text-sm font-mono font-semibold text-slate-700">{formatTime(duration)}</div>
+          <div className="text-[9px] uppercase tracking-wide text-slate-400">{
+            processingState === 'finalizing' ? 'Đang chốt kết quả'
+              : processingState === 'connecting' ? 'Đang kết nối'
+                : processingState === 'degraded' ? 'Chế độ dự phòng'
+                  : processingState === 'failed' ? 'Có lỗi'
+                    : processingState === 'paused' ? 'Tạm dừng'
+                      : processingState === 'recording' ? 'Accuracy-first' : 'Sẵn sàng'
+          }</div>
         </div>
 
         {/* Vertical divider */}

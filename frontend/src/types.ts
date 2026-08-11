@@ -5,6 +5,15 @@ export interface TranscriptSegment {
   end_sec: number;
   speaker: string;
   confidence?: number;
+  quality?: {
+    rms: number;
+    peak: number;
+    clipped: boolean;
+    vad_confidence: number;
+    speech_duration: number;
+  };
+  degraded?: boolean;
+  fallback?: boolean;
 }
 
 export interface Session {
@@ -19,13 +28,6 @@ export interface Session {
   recapChunks: RecapChunk[];
   recapTitles: RecapTitle[];
   hierarchicalRecap: any | null;
-}
-
-export interface Settings {
-  vadThreshold: number;
-  provider: 'cpu' | 'cuda';
-  numThreads: number;
-  captureTabAudio?: boolean;
 }
 
 // --- Recap Pipeline Events ---

@@ -13,7 +13,7 @@ import {
   Check, 
   X
 } from 'lucide-react';
-import type { Session, Settings } from '../types';
+import type { Session } from '../types';
 
 interface SidebarProps {
   sessions: Session[];
@@ -22,8 +22,6 @@ interface SidebarProps {
   onDeleteSession: (id: string) => void;
   onRenameSession: (id: string, newTitle: string) => void;
   onNewSession: () => void;
-  settings: Settings;
-  onUpdateSettings: (settings: Settings) => void;
   isRecording: boolean;
 }
 
@@ -34,8 +32,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteSession,
   onRenameSession,
   onNewSession,
-  settings,
-  onUpdateSettings,
   isRecording
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -265,66 +261,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
             
-            <div className="p-5 space-y-4">
-              {/* Provider */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ASR Execution Provider</label>
-                <select 
-                  value={settings.provider}
-                  onChange={(e) => onUpdateSettings({ ...settings, provider: e.target.value as 'cpu' | 'cuda' })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500 transition-all font-medium text-slate-700"
-                >
-                  <option value="cuda">CUDA (GPU Acceleration - Highly Recommended)</option>
-                  <option value="cpu">CPU (Standard Processor)</option>
-                </select>
+            <div className="p-5 space-y-3 text-sm text-slate-700">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="font-semibold">Accuracy-first</div>
+                <div className="mt-1 text-xs text-slate-500">Ưu tiên độ chính xác cho phòng họp 1–3 mét.</div>
               </div>
-
-              {/* VAD Threshold */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">VAD Sensitivity (Threshold)</label>
-                  <span className="text-xs font-semibold text-slate-600">{settings.vadThreshold.toFixed(2)}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0.1" 
-                  max="0.9" 
-                  step="0.05"
-                  value={settings.vadThreshold}
-                  onChange={(e) => onUpdateSettings({ ...settings, vadThreshold: parseFloat(e.target.value) })}
-                  className="w-full accent-red-500 h-1.5 bg-slate-100 rounded-lg cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>More Sensitive (0.1)</span>
-                  <span>Less Sensitive (0.9)</span>
-                </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="font-semibold">Microphone DSP</div>
+                <div className="mt-1 text-xs text-slate-500">Echo cancellation, noise suppression và auto gain.</div>
               </div>
-
-              {/* Number of Threads */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ASR Computation Threads</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  max="16" 
-                  value={settings.numThreads}
-                  onChange={(e) => onUpdateSettings({ ...settings, numThreads: parseInt(e.target.value) || 4 })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500 transition-all font-medium text-slate-700"
-                />
-              </div>
-
-              {/* Capture Browser/System Audio */}
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/60">
-                <div className="space-y-0.5 animate-fade-in">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Ghi âm cả trình duyệt</label>
-                  <span className="text-[10px] text-slate-400 block">Lấy âm thanh từ tab/hệ thống (getDisplayMedia)</span>
-                </div>
-                <input 
-                  type="checkbox" 
-                  checked={!!settings.captureTabAudio}
-                  onChange={(e) => onUpdateSettings({ ...settings, captureTabAudio: e.target.checked })}
-                  className="w-4 h-4 accent-red-500 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
-                />
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="font-semibold">ASR model</div>
+                <div className="mt-1 text-xs text-slate-500">Zipformer-SSL-100h, xử lý câu hoàn chỉnh.</div>
               </div>
             </div>
 
