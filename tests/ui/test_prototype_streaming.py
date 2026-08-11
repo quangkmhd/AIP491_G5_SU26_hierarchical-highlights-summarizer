@@ -238,6 +238,9 @@ class PrototypeStructureTests(unittest.TestCase):
                 )
                 self.assertEqual(trace["maxConcurrentAudio"], 1)
                 self.assertFalse(page.evaluate("window.__microphoneRequested"))
+                self.assertGreaterEqual(trace["utteranceCount"], 1)
+                self.assertGreaterEqual(trace["recapSegmentCount"], 1)
+                self.assertGreaterEqual(trace["recapChunkCount"], 1)
                 self.assertGreaterEqual(
                     trace["completedEpochMs"] - trace["playbackStartedEpochMs"],
                     550,

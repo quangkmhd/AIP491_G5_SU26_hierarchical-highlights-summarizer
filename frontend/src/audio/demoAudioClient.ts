@@ -30,6 +30,9 @@ export interface DemoTrace {
   completedEpochMs: number | null;
   meetingCompleted: boolean;
   sessionClosed: boolean;
+  utteranceCount: number;
+  recapSegmentCount: number;
+  recapChunkCount: number;
   pauses: DemoTracePause[];
   error: string | null;
 }
@@ -82,6 +85,9 @@ export class DemoAudioClient {
         completedEpochMs: null,
         meetingCompleted: false,
         sessionClosed: false,
+        utteranceCount: 0,
+        recapSegmentCount: 0,
+        recapChunkCount: 0,
         pauses: [],
         error: null,
       };
@@ -259,8 +265,13 @@ export class DemoAudioClient {
   }
 
   private handleServerEvent(event: Record<string, unknown>): void {
-    if (event.type === 'meeting-completed' && this.trace) this.trace.meetingCompleted = true;
-    if (event.type === 'session_closed' && this.trace) this.trace.sessionClosed = true;
+    if (this.trace) {
+      if (event.type === 'utterance' && event.text) this.trace.utteranceCount += 1;
+      if (event.type === 'segment-closed') this.trace.recapSegmentCount += 1;
+      if (event.type === 'chunk-closed') this.trace.recapChunkCount += 1;
+      if (event.type === 'meeting-completed') this.trace.meetingCompleted = true;
+      if (event.type === 'session_closed') this.trace.sessionClosed = true;
+    }
     this.options.onEvent(event);
   }
 

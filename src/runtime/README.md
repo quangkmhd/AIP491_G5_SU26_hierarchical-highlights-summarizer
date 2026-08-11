@@ -53,3 +53,27 @@ RE_EXEC_LD_PATH=1 PYTHONPATH="$PWD" .venv/bin/pytest \
   tests/integration/test_api_streaming.py \
   tests/e2e/test_far_field_audio_replay.py -q
 ```
+
+## Custom_10h Real-Time Demo Recording
+
+The recorder enables demo-only routes on an isolated loopback server, plays WAV rows in physical `recordings.jsonl` order, and sends the same audible 16 kHz PCM through `/ws` at 1.0x speed. It records a 1920×1080 browser WebM, renders the deterministic playback WAV, and muxes an H.264/AAC MP4. Demo routes remain disabled during normal server startup.
+
+Run a short real-model smoke before committing an hour to the recording:
+
+```bash
+LD_LIBRARY_PATH="$PWD/.venv/lib/python3.12/site-packages/onnxruntime/capi:$PWD/.venv/lib/python3.12/site-packages/sherpa_onnx/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+PYTHONPATH="$PWD" .venv/bin/python scripts/record_custom10h_demo.py \
+  --duration-seconds 15 \
+  --output outputs/demo/custom10h-smoke-15s.mp4
+```
+
+Record the requested one-hour source timeline without acceleration:
+
+```bash
+LD_LIBRARY_PATH="$PWD/.venv/lib/python3.12/site-packages/onnxruntime/capi:$PWD/.venv/lib/python3.12/site-packages/sherpa_onnx/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+PYTHONPATH="$PWD" .venv/bin/python scripts/record_custom10h_demo.py \
+  --duration-seconds 3600 \
+  --output outputs/demo/custom10h-realtime-1h.mp4
+```
+
+Keep at least 8 GiB free. Each run creates a timestamped evidence directory beside the MP4 containing the raw WebM, timeline WAV, ordered manifest, browser/backend logs, browser trace, FFprobe JSON, and `run-summary.json` hashes. An interrupted or failed run keeps every partial artifact for diagnosis; it never reports success without `meeting-completed`, `session_closed`, and valid H.264/AAC streams.
