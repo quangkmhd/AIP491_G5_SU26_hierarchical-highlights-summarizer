@@ -20,6 +20,10 @@ import ast
 import unittest
 from pathlib import Path
 
+import pytest
+
+from src.config.demo import DemoConfig
+
 CONFIG_DIR = Path("src/config")
 FORBIDDEN_SRC_PACKAGES = {"types", "repo", "service", "runtime", "ui"}
 
@@ -44,7 +48,17 @@ def _imports_in_file(path: Path) -> set[str]:
     return found
 
 
+def test_demo_config_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DEMO_ENABLED", raising=False)
+    config = DemoConfig(_env_file=None)
+
+    assert config.enabled is False
+    assert config.duration_seconds == 3600.0
+    assert config.gap_seconds == 0.65
+
+
 class TestConfigLayerRules(unittest.TestCase):
+
     def test_no_config_file_imports_forbidden_src_packages(self) -> None:
         offenders: list[str] = []
         for py in CONFIG_DIR.glob("*.py"):

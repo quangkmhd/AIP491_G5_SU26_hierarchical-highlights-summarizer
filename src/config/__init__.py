@@ -20,6 +20,7 @@ from ._base import ConfigBase
 from .abstractive import AbstractiveConfig
 from .asr import AsrConfig
 from .chunking import ChunkingConfig
+from .demo import DemoConfig
 from .errors import ConfigError
 from .language import LanguageConfig
 from .recap import MeetingRecapConfig
@@ -29,6 +30,7 @@ __all__ = [
     "AsrConfig",
     "ConfigBase",
     "ConfigError",
+    "DemoConfig",
     "SlidingTextTilingConfig",
     "ChunkingConfig",
     "AbstractiveConfig",

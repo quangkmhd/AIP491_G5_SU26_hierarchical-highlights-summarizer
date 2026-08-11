@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 import unittest
+import wave
 from pathlib import Path
 
 import numpy as np
@@ -16,7 +18,7 @@ from httpx import ASGITransport, AsyncClient  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from src.runtime.api import _decode_pcm_float32, create_app  # noqa: E402
-from src.service import StreamingOrchestrator  # noqa: E402
+from src.service import Custom10hTimeline, StreamingOrchestrator  # noqa: E402
 
 
 class FakeSummarizer:
@@ -77,12 +79,65 @@ class FakeAudioSessionFactory:
         return self.session
 
 
-def build_test_app(audio_session_factory=None):
+def build_test_app(audio_session_factory=None, demo_timeline=None):
     factory = audio_session_factory or FakeAudioSessionFactory()
     return create_app(
         StreamingOrchestrator(summarizer=FakeSummarizer()),
         audio_session_factory=factory,
+        demo_timeline=demo_timeline,
     )
+
+
+def _build_demo_timeline(tmp_path: Path) -> Custom10hTimeline:
+    data_dir = tmp_path / "Custom_10h"
+    wav_dir = data_dir / "wavs"
+    wav_dir.mkdir(parents=True)
+    rows = []
+    for recording_id in ("b_00001", "a_00002"):
+        relative_path = f"wavs/{recording_id}.wav"
+        with wave.open(str(data_dir / relative_path), "wb") as stream:
+            stream.setnchannels(1)
+            stream.setsampwidth(2)
+            stream.setframerate(16_000)
+            stream.writeframes(b"\x00\x00" * 1_600)
+        rows.append(
+            {
+                "id": recording_id,
+                "sources": [{"type": "file", "channels": [0], "source": relative_path}],
+                "sampling_rate": 16_000,
+                "num_samples": 1_600,
+                "duration": 0.1,
+            }
+        )
+    (data_dir / "recordings.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+    return Custom10hTimeline.build(data_dir, duration_seconds=1.0, gap_seconds=0.1)
+
+
+def test_demo_routes_are_not_registered_without_demo_timeline() -> None:
+    app = build_test_app()
+    with TestClient(app) as client:
+        assert client.get("/api/v1/demo/custom10h/status").status_code == 404
+
+
+def test_demo_audio_route_serves_only_manifest_ids(tmp_path: Path) -> None:
+    timeline = _build_demo_timeline(tmp_path)
+    app = build_test_app(demo_timeline=timeline)
+    with TestClient(app) as client:
+        status = client.get("/api/v1/demo/custom10h/status")
+        assert status.status_code == 200
+        assert status.json() == {"enabled": True, "recording_count": 2}
+
+        manifest = client.get("/api/v1/demo/custom10h/manifest")
+        assert manifest.status_code == 200
+        assert [row["recording_id"] for row in manifest.json()["items"]] == [
+            "b_00001",
+            "a_00002",
+        ]
+        assert client.get("/api/v1/demo/custom10h/audio/b_00001").status_code == 200
+        assert client.get("/api/v1/demo/custom10h/audio/missing").status_code == 404
 
 
 class ApiProcessTests(unittest.TestCase):
