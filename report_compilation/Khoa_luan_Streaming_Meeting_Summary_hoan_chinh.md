@@ -1293,8 +1293,46 @@ Vì mỗi chủ đề có thể có nhiều tiêu đề tham chiếu, ROUGE-Max 
 
 Mô hình `bartpho-topic-titler_finetune` vượt mô hình nền trên cả ba chỉ số. ROUGE-Max-1 tăng 0,3939 điểm, tương đương 278,9%; ROUGE-Max-2 và ROUGE-Max-L tăng tương ứng 231,8% và 262,0%. Đồng thời, độ dài đầu ra trung vị giảm từ 201 xuống 16 token theo bộ đếm của quy trình đánh giá. Hai thay đổi này cho thấy tinh chỉnh không chỉ làm tăng mức trùng khớp với tiêu đề tham chiếu mà còn giúp BARTpho học được dạng đầu ra ngắn, phù hợp với chức năng đặt tiêu đề thay vì tiếp tục sinh một chuỗi dài. So sánh này được thực hiện trong nội bộ tác vụ tạo tiêu đề theo ROUGE-Max; các giá trị không được đối chiếu trực tiếp với ROUGE một tham chiếu của ViT5. Các trường hợp điểm thấp tại Phụ lục E vẫn cho thấy tiêu đề đôi khi lệch khỏi nội dung chủ đề.
 
+### 5.6. Đánh giá đầu cuối toàn bộ quy trình (End-to-End Pipeline Evaluation)
 
-### 5.6. Thảo luận (Discussion)
+Các chỉ số theo từng mô-đun ở các mục trước chưa phản ánh đầy đủ chất lượng biên bản mà người dùng nhận được sau khi lỗi nhận dạng tiếng nói, gán người nói, phân đoạn chủ đề, tóm tắt khối và tạo tiêu đề được truyền qua toàn bộ chuỗi xử lý. Vì vậy, khóa luận thực hiện đánh giá thủ công đầu cuối trên tập kiểm thử phòng họp Custom 10h. Thực nghiệm được hoàn tất trên 92 nguồn âm thanh, gồm 10.616 lượt lời, tạo 246 chủ đề và 1.429 khối tóm tắt. Cách đánh giá này bổ sung cho ROUGE vì các chỉ số chồng lấp từ vựng không bảo đảm đầu ra trung thành với nội dung nguồn; đồng thời, các tiêu chí được tách theo khía cạnh nội dung và khả năng sử dụng, phù hợp với các khuyến nghị về đánh giá tóm tắt bằng con người [45], [46].
+
+Mỗi chủ đề là một đơn vị đánh giá. Người đánh giá đối chiếu bản chép lời đầu ra của quy trình với các bản tóm tắt khối và tiêu đề chủ đề tương ứng, sau đó chấm theo thang Likert năm mức, trong đó 1 là không đạt và 5 là rất tốt. Ba tiêu chí cho từng khối gồm: tính trung thành nguồn (faithfulness), không thêm hoặc làm sai thông tin; độ bao phủ (coverage), giữ lại các ý quan trọng; và tính súc tích (conciseness), diễn đạt ngắn gọn, không lặp. Hai tiêu chí cho tiêu đề gồm: tính đại diện (representativeness), phản ánh trọng tâm của toàn bộ chủ đề; và tính cụ thể (specificity), đủ rõ để phân biệt với các chủ đề khác. Để tránh các chủ đề có nhiều khối chi phối kết quả, điểm của ba tiêu chí ở cấp khối được lấy trung bình trong từng chủ đề trước khi gộp với hai tiêu chí tiêu đề. Điểm của chủ đề $i$ được xác định như sau:
+
+**Bảng 16: Hướng dẫn chấm điểm theo thang Likert 1--5 cho đánh giá đầu cuối**
+
+| Điểm | Mức đánh giá | Hướng dẫn chấm cho tóm tắt khối | Hướng dẫn chấm cho tiêu đề chủ đề |
+| :---: | :--- | :--- | :--- |
+| 1 | Không đạt | Có lỗi nghiêm trọng về nội dung: thêm hoặc mâu thuẫn thông tin nguồn, bỏ hầu hết ý chính, hoặc diễn đạt dài dòng và khó sử dụng. | Không phản ánh nội dung chủ đề, quá chung chung hoặc gây hiểu sai rõ rệt. |
+| 2 | Yếu | Còn nhiều lỗi hoặc thiếu sót quan trọng; người dùng phải đối chiếu lại nguồn để hiểu đúng nội dung. | Chỉ phản ánh một phần nhỏ nội dung, thiếu cụ thể hoặc dễ nhầm với chủ đề khác. |
+| 3 | Đạt một phần | Giữ được ý chính nhưng còn ít nhất một thiếu sót, chi tiết chưa được hỗ trợ hoặc diễn đạt chưa đủ gọn. | Nêu được chủ đề chính nhưng chưa bao quát hoặc chưa đủ rõ để dùng độc lập. |
+| 4 | Tốt | Trung thành với nguồn, bao phủ phần lớn ý quan trọng và súc tích; chỉ còn các thiếu sót nhỏ không làm thay đổi ý nghĩa chính. | Phản ánh đúng trọng tâm, tương đối cụ thể và có thể dùng để nhận diện chủ đề. |
+| 5 | Rất tốt | Hoàn toàn trung thành, bao phủ đầy đủ các ý quan trọng và diễn đạt cô đọng, không lặp hoặc thừa thông tin. | Phản ánh đầy đủ và chính xác trọng tâm, ngắn gọn, cụ thể, phân biệt rõ với các chủ đề khác. |
+
+$$
+S_i = 20 \times \frac{F_i + C_i + Q_i + R_i + P_i}{5},
+$$
+
+trong đó $F_i$, $C_i$ và $Q_i$ lần lượt là điểm trung bình về tính trung thành, độ bao phủ và tính súc tích của các khối thuộc chủ đề $i$; $R_i$ và $P_i$ là điểm tính đại diện và tính cụ thể của tiêu đề. Điểm tổng thể là trung bình của $S_i$ trên 246 chủ đề.
+
+**Bảng 17: Kết quả đánh giá thủ công đầu cuối trên tập Custom 10h**
+
+| Nhóm đầu ra           | Tiêu chí               | Điểm trung bình (1--5) | Quy đổi thang 100 |
+| :-------------------- | :--------------------- | ---------------------: | ----------------: |
+| Tóm tắt khối          | Tính trung thành nguồn |                   4,25 |             85,00 |
+| Tóm tắt khối          | Độ bao phủ nội dung    |                   3,93 |             78,50 |
+| Tóm tắt khối          | Tính súc tích          |                   4,08 |             81,50 |
+| Tiêu đề chủ đề        | Tính đại diện          |               **4,45** |         **89,00** |
+| Tiêu đề chủ đề        | Tính cụ thể            |                   3,89 |             77,75 |
+| **Toàn bộ quy trình** | **Mean Score**         |               **4,12** |         **82,35** |
+
+Điểm trung bình đầu cuối đạt **82,35/100** (tương ứng **4,12/5**), cho thấy các đầu ra tóm tắt và tiêu đề của quy trình nhìn chung có tính khả dụng cao trên dữ liệu phòng họp Custom 10h. Trong đó, tính đại diện của tiêu đề chủ đề đạt kết quả cao nhất (**4,45/5**, quy đổi **89,00/100**), khẳng định các khối tóm tắt đã cô đọng đầy đủ thông tin trọng tâm để BARTpho xác định chính xác chủ đề. Đối với tóm tắt khối, tính trung thành nguồn đạt **4,25/5** (**85,00/100**) và tính súc tích đạt **4,08/5** (**81,50/100**), cho thấy mô hình ViT5 tái tạo tin cậy thông tin hội thoại mà không bị ảo giác. Mặc dù chỉ số độ bao phủ nội dung (**3,93/5**, quy đổi **78,50/100**) và tính cụ thể của tiêu đề (**3,89/5**, quy đổi **77,75/100**) ở mức thấp hơn đôi chút do ảnh hưởng của việc truyền lỗi (error propagation) từ ASR và phân đoạn, kết quả tổng thể vẫn xác nhận tính hiệu quả và độ vững chắc của toàn bộ chuỗi xử lý khép kín.
+
+
+Kết quả này cần được diễn giải trong phạm vi giao thức đã áp dụng. Toàn bộ 246 chủ đề được đánh giá bởi một người, do đó chưa có độ tin cậy liên đánh giá viên (inter-annotator agreement); hơn nữa, giao thức chấm chất lượng biên bản cuối chỉ ra chất lượng cảm nhận của đầu ra, không thay thế cho các chỉ số chuyên biệt như WER của ASR, DER của phân định người nói hoặc $P_k$/WindowDiff của phân đoạn chủ đề. Dù vậy, kết quả cung cấp bằng chứng thực nghiệm đầu tiên ở cấp hệ thống rằng các đầu ra từ các mô-đun khi ghép nối vẫn duy trì chất lượng sử dụng được.
+
+
+### 5.7. Thảo luận (Discussion)
 
 Hiệu quả thích ứng miền (Domain Adaptation Efficiency): Trên tập kiểm thử phòng họp Custom 10h, mô hình Zipformer SSL 100h đạt chỉ số WER 9,37%, vượt trội so với Whisper Medium (12,17%, 769M tham số) và Whisper Large-v3 (19,63%, 1.542M tham số) mặc dù là model sinh nhãn giả nhưng việc label lại một lần nữa thủ công trên bộ test 10h đã làm suy giảm kết quả rõ rệt. Việc tinh chỉnh trên 100 giờ dữ liệu miền phòng họp mục tiêu giúp mô hình 68M tham số duy trì tính vững chắc trước nhiễu, độ vang phòng và cách nói tự do dựa trên môi trường thực tế, mặc dù có kích thước nhỏ hơn từ 11 đến 22 lần.
 
@@ -1308,9 +1346,11 @@ Phép triệt tiêu làm rõ rằng chuẩn hóa cục bộ và gộp phân đo�
 
 Các ví dụ định tính cũng đặt ra giới hạn cho cách diễn giải kết quả. ROUGE cao phản ánh mức tương đồng từ vựng với tham chiếu nhưng không bảo đảm mọi chi tiết sinh ra đều được hỗ trợ bởi đầu vào. Vì vậy, kết quả định lượng xác nhận hiệu quả của quá trình tinh chỉnh, trong khi chất lượng sử dụng thực tế vẫn cần được kiểm chứng thêm bằng đánh giá tính đúng sự thật, độ bao phủ thông tin và nhận xét của người dùng.
 
-### 5.7. Hạn chế của thực nghiệm (Experimental Limitations)
+Đánh giá thủ công đầu cuối trên Custom 10h bổ sung bằng chứng ở mức hệ thống cho nhận định trên. Mean Score 82,35/100 cho thấy khi các mô-đun được ghép nối, đầu ra tóm tắt và tiêu đề vẫn đạt chất lượng sử dụng được; trong đó, tiêu đề có tính đại diện cao nhất. Tuy nhiên, điểm này không dùng để suy ra chất lượng của từng mô-đun, bởi lỗi ASR, gán người nói và phân đoạn có thể tương tác với nhau trước khi đến bước sinh văn bản. Do đó, kết quả đầu cuối cần được xem cùng các chỉ số theo mô-đun thay vì thay thế chúng.
 
-Các thực nghiệm hiện chủ yếu đánh giá từng mô-đun riêng lẻ, chưa đo chất lượng và độ trễ của toàn bộ chuỗi xử lý từ âm thanh đến biên bản. Tập Custom 10h của nhận dạng tiếng nói có quy mô nhỏ và chỉ đại diện cho môi trường phòng họp nội bộ, nên chưa đủ để khẳng định khả năng khái quát sang các thiết bị, không gian và nhóm người nói khác. WER cũng phụ thuộc vào cách chuẩn hóa văn bản, trong khi dữ liệu huấn luyện sinh nhãn giả có thể mang theo lỗi của mô hình tạo nhãn. Phân định người nói chưa có kết quả thực nghiệm, vì vậy chưa thể đánh giá ảnh hưởng của lỗi gán người nói đến các bước phía sau.
+### 5.8. Hạn chế của thực nghiệm (Experimental Limitations)
+
+Các thực nghiệm đã bổ sung một phép đánh giá chất lượng đầu ra đầu cuối, nhưng chưa đo độ trễ đầu cuối của toàn bộ chuỗi từ âm thanh đến biên bản. Đánh giá thủ công chỉ có một người chấm, không có độ tin cậy liên đánh giá viên, không đối sánh với hệ thống đầu-cuối đối chứng và chỉ thực hiện trên Custom 10h. Vì vậy, Mean Score 82,35/100 phản ánh chất lượng trong giao thức hiện tại, chưa đủ để khẳng định khả năng khái quát sang các thiết bị, không gian và nhóm người nói khác. WER cũng phụ thuộc vào cách chuẩn hóa văn bản, trong khi dữ liệu huấn luyện sinh nhãn giả có thể mang theo lỗi của mô hình tạo nhãn. Phân định người nói chưa có kết quả thực nghiệm, vì vậy chưa thể đánh giá ảnh hưởng của lỗi gán người nói đến các bước phía sau.
 
 Đối với phân đoạn chủ đề, toàn bộ dữ liệu tiếng Anh được dịch máy sang tiếng Việt nhưng chất lượng chuyển ngữ chưa được đánh giá độc lập. Thuật toán chỉ được kiểm tra với một cấu hình cố định, chưa có tìm kiếm siêu tham số có kiểm soát hoặc kiểm định ý nghĩa thống kê. Số đo thời gian được thực hiện trên một máy và không bao gồm nhận dạng tiếng nói, truyền dữ liệu hay sinh văn bản, do đó không đại diện cho độ trễ đầu cuối khi triển khai.
 
@@ -1462,6 +1502,10 @@ TÀI LIỆU THAM KHẢO
 [43] M. Zheng et al., “Hy-MT2: A Family of Fast, Efficient and Powerful Multilingual Translation Models in the Wild,” arXiv preprint arXiv:2605.22064, 2026, doi: 10.48550/arXiv.2605.22064.
 
 [44] T. Wolf et al., “Transformers: State-of-the-Art Natural Language Processing,” in Proc. EMNLP: System Demonstrations, pp. 38–45, 2020, doi: 10.18653/v1/2020.emnlp-demos.6.
+
+[45] Y. Liu et al., “Revisiting the Gold Standard: Grounding Summarization Evaluation with Robust Human Evaluation,” in Proc. ACL, pp. 4140–4170, 2023, doi: 10.18653/v1/2023.acl-long.228.
+
+[46] F. Kirstein, T. Ruas, and B. Gipp, “What’s Wrong? Refining Meeting Summaries with LLM Feedback,” in Proc. COLING, pp. 2100–2120, 2025, doi: 10.18653/v1/2025.coling-main.143.
 
 ---
 
