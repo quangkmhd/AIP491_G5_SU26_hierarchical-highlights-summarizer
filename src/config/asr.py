@@ -118,6 +118,14 @@ class AsrConfig(ConfigBase):
         le=24 * 30,
         description="Default local retention time for recoverable meeting recordings.",
     )
+    accuracy_mode: bool = Field(
+        default=True,
+        description="Require the full far-field enhancement pipeline at startup.",
+    )
+    preprocessing_chunk_seconds: float = Field(default=2.5, gt=0.0)
+    preprocessing_overlap_seconds: float = Field(default=0.3, ge=0.0)
+    denoiser_atten_lim_db: float = Field(default=15.0, gt=0.0)
+    denoiser_post_filter: bool = Field(default=False)
 
     # Speaker identification
     speaker_similarity_threshold: float = Field(
