@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 from src.runtime.api import _decode_pcm_float32, create_app  # noqa: E402
 from src.service import StreamingOrchestrator  # noqa: E402
@@ -25,8 +26,63 @@ class FakeSummarizer:
         return f"Chủ đề {chapter_number}"
 
 
-def build_test_app():
-    return create_app(StreamingOrchestrator(summarizer=FakeSummarizer()))
+class FakeAudioSession:
+    session_id = "audio-session-1"
+
+    def __init__(self) -> None:
+        self.closed = False
+
+    def push(self, samples):
+        return (
+            {
+                "type": "utterance",
+                "id": 1,
+                "session_id": self.session_id,
+                "speaker": "Speaker 01",
+                "text": "xin chào",
+                "start_sec": 0.0,
+                "end_sec": 1.0,
+                "source_sample_rate": 48000,
+                "sample_rate": 16000,
+                "quality": {
+                    "rms": 0.02,
+                    "peak": 0.1,
+                    "clipped": False,
+                    "vad_confidence": 0.9,
+                    "speech_duration": 1.0,
+                },
+                "preprocessing_ms": 1.0,
+                "diarization_ms": 2.0,
+                "asr_ms": 3.0,
+                "total_ms": 6.0,
+                "degraded": False,
+                "fallback": False,
+            },
+        )
+
+    def flush(self):
+        return ()
+
+    def close(self, *, retain=True):
+        self.closed = True
+
+
+class FakeAudioSessionFactory:
+    def __init__(self) -> None:
+        self.session = FakeAudioSession()
+        self.starts = []
+
+    def create(self, start):
+        self.starts.append(start)
+        return self.session
+
+
+def build_test_app(audio_session_factory=None):
+    factory = audio_session_factory or FakeAudioSessionFactory()
+    return create_app(
+        StreamingOrchestrator(summarizer=FakeSummarizer()),
+        audio_session_factory=factory,
+    )
 
 
 class ApiProcessTests(unittest.TestCase):
@@ -129,3 +185,52 @@ class PcmValidationTests(unittest.TestCase):
     def test_decode_pcm_float32_rejects_non_finite_samples(self) -> None:
         with self.assertRaisesRegex(ValueError, "finite"):
             _decode_pcm_float32(np.array([np.nan], dtype=np.float32).tobytes())
+
+
+class AudioWebSocketProtocolTests(unittest.TestCase):
+    def test_websocket_requires_session_start_before_pcm(self) -> None:
+        app = build_test_app()
+
+        with TestClient(app).websocket_connect("/ws") as websocket:
+            websocket.send_bytes(np.zeros(128, dtype=np.float32).tobytes())
+            message = websocket.receive_json()
+
+        self.assertEqual(message["type"], "pipeline_error")
+        self.assertEqual(message["stage"], "protocol")
+
+    def test_websocket_acknowledges_config_and_emits_only_final_text(self) -> None:
+        factory = FakeAudioSessionFactory()
+        app = build_test_app(factory)
+
+        with TestClient(app).websocket_connect("/ws") as websocket:
+            websocket.send_json({
+                "type": "session_start",
+                "protocol_version": 1,
+                "sample_rate": 48000,
+                "channels": 1,
+                "settings": {
+                    "echo_cancellation": True,
+                    "noise_suppression": True,
+                    "auto_gain_control": True,
+                },
+            })
+            ready = websocket.receive_json()
+            websocket.send_bytes(np.ones(4096, dtype=np.float32).tobytes())
+            event = websocket.receive_json()
+            websocket.send_json({"type": "session_end", "retain": True})
+            final_messages = []
+            while True:
+                message = websocket.receive_json()
+                final_messages.append(message)
+                if message["type"] == "session_closed":
+                    break
+
+        self.assertEqual(ready["type"], "session_ready")
+        self.assertEqual(ready["session_id"], "audio-session-1")
+        self.assertEqual(event["type"], "utterance")
+        self.assertEqual(event["text"], "xin chào")
+        self.assertGreater(event["quality"]["rms"], 0)
+        self.assertEqual(final_messages[-1]["type"], "session_closed")
+        self.assertNotIn("partial_utterance", [message["type"] for message in final_messages])
+        self.assertEqual(len(factory.starts), 1)
+        self.assertTrue(factory.session.closed)

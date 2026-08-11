@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -10,9 +11,16 @@ from typing import Protocol
 import numpy as np
 
 from src.types.audio import AudioQualityMetrics, FinalUtteranceEvent
+from src.types.audio import AudioSessionStart
 
-from .audio_preprocessor import ProcessedAudioChunk
-from .diarization_engine import DiarizationResult
+from .audio_capture import StreamingAudioSession, cleanup_expired_recordings
+from .audio_preprocessor import AudioPreprocessor, Enhancer, ProcessedAudioChunk
+from .diarization_engine import DiarizationEngine, DiarizationResult
+from .diarization_models import (
+    NoOverlapDetector,
+    NoSourceSeparator,
+    SherpaSpeakerEmbedder,
+)
 
 
 class AudioSession(Protocol):
@@ -235,4 +243,64 @@ class SherpaVadProcessor:
         return output
 
 
-__all__ = ["FarFieldSession", "SherpaVadProcessor", "VadSpeechSegment"]
+class DefaultFarFieldSessionFactory:
+    """Create isolated session state around shared inference models."""
+
+    def __init__(
+        self,
+        *,
+        config: object,
+        asr: object,
+        enhancer: Enhancer,
+        recordings_root: Path,
+    ) -> None:
+        if getattr(asr, "embedding_extractor", None) is None:
+            raise RuntimeError("speaker embedding model is required for accuracy mode")
+        self.config = config
+        self.asr = asr
+        self.enhancer = enhancer
+        self.recordings_root = recordings_root
+        cleanup_expired_recordings(
+            recordings_root,
+            int(getattr(config, "audio_retention_hours")),
+        )
+
+    def create(self, start: AudioSessionStart) -> FarFieldSession:
+        session_id = uuid.uuid4().hex
+        audio = StreamingAudioSession(
+            session_id,
+            start.sample_rate,
+            self.recordings_root,
+        )
+        preprocessor = AudioPreprocessor(
+            self.enhancer,
+            sample_rate=16000,
+            chunk_seconds=float(getattr(self.config, "preprocessing_chunk_seconds")),
+            overlap_seconds=float(getattr(self.config, "preprocessing_overlap_seconds")),
+        )
+        vad = SherpaVadProcessor(
+            getattr(self.asr, "create_vad")(),
+            int(getattr(self.asr, "vad_window_size")),
+        )
+        diarizer = DiarizationEngine(
+            overlap_detector=NoOverlapDetector(),
+            embedder=SherpaSpeakerEmbedder(getattr(self.asr, "embedding_extractor")),
+            separator=NoSourceSeparator(),
+            matching_threshold=float(getattr(self.config, "speaker_similarity_threshold")),
+        )
+        return FarFieldSession(
+            session_id=session_id,
+            audio=audio,
+            preprocessor=preprocessor,
+            vad=vad,
+            diarizer=diarizer,
+            asr=self.asr,
+        )
+
+
+__all__ = [
+    "DefaultFarFieldSessionFactory",
+    "FarFieldSession",
+    "SherpaVadProcessor",
+    "VadSpeechSegment",
+]

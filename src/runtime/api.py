@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
-from typing import AsyncIterator
-
-from pathlib import Path
-
+import os
+import sys
 import time
 import uuid
+from pathlib import Path
+from typing import AsyncIterator
 
 import numpy as np
+from pydantic import ValidationError
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,10 +30,36 @@ from src.logging import (
 from src.service import StreamingOrchestrator, RecapEventType
 from src.types.schemas import TranscriptIngestionRequest
 from src.types.transcript import DialogueTranscript
+from src.types.audio import AudioSessionStart
+
+def _ensure_ld_library_path() -> None:
+    venv_site = (
+        Path(__file__).resolve().parent.parent.parent
+        / ".venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    ort_capi = venv_site / "onnxruntime" / "capi"
+    sherpa_lib = venv_site / "sherpa_onnx" / "lib"
+
+    needed = [str(ort_capi), str(sherpa_lib)]
+    existing_ld = os.environ.get("LD_LIBRARY_PATH", "")
+
+    missing = [p for p in needed if p not in existing_ld and Path(p).exists()]
+    if missing and "RE_EXEC_LD_PATH" not in os.environ:
+        new_ld = ":".join(missing + ([existing_ld] if existing_ld else []))
+        os.environ["LD_LIBRARY_PATH"] = new_ld
+        os.environ["RE_EXEC_LD_PATH"] = "1"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+_ensure_ld_library_path()
 
 try:
     from src.config.asr import AsrConfig
+    from src.service.audio_preprocessor import DeepFilterNetEnhancer
     from src.service.asr_engine import AsrEngine
+    from src.service.far_field_pipeline import DefaultFarFieldSessionFactory
     _ASR_AVAILABLE = True
 except ImportError:
     _ASR_AVAILABLE = False
@@ -47,7 +75,10 @@ def _decode_pcm_float32(payload: bytes) -> np.ndarray:
     return chunk
 
 
-def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
+def create_app(
+    orchestrator: StreamingOrchestrator | None = None,
+    audio_session_factory: object | None = None,
+) -> FastAPI:
     """Khởi tạo và cấu hình ứng dụng FastAPI web server với các endpoint streaming và WebSocket ASR."""
     app = FastAPI(title="Meeting Recap", version="0.1.0")
     logger = get_logger("src.runtime.api")
@@ -107,22 +138,35 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
 
     # --- Khởi tạo công cụ ASR ---
     asr_engine_instance = None
-    if _ASR_AVAILABLE:
+    resolved_audio_factory = audio_session_factory
+    if resolved_audio_factory is None and _ASR_AVAILABLE:
         try:
             asr_config = AsrConfig()
             asr_engine_instance = AsrEngine(asr_config)
-            logger.info("ASR engine loaded successfully")
+            enhancer = DeepFilterNetEnhancer(
+                atten_lim_db=asr_config.denoiser_atten_lim_db,
+                post_filter=asr_config.denoiser_post_filter,
+            )
+            recordings_root = Path(__file__).resolve().parents[2] / "data" / "recordings"
+            resolved_audio_factory = DefaultFarFieldSessionFactory(
+                config=asr_config,
+                asr=asr_engine_instance,
+                enhancer=enhancer,
+                recordings_root=recordings_root,
+            )
+            logger.info("Accuracy-first audio pipeline loaded successfully")
         except Exception as e:
-            logger.warning("ASR engine not available: %s. WebSocket /ws will be disabled.", e)
+            logger.warning("Audio pipeline not available: %s. WebSocket /ws will be disabled.", e)
     else:
         logger.info("sherpa-onnx not installed; ASR WebSocket endpoint disabled.")
     app.state.asr_engine = asr_engine_instance
+    app.state.audio_session_factory = resolved_audio_factory
 
     logger.info(
         "AI System Initialized:\n"
         "  [Title Model]   : BARTpho Topic Titler\n"
         "  [Summary Model] : ViT5 Chunk Summarizer\n"
-        "  [ASR Engine]    : Zipformer 30M-RNNT Transducer Streaming\n"
+        "  [ASR Engine]    : Zipformer SSL 100h Transducer chunk-32\n"
         "  [Speaker Model] : WeSpeaker ResNet34 LM\n"
         "  [VAD Engine]    : Silero VAD\n"
     )
@@ -219,75 +263,35 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
     def health_check():
         return {
             "status": "healthy",
-            "asr_available": app.state.asr_engine is not None,
+            "asr_available": app.state.audio_session_factory is not None,
         }
 
     @app.websocket("/ws")
     async def websocket_asr_endpoint(websocket: WebSocket):
-        """Realtime mic -> VAD -> ASR -> Speaker -> TextTiling -> Recap pipeline.
-
-        Wire protocol (copied from viet_iter3_inference streaming backend):
-          Client -> Server: binary Float32 PCM, 16 kHz mono (no header).
-          Client -> Server: text "ping"   -> {"type":"pong"}
-          Server -> Client: text JSON
-              -> {"type":"utterance", ...}
-              -> {"type":"segment-closed", ...}
-              -> {"type":"chunk-closed", ...}
-              -> {"type":"title-emitted", ...}
-              -> {"type":"meeting-completed", ...}
-        """
-        if app.state.asr_engine is None:
-            logger.error("ASR engine not initialized -- rejecting WebSocket client.")
-            await websocket.close(code=1011, reason="ASR engines not initialized")
+        """Native mic -> persistence -> enhancement -> VAD -> speaker -> final ASR."""
+        if app.state.audio_session_factory is None:
+            logger.error("Audio pipeline not initialized -- rejecting WebSocket client.")
+            await websocket.close(code=1011, reason="audio pipeline not initialized")
             return
 
         await websocket.accept()
         logger.info("WebSocket client connected: %s", websocket.client)
-
-        asr = app.state.asr_engine
-        vad = asr.create_vad()
-        online_stream = asr.create_stream()
-        ws_orchestrator = StreamingOrchestrator()
+        audio_session = None
+        retain_recording = True
+        session_closed_sent = False
+        ws_orchestrator = app.state.orchestrator
         ws_orchestrator.reset_incremental()
 
-        registered_speakers: dict[str, np.ndarray] = {}
-        tail: np.ndarray = np.array([], dtype=np.float32)
-        utterance_id = 0
-        last_partial_text = ""
-
-        async def process_speech_segment(seg_audio: np.ndarray) -> None:
-            """Decode one speech segment, identify speaker, feed orchestrator."""
-            nonlocal utterance_id, last_partial_text
-            utterance_id += 1
-            duration = len(seg_audio) / 16000.0
-
-            seg_rms = float(np.sqrt(np.mean(seg_audio**2))) if len(seg_audio) > 0 else 0.0
-            seg_peak = float(np.max(np.abs(seg_audio))) if len(seg_audio) > 0 else 0.0
-
-            speaker_name = asr.identify_speaker(seg_audio, registered_speakers)
-            text = asr.decode_segment(seg_audio)
-            logger.info(
-                "ASR Segment #%d: speaker=%s duration=%.2fs rms=%.4f peak=%.4f text='%s'",
-                utterance_id, speaker_name, duration, seg_rms, seg_peak, text,
-            )
-
-            # Reset online stream for the next utterance
-            asr.reset_stream(online_stream)
-            last_partial_text = ""
-
-            if text:
-                await websocket.send_json({
-                    "type": "utterance",
-                    "id": utterance_id,
-                    "text": text,
-                    "duration": round(duration, 2),
-                    "speaker": speaker_name,
-                })
-
+        async def send_audio_events(events) -> None:  # type: ignore[no-untyped-def]
+            for event in events:
+                payload = event.model_dump(mode="json") if hasattr(event, "model_dump") else dict(event)
+                await websocket.send_json(payload)
+                if payload.get("type") != "utterance" or not payload.get("text"):
+                    continue
                 for evt in ws_orchestrator.accept_utterance(
-                    text=text,
-                    speaker=speaker_name,
-                    index=utterance_id - 1,
+                    text=payload["text"],
+                    speaker=payload.get("speaker", "Unknown Speaker"),
+                    index=int(payload["id"]) - 1,
                 ):
                     if evt.type != RecapEventType.UTTERANCE_ACCEPTED:
                         await websocket.send_json({
@@ -295,7 +299,52 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
                             **evt.data,
                         })
 
+        async def finalize_session() -> None:
+            nonlocal session_closed_sent
+            if audio_session is None or session_closed_sent:
+                return
+            await send_audio_events(await asyncio.to_thread(audio_session.flush))
+            for evt in ws_orchestrator.flush_and_finalize():
+                await websocket.send_json({"type": evt.type.value, **evt.data})
+            audio_session.close(retain=retain_recording)
+            await websocket.send_json({
+                "type": "session_closed",
+                "session_id": audio_session.session_id,
+                "retained": retain_recording,
+            })
+            session_closed_sent = True
+
         try:
+            first = await websocket.receive()
+            if "text" not in first:
+                await websocket.send_json({
+                    "type": "pipeline_error",
+                    "stage": "protocol",
+                    "message": "session_start JSON is required before PCM audio",
+                })
+                await websocket.close(code=1003, reason="session_start required")
+                return
+            try:
+                start = AudioSessionStart.model_validate_json(first["text"])
+            except (ValidationError, ValueError, TypeError) as exc:
+                await websocket.send_json({
+                    "type": "pipeline_error",
+                    "stage": "protocol",
+                    "message": str(exc),
+                })
+                await websocket.close(code=1003, reason="invalid session_start")
+                return
+
+            audio_session = app.state.audio_session_factory.create(start)
+            await websocket.send_json({
+                "type": "session_ready",
+                "protocol_version": 1,
+                "session_id": audio_session.session_id,
+                "source_sample_rate": start.sample_rate,
+                "sample_rate": 16000,
+                "settings": start.settings.model_dump(mode="json"),
+            })
+
             while True:
                 message = await websocket.receive()
                 if message.get("type") == "websocket.disconnect":
@@ -309,71 +358,38 @@ def create_app(orchestrator: StreamingOrchestrator | None = None) -> FastAPI:
                         await websocket.close(code=1003, reason="invalid Float32 PCM audio")
                         break
                     if len(chunk) > 0:
-                        chunk_rms = float(np.sqrt(np.mean(chunk**2)))
-                        if chunk_rms < 0.002:
-                            logger.debug("Incoming audio chunk RMS=%.5f (too quiet / near silence)", chunk_rms)
-
-                        # Real-time partial transcript streaming via OnlineRecognizer
-                        partial_text = asr.decode_stream_step(online_stream, chunk)
-                        if partial_text and partial_text != last_partial_text:
-                            last_partial_text = partial_text
-                            await websocket.send_json({
-                                "type": "partial_utterance",
-                                "id": utterance_id + 1,
-                                "text": partial_text,
-                            })
-
-                    tail = np.concatenate([tail, chunk])
-                    while len(tail) >= asr.vad_window_size:
-                        vad.accept_waveform(tail[:asr.vad_window_size])
-                        tail = tail[asr.vad_window_size:]
-
-                    while not vad.empty():
-                        seg = vad.front
-                        samples = np.asarray(seg.samples, dtype=np.float32)
-                        vad.pop()
-                        if len(samples) < int(0.3 * 16000):
-                            continue
-                        await process_speech_segment(samples)
+                        events = await asyncio.to_thread(audio_session.push, chunk)
+                        await send_audio_events(events)
 
                 elif "text" in message:
                     try:
                         payload = json.loads(message["text"])
                         if payload.get("type") == "ping":
                             await websocket.send_json({"type": "pong"})
+                        elif payload.get("type") == "session_end":
+                            retain_recording = bool(payload.get("retain", True))
+                            await finalize_session()
+                            return
                     except (json.JSONDecodeError, AttributeError):
-                        pass
+                        await websocket.send_json({
+                            "type": "pipeline_error",
+                            "stage": "protocol",
+                            "message": "invalid control message",
+                        })
 
         except WebSocketDisconnect:
             logger.info("WebSocket client disconnected.")
         except Exception as exc:
             logger.exception("Error in WebSocket handler: %s", exc)
         finally:
-            try:
-                vad.flush()
-                while not vad.empty():
-                    seg = vad.front
-                    samples = np.asarray(seg.samples, dtype=np.float32)
-                    vad.pop()
-                    if len(samples) < int(0.3 * 16000):
-                        continue
-                    await process_speech_segment(samples)
-            except Exception:
-                logger.exception("Error flushing VAD on close.")
-
-            try:
-                for evt in ws_orchestrator.flush_and_finalize():
-                    try:
-                        await websocket.send_json({
-                            "type": evt.type.value,
-                            **evt.data,
-                        })
-                    except Exception:
-                        pass
-            except Exception:
-                logger.exception("Error finalizing recap on close.")
-
-            logger.info("WebSocket cleaned up (total %d segments).", utterance_id)
+            if audio_session is not None and not session_closed_sent:
+                try:
+                    audio_session.flush()
+                except Exception:
+                    logger.exception("Error flushing audio session on disconnect.")
+                finally:
+                    audio_session.close(retain=True)
+            logger.info("WebSocket audio session cleaned up")
 
     return app
 
