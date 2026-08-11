@@ -214,6 +214,13 @@ class PrototypeStructureTests(unittest.TestCase):
             browser = p.chromium.launch(headless=True)
             try:
                 page = browser.new_page()
+                console_errors: list[str] = []
+                page.on(
+                    "console",
+                    lambda message: console_errors.append(message.text)
+                    if message.type == "error"
+                    else None,
+                )
                 page.add_init_script(
                     """
                     window.__microphoneRequested = false;
@@ -242,8 +249,16 @@ class PrototypeStructureTests(unittest.TestCase):
                 self.assertGreaterEqual(trace["recapSegmentCount"], 1)
                 self.assertGreaterEqual(trace["recapChunkCount"], 1)
                 self.assertGreaterEqual(
+                    trace["uiSettledEpochMs"],
+                    trace["completedEpochMs"],
+                )
+                self.assertGreaterEqual(
                     trace["completedEpochMs"] - trace["playbackStartedEpochMs"],
                     550,
+                )
+                self.assertFalse(
+                    any("closed unexpectedly" in message for message in console_errors),
+                    console_errors,
                 )
             finally:
                 browser.close()

@@ -45,6 +45,20 @@ def test_ffmpeg_command_delays_audio_and_keeps_video_postroll(tmp_path: Path) ->
         ({"sessionClosed": True, "meetingCompleted": False}, "meeting-completed"),
         ({"sessionClosed": False, "meetingCompleted": True}, "session_closed"),
         ({"sessionClosed": True, "meetingCompleted": True, "error": "boom"}, "boom"),
+        (
+            {"sessionClosed": True, "meetingCompleted": True, "utteranceCount": 0},
+            "utterance",
+        ),
+        (
+            {
+                "sessionClosed": True,
+                "meetingCompleted": True,
+                "utteranceCount": 1,
+                "recapSegmentCount": 0,
+                "recapChunkCount": 0,
+            },
+            "recap",
+        ),
     ],
 )
 def test_run_requires_both_completion_events_and_no_trace_error(

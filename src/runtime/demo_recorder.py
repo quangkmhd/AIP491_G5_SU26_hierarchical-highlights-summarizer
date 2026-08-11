@@ -96,6 +96,15 @@ def validate_completion(trace: Mapping[str, object]) -> None:
         raise DemoRecordingError("browser trace is missing meeting-completed")
     if trace.get("sessionClosed") is not True:
         raise DemoRecordingError("browser trace is missing session_closed")
+    if not isinstance(trace.get("utteranceCount"), int) or trace["utteranceCount"] < 1:
+        raise DemoRecordingError("browser trace must contain at least one utterance")
+    if (
+        not isinstance(trace.get("recapSegmentCount"), int)
+        or trace["recapSegmentCount"] < 1
+        or not isinstance(trace.get("recapChunkCount"), int)
+        or trace["recapChunkCount"] < 1
+    ):
+        raise DemoRecordingError("browser trace must contain recap segment and chunk events")
 
 
 def validate_free_space(path: Path) -> None:
@@ -360,6 +369,11 @@ def _record_browser(
                     "document.body.dataset.demoState === 'completed'",
                     timeout=timeout_ms,
                 )
+                page.get_by_text("Meeting Recap", exact=True).wait_for(
+                    state="visible",
+                    timeout=15_000,
+                )
+                page.wait_for_timeout(3_000)
                 evaluated = page.evaluate("window.__vietAsrDemoTrace")
                 if not isinstance(evaluated, dict):
                     raise DemoRecordingError("browser did not expose a valid demo trace")

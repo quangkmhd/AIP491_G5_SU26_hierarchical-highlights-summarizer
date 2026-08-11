@@ -28,6 +28,7 @@ export interface DemoTrace {
   elapsedSamples: number;
   playbackStartedEpochMs: number | null;
   completedEpochMs: number | null;
+  uiSettledEpochMs: number | null;
   meetingCompleted: boolean;
   sessionClosed: boolean;
   utteranceCount: number;
@@ -83,6 +84,7 @@ export class DemoAudioClient {
         elapsedSamples: 0,
         playbackStartedEpochMs: null,
         completedEpochMs: null,
+        uiSettledEpochMs: null,
         meetingCompleted: false,
         sessionClosed: false,
         utteranceCount: 0,
@@ -127,6 +129,10 @@ export class DemoAudioClient {
       if (!this.trace.meetingCompleted || !this.trace.sessionClosed) {
         throw new Error('Demo ended without meeting-completed and session_closed');
       }
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      this.trace.uiSettledEpochMs = Date.now();
       document.body.dataset.demoState = 'completed';
       this.options.onState('idle');
       await this.cleanup();

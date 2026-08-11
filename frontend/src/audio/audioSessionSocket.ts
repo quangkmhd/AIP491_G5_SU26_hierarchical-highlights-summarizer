@@ -33,6 +33,7 @@ export class AudioSessionSocket {
   private pendingBytes = 0;
   private ready = false;
   private finishing = false;
+  private finalized = false;
   private finishResolve: (() => void) | null = null;
   private finishReject: ((error: Error) => void) | null = null;
 
@@ -46,6 +47,7 @@ export class AudioSessionSocket {
 
   async open(start: AudioSessionStartPayload): Promise<void> {
     if (this.socket) throw new Error('Audio WebSocket is already active');
+    this.finalized = false;
     const socket = new WebSocket(this.options.socketUrl);
     socket.binaryType = 'arraybuffer';
     this.socket = socket;
@@ -81,6 +83,8 @@ export class AudioSessionSocket {
             this.options.onState('failed');
             this.options.onError(error);
           } else if (event.type === 'session_closed') {
+            this.finalized = true;
+            this.ready = false;
             this.finishResolve?.();
             this.clearFinishHandlers();
           }
@@ -97,7 +101,7 @@ export class AudioSessionSocket {
         if (this.finishing && this.finishReject) {
           this.finishReject(new Error('WebSocket closed before the session was finalized'));
           this.clearFinishHandlers();
-        } else if (this.ready) {
+        } else if (this.ready && !this.finalized) {
           this.options.onState('failed');
           this.options.onError(new Error('The ASR backend connection closed unexpectedly'));
         }
