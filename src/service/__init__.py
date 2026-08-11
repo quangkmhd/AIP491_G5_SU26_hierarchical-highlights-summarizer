@@ -12,6 +12,7 @@ try:
 except ImportError:
     AsrEngine = None  # type: ignore[assignment,misc]
 from .chunking_service import ChunkingService
+from .demo_timeline import Custom10hTimeline, DemoTimelineItem, PlaybackPause
 from .hierarchical_summarization import HierarchicalSummarizationService
 from .meeting_recap_orchestrator import (
     OrchestratorEvent,
@@ -23,8 +24,11 @@ from .sliding_text_tiling import SegmentEvent, SlidingTextTilingService
 __all__ = [
     "AsrEngine",
     "ChunkingService",
+    "Custom10hTimeline",
+    "DemoTimelineItem",
     "HierarchicalSummarizationService",
     "OrchestratorEvent",
+    "PlaybackPause",
     "RecapEventType",
     "SegmentEvent",
     "SlidingTextTilingService",
