@@ -8,7 +8,6 @@ from pydantic import Field
 from pydantic_settings import SettingsConfigDict
 
 from ._base import ConfigBase
-from .abstractive import AbstractiveConfig
 from .chunking import ChunkingConfig
 from .sliding_text_tiling import SlidingTextTilingConfig
 
@@ -30,7 +29,6 @@ class MeetingRecapConfig(ConfigBase):
 
     text_tiling: SlidingTextTilingConfig = Field(default_factory=SlidingTextTilingConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
-    abstractive: AbstractiveConfig = Field(default_factory=AbstractiveConfig)
 
     device: Device = Field(
         default="auto",
