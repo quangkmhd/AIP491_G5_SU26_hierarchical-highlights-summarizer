@@ -397,7 +397,7 @@ class StreamingTextTilingSegmenter:
         return newly_committed
 
 
-@dataclass(frozen=True)
+@dataclass
 class SegmentEvent:
     """Sự kiện phân đoạn chủ đề SegmentEvent do dịch vụ SlidingTextTilingService phát ra."""
 

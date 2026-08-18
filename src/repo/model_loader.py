@@ -28,7 +28,7 @@ class ModelLoadError(RuntimeError):
     """A local model cannot be loaded with its required runtime contract."""
 
 
-@dataclass(frozen=True)
+@dataclass
 class ModelHandle:
     kind: ModelKind
     model: Any

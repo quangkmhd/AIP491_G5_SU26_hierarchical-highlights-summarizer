@@ -26,7 +26,7 @@ class SourceSeparator(Protocol):
     ) -> list[np.ndarray]: ...
 
 
-@dataclass(slots=True)
+@dataclass
 class SpeakerProfile:
     speaker: str
     centroid: np.ndarray

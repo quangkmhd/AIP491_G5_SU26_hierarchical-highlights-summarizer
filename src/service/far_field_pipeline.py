@@ -30,7 +30,7 @@ class Preprocessor(Protocol):
     def flush(self) -> list[ProcessedAudioChunk]: ...
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass
 class VadSpeechSegment:
     samples: np.ndarray
     start_sample: int

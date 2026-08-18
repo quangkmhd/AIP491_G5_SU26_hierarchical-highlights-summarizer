@@ -27,7 +27,7 @@ class PassthroughEnhancer:
         return np.asarray(samples, dtype=np.float32).copy()
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass
 class ProcessedAudioChunk:
     samples: np.ndarray
     start_sample: int
