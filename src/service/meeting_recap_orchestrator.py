@@ -31,7 +31,7 @@ from uuid import uuid4
 from src.config.sliding_text_tiling import SlidingTextTilingConfig
 from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
-from src.service.sliding_text_tiling import SlidingTextTilingService
+from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
 from src.types.hierarchical_recap import HierarchicalRecap
 from src.types.segment import Chunk, SegmentResult
 from src.logging import (
