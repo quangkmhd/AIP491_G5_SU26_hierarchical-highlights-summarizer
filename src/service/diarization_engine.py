@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
 from typing import Protocol
 
 import numpy as np
@@ -26,12 +25,18 @@ class SourceSeparator(Protocol):
     ) -> list[np.ndarray]: ...
 
 
-@dataclass
 class SpeakerProfile:
-    speaker: str
-    centroid: np.ndarray
-    observations: int
-    reference_audio: np.ndarray
+    def __init__(
+        self,
+        speaker: str,
+        centroid: np.ndarray,
+        observations: int,
+        reference_audio: np.ndarray,
+    ) -> None:
+        self.speaker = speaker
+        self.centroid = centroid
+        self.observations = observations
+        self.reference_audio = reference_audio
 
     def update(self, embedding: np.ndarray, reference_audio: np.ndarray) -> None:
         """Update a bounded running centroid so old meetings do not freeze a profile."""
@@ -44,18 +49,23 @@ class SpeakerProfile:
         self.reference_audio = reference_audio.copy()
 
 
-@dataclass(frozen=True, slots=True)
 class DiarizedStream:
-    speaker: str
-    samples: np.ndarray
-    fallback: bool = False
+    def __init__(self, speaker: str, samples: np.ndarray, fallback: bool = False) -> None:
+        self.speaker = speaker
+        self.samples = samples
+        self.fallback = fallback
 
 
-@dataclass(frozen=True, slots=True)
 class DiarizationResult:
-    streams: tuple[DiarizedStream, ...]
-    has_overlap: bool
-    latency_ms: float
+    def __init__(
+        self,
+        streams: tuple[DiarizedStream, ...],
+        has_overlap: bool,
+        latency_ms: float,
+    ) -> None:
+        self.streams = streams
+        self.has_overlap = has_overlap
+        self.latency_ms = latency_ms
 
 
 class DiarizationEngine:
@@ -81,7 +91,6 @@ class DiarizationEngine:
         self.profile_min_confidence = profile_min_confidence
         self.profiles: list[SpeakerProfile] = []
 
-    @property
     def profile_count(self) -> int:
         return len(self.profiles)
 
@@ -173,8 +182,7 @@ class DiarizationEngine:
                 best_score = score
         return best if best_score >= self.matching_threshold else None
 
-    @staticmethod
-    def _normalize(embedding: np.ndarray) -> np.ndarray | None:
+    def _normalize(self, embedding: np.ndarray) -> np.ndarray | None:
         vector = np.asarray(embedding, dtype=np.float32).reshape(-1)
         if not len(vector) or not np.isfinite(vector).all():
             return None
@@ -183,8 +191,7 @@ class DiarizationEngine:
             return None
         return (vector / norm).astype(np.float32, copy=False)
 
-    @staticmethod
-    def _valid_audio(samples: np.ndarray) -> bool:
+    def _valid_audio(self, samples: np.ndarray) -> bool:
         audio = np.asarray(samples)
         return (
             audio.ndim == 1

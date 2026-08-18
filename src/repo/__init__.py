@@ -7,6 +7,8 @@ from .model_loader import (
     ModelKind,
     ModelLoadError,
     ModelLoader,
+    get_model_loader,
+    reset_model_loader,
 )
 from .seq2seq_inference import (
     BARTphoTopicTitler,
@@ -18,6 +20,8 @@ from .seq2seq_inference import (
 
 __all__ = [
     "ModelLoader",
+    "get_model_loader",
+    "reset_model_loader",
     "ModelHandle",
     "ModelKind",
     "ModelLoadError",

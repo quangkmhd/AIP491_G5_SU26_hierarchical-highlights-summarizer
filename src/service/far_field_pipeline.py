@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -30,12 +29,18 @@ class Preprocessor(Protocol):
     def flush(self) -> list[ProcessedAudioChunk]: ...
 
 
-@dataclass
 class VadSpeechSegment:
-    samples: np.ndarray
-    start_sample: int
-    end_sample: int
-    confidence: float
+    def __init__(
+        self,
+        samples: np.ndarray,
+        start_sample: int,
+        end_sample: int,
+        confidence: float,
+    ) -> None:
+        self.samples = samples
+        self.start_sample = start_sample
+        self.end_sample = end_sample
+        self.confidence = confidence
 
 
 class VadProcessor(Protocol):
@@ -179,8 +184,8 @@ class FarFieldSession:
                 return chunk
         return None
 
-    @staticmethod
     def _signal_metrics(
+        self,
         samples: np.ndarray,
         metric: ProcessedAudioChunk | None,
     ) -> tuple[float, float, bool]:

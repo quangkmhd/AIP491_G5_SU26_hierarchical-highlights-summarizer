@@ -79,19 +79,16 @@ class SegmentResult(BaseSchema):
         description="Human-edited chapter title (takes precedence over `title`).",
     )
 
-    @property
-    def display_title(self) -> str:
+    def get_display_title(self) -> str:
         """Return the user-overridden title if present, otherwise the auto title."""
         if self.user_title_override is not None:
             return self.user_title_override
         return self.title
 
-    @property
-    def utterance_count(self) -> int:
+    def get_utterance_count(self) -> int:
         if self.utterances_end < self.utterances_start:
             return 0
         return self.utterances_end - self.utterances_start + 1
 
-    @property
-    def chunk_count(self) -> int:
+    def get_chunk_count(self) -> int:
         return len(self.chunks)

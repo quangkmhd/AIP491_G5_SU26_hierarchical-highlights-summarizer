@@ -51,10 +51,8 @@ class HierarchicalRecap(BaseSchema):
         description="Total processing time in milliseconds.",
     )
 
-    @property
-    def segment_count(self) -> int:
+    def get_segment_count(self) -> int:
         return len(self.segments)
 
-    @property
-    def total_chunks(self) -> int:
-        return sum(s.chunk_count for s in self.segments)
+    def get_total_chunks(self) -> int:
+        return sum(s.get_chunk_count() for s in self.segments)

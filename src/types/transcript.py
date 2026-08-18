@@ -65,11 +65,9 @@ class DialogueTranscript(BaseSchema):
             )
         return self
 
-    @property
-    def utterance_count(self) -> int:
+    def get_utterance_count(self) -> int:
         return len(self.utterances)
 
-    @property
-    def utterance_pairs(self) -> Iterator[tuple[Utterance, Utterance]]:
+    def get_utterance_pairs(self) -> Iterator[tuple[Utterance, Utterance]]:
         """Yield consecutive (prev, next) utterance pairs for coherence scoring."""
         return pairwise(self.utterances)

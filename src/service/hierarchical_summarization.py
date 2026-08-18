@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.logging import get_logger
-from src.repo.model_loader import ModelLoader
+from src.repo.model_loader import ModelLoader, get_model_loader
 from src.repo.seq2seq_inference import (
     BARTphoTopicTitler,
     ChunkSummarizer,
@@ -24,7 +24,7 @@ class HierarchicalSummarizationService:
         loader: ModelLoader | None = None,
     ) -> None:
         """Khởi tạo dịch vụ tóm tắt phân cấp và sinh tiêu đề."""
-        model_loader = loader or ModelLoader.instance()
+        model_loader = loader or get_model_loader()
         self._chunk_summarizer = chunk_summarizer or ViT5ChunkSummarizer(
             model_loader.load_chunk_summarizer()
         )
@@ -32,8 +32,7 @@ class HierarchicalSummarizationService:
             model_loader.load_topic_titler()
         )
 
-    @staticmethod
-    def _format_utterances(utterances: list[Utterance]) -> str:
+    def _format_utterances(self, utterances: list[Utterance]) -> str:
         """Định dạng danh sách câu thoại thành chuỗi văn bản đầu vào cho mô hình tóm tắt."""
         return "\n".join(f"{utterance.speaker}: {utterance.text}" for utterance in utterances)
 

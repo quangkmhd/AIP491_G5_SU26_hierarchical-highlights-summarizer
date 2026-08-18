@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import numpy as np
 
@@ -397,15 +396,22 @@ class StreamingTextTilingSegmenter:
         return newly_committed
 
 
-@dataclass
 class SegmentEvent:
     """Sự kiện phân đoạn chủ đề SegmentEvent do dịch vụ SlidingTextTilingService phát ra."""
 
-    segment_id: str
-    utterances_start: int
-    utterances_end: int
-    depth_score: float
-    boundary_index: int
+    def __init__(
+        self,
+        segment_id: str,
+        utterances_start: int,
+        utterances_end: int,
+        depth_score: float,
+        boundary_index: int,
+    ) -> None:
+        self.segment_id = segment_id
+        self.utterances_start = utterances_start
+        self.utterances_end = utterances_end
+        self.depth_score = depth_score
+        self.boundary_index = boundary_index
 
 
 class SlidingTextTilingService:

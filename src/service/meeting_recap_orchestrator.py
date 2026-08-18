@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterator
@@ -32,12 +31,12 @@ class RecapEventType(str, Enum):
     MEETING_COMPLETED = "meeting-completed"
 
 
-@dataclass
 class OrchestratorEvent:
     """A single event in the recap stream."""
 
-    type: RecapEventType
-    data: dict[str, Any] = field(default_factory=dict)
+    def __init__(self, type: RecapEventType, data: dict[str, Any] | None = None) -> None:
+        self.type = type
+        self.data = data if data is not None else {}
 
 
 class StreamingOrchestrator:

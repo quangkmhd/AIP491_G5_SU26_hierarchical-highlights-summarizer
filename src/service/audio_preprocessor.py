@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
 from types import ModuleType
 from typing import Protocol
 import sys
@@ -27,15 +26,24 @@ class PassthroughEnhancer:
         return np.asarray(samples, dtype=np.float32).copy()
 
 
-@dataclass
 class ProcessedAudioChunk:
-    samples: np.ndarray
-    start_sample: int
-    end_sample: int
-    rms: float
-    peak: float
-    clipped: bool
-    preprocessing_ms: float
+    def __init__(
+        self,
+        samples: np.ndarray,
+        start_sample: int,
+        end_sample: int,
+        rms: float,
+        peak: float,
+        clipped: bool,
+        preprocessing_ms: float,
+    ) -> None:
+        self.samples = samples
+        self.start_sample = start_sample
+        self.end_sample = end_sample
+        self.rms = rms
+        self.peak = peak
+        self.clipped = clipped
+        self.preprocessing_ms = preprocessing_ms
 
 
 class AudioPreprocessor:
@@ -126,8 +134,7 @@ class AudioPreprocessor:
             preprocessing_ms=elapsed_ms,
         )
 
-    @staticmethod
-    def _validate(samples: np.ndarray) -> np.ndarray:
+    def _validate(self, samples: np.ndarray) -> np.ndarray:
         pcm = np.asarray(samples)
         if pcm.ndim != 1 or pcm.dtype != np.float32:
             raise ValueError("preprocessor expects mono Float32 PCM")

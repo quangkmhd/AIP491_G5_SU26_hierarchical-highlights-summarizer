@@ -3,10 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
@@ -28,13 +27,20 @@ class ModelLoadError(RuntimeError):
     """A local model cannot be loaded with its required runtime contract."""
 
 
-@dataclass
 class ModelHandle:
-    kind: ModelKind
-    model: Any
-    tokenizer: Any
-    device: str
-    checkpoint_path: str
+    def __init__(
+        self,
+        kind: ModelKind,
+        model: Any,
+        tokenizer: Any,
+        device: str,
+        checkpoint_path: str,
+    ) -> None:
+        self.kind = kind
+        self.model = model
+        self.tokenizer = tokenizer
+        self.device = device
+        self.checkpoint_path = checkpoint_path
 
 
 REQUIRED_FILES = {
@@ -86,28 +92,29 @@ def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
     return ModelHandle(kind, model, tokenizer, "cuda", str(path))
 
 
-class ModelLoader:
-    _instance: ClassVar[ModelLoader | None] = None
-    _instance_lock: ClassVar[threading.Lock] = threading.Lock()
+_global_loader_instance: ModelLoader | None = None
+_global_loader_lock: threading.Lock = threading.Lock()
 
+
+def get_model_loader() -> ModelLoader:
+    global _global_loader_instance
+    with _global_loader_lock:
+        if _global_loader_instance is None:
+            _global_loader_instance = ModelLoader()
+        return _global_loader_instance
+
+
+def reset_model_loader() -> None:
+    global _global_loader_instance
+    with _global_loader_lock:
+        _global_loader_instance = None
+
+
+class ModelLoader:
     def __init__(self) -> None:
         """Khởi tạo đối tượng nạp mô hình ModelLoader và bộ nhớ đệm cache."""
         self._cache: dict[ModelKind, ModelHandle] = {}
         self._cache_lock = threading.Lock()
-
-    @classmethod
-    def instance(cls) -> ModelLoader:
-        """Trả về singleton instance của ModelLoader."""
-        with cls._instance_lock:
-            if cls._instance is None:
-                cls._instance = cls()
-            return cls._instance
-
-    @classmethod
-    def reset_instance(cls) -> None:
-        """Đặt lại singleton instance của ModelLoader về None."""
-        with cls._instance_lock:
-            cls._instance = None
 
     def _load(self, kind: ModelKind, path: Path) -> ModelHandle:
         """Quản lý việc nạp mô hình vào cache hoặc lấy từ cache ra."""
