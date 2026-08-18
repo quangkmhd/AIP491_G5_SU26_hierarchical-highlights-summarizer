@@ -12,8 +12,11 @@ from src.types.audio import AudioSessionStart
 
 from .audio_capture import StreamingAudioSession, cleanup_expired_recordings
 from .audio_preprocessor import AudioPreprocessor, Enhancer, ProcessedAudioChunk
-from .diarization_engine import DiarizationEngine, DiarizationResult
-from .diarization_models import SherpaSpeakerEmbedder
+from .diarization_engine import (
+    DiarizationEngine,
+    DiarizationResult,
+    SherpaSpeakerEmbedder,
+)
 
 
 class AudioSession(Protocol):

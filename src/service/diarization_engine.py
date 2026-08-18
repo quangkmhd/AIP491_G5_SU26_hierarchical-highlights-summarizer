@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -15,6 +15,20 @@ class OverlapDetector(Protocol):
 
 class SpeakerEmbedder(Protocol):
     def extract(self, samples: np.ndarray) -> np.ndarray: ...
+
+
+class SherpaSpeakerEmbedder:
+    """Adapt sherpa-onnx SpeakerEmbeddingExtractor to extract speaker embeddings."""
+
+    def __init__(self, extractor: Any, sample_rate: int = 16000) -> None:
+        self.extractor = extractor
+        self.sample_rate = sample_rate
+
+    def extract(self, samples: np.ndarray) -> np.ndarray:
+        stream = self.extractor.create_stream()
+        stream.accept_waveform(self.sample_rate, samples)
+        stream.input_finished()
+        return np.asarray(self.extractor.compute(stream), dtype=np.float32).reshape(-1)
 
 
 class SourceSeparator(Protocol):
