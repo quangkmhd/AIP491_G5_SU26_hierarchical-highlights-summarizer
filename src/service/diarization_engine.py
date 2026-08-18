@@ -63,9 +63,9 @@ class DiarizationEngine:
 
     def __init__(
         self,
-        overlap_detector: OverlapDetector,
         embedder: SpeakerEmbedder,
-        separator: SourceSeparator,
+        overlap_detector: OverlapDetector | None = None,
+        separator: SourceSeparator | None = None,
         *,
         matching_threshold: float = 0.65,
         profile_min_duration: float = 1.5,
@@ -94,8 +94,8 @@ class DiarizationEngine:
         vad_confidence: float,
     ) -> DiarizationResult:
         started = time.perf_counter()
-        has_overlap = bool(self.overlap_detector.detect(speaker_audio))
-        if has_overlap:
+        has_overlap = bool(self.overlap_detector.detect(speaker_audio)) if self.overlap_detector else False
+        if has_overlap and self.separator:
             try:
                 separated = self.separator.separate(
                     enhanced_audio,
