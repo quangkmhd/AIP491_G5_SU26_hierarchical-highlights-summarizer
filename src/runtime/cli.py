@@ -1,10 +1,3 @@
-"""CLI runner for batch or stream recap generation.
-
-Usage:
-    python -m src.runtime.cli process <transcript.json>
-    python -m src.runtime.cli stream  <transcript.json>
-"""
-
 from __future__ import annotations
 
 import argparse

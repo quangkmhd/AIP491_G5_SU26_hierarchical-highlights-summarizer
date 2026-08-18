@@ -1,13 +1,3 @@
-"""API request/response schemas for the FastAPI runtime.
-
-These schemas are intentionally separate from the domain types so the wire
-contract can evolve independently of the core data structures. They reuse the
-shared types so round-trips stay type-safe.
-
-Note (model-001+, D1): `HighlightUpsertRequest` was removed because the
-Highlights (DR1) product surface is out of scope.
-"""
-
 from __future__ import annotations
 
 from typing import Annotated, Optional

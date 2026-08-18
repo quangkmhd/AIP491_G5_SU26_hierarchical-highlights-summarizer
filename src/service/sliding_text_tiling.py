@@ -1,9 +1,3 @@
-"""SlidingTextTilingService -- multi-scale Sliding TextTiling.
-
-Multi-scale BoW cosine similarity with sliding-window depth scoring and streaming support.
-Contains both core algorithm logic and the high-level service wrapper for the orchestrator.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

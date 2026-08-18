@@ -1,17 +1,3 @@
-"""MeetingRecapConfig: the single entry point for the orchestrator.
-
-Composes all four sub-configs and is the ONLY object in the config
-layer that reads `.env` and applies `env_prefix`. Sub-configs are
-independently instantiable for unit testing without env interference.
-
-Env contract (see spec D5):
-  * prefix       = MEETING_RECAP_
-  * nested delim = __
-  * file         = .env (overridable via MEETING_RECAP_ENV_FILE or _env_file kwarg)
-  * file         = None skips loading
-  * env var beats .env file beats default_factory
-"""
-
 from __future__ import annotations
 
 import os

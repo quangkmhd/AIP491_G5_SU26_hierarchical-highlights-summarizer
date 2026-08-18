@@ -1,5 +1,3 @@
-"""Recoverable native microphone capture with stateful high-quality resampling."""
-
 from __future__ import annotations
 
 import re

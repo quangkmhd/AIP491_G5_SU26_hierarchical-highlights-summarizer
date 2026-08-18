@@ -1,5 +1,3 @@
-"""Exact task prefixes used during fine-tuning."""
-
 SUMMARY_PREFIX_VI = "Tóm tắt: "
 TITLE_PREFIX_VI = "Tạo tiêu đề: "
 

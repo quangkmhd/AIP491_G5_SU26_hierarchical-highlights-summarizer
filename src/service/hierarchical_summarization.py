@@ -1,5 +1,3 @@
-"""Hierarchical chunk summarization and summary-only topic titling."""
-
 from __future__ import annotations
 
 from src.logging import get_logger

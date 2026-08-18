@@ -1,17 +1,3 @@
-"""Repository layer: model loaders and file IO.
-
-Public API:
-    ModelLoader         -- per-process singleton for local seq2seq caching
-    ModelHandle         -- frozen record of a loaded model + its provenance
-    ModelKind           -- enum of cacheable model identifiers
-    TranscriptRepo      -- reads data/eval_vi JSON into DialogueTranscript
-    TranscriptRepoError -- typed error for transcript IO failures
-    RecapRepo           -- round-trips HierarchicalRecap as JSON
-    RecapRepoError      -- typed error for recap IO failures
-    RepoIOError         -- typed error for the shared _io helper
-    SUMMARY_PREFIX_VI, TITLE_PREFIX_VI -- exact fine-tuning prefixes
-"""
-
 from __future__ import annotations
 
 from ._io import RepoIOError, read_json_file, write_json_file

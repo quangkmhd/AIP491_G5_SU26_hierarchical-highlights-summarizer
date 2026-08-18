@@ -1,17 +1,3 @@
-"""RecapRepo -- round-trip HierarchicalRecap as canonical Pydantic JSON.
-
-Spec: docs/superpowers/specs/2026-07-04-model-002-design.md (D6).
-
-Wire format is the canonical Pydantic v2 dump (model_dump_json),
-which preserves UUIDs as strings, datetimes as ISO 8601, and nested
-models as objects. Round-trip is verified by `recap ==
-RecapRepo.read(RecapRepo.write(recap, p))` for any valid recap.
-
-Write is atomic (I1): the model's JSON string is written to a
-sibling temp file and then `os.replace`-d onto the final path. A
-crash mid-write leaves the original `path` untouched.
-"""
-
 from __future__ import annotations
 
 import logging

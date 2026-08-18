@@ -1,5 +1,3 @@
-"""DialogueTranscript -- an ordered sequence of utterances forming a meeting."""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone

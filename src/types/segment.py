@@ -1,5 +1,3 @@
-"""Segment and Chunk types -- topic boundaries and sub-block structures."""
-
 from __future__ import annotations
 
 from typing import ClassVar, Optional

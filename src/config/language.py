@@ -1,14 +1,3 @@
-"""LanguageConfig: BCP-47 tag + per-language model variant.
-
-The project extends paper-1 (which supports en/zh) to Vietnamese ("vi").
-Default: tag="vi" with the Vietnamese BERT base
-("FPTAI/vibert-base-cased").
-
-The model_variant choices are kept as a small closed set so a
-mismatched (tag, variant) pair is rejected at config construction
-time, not at model load time.
-"""
-
 from __future__ import annotations
 
 from typing import Literal

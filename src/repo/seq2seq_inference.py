@@ -1,5 +1,3 @@
-"""Task-specific inference adapters for the two fine-tuned recap models."""
-
 from __future__ import annotations
 
 from typing import Protocol

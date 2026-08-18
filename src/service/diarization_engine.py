@@ -1,5 +1,3 @@
-"""Stable per-session speaker matching with lossless overlap fallback."""
-
 from __future__ import annotations
 
 import logging

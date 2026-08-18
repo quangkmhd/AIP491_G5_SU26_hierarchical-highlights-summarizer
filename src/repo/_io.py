@@ -1,16 +1,3 @@
-"""Shared IO helpers for the Repository layer.
-
-Both `RecapRepo` and `TranscriptRepo` need to:
-  * read a JSON file with utf-8 encoding and translate parse errors
-    into a typed exception,
-  * write a JSON file atomically so a mid-write crash does not
-    corrupt the existing file.
-
-Centralising this in one place keeps the encoding / atomicity /
-error-translation contract consistent across every new repo added
-in the future.
-"""
-
 from __future__ import annotations
 
 import json

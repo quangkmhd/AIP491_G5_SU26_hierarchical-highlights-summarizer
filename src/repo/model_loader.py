@@ -1,5 +1,3 @@
-"""CUDA-only loader and process cache for local recap seq2seq models."""
-
 from __future__ import annotations
 
 import json

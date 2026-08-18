@@ -1,9 +1,3 @@
-"""ASR + Speaker Identification configuration.
-
-Model paths, VAD parameters, runtime provider settings, and speaker
-identification thresholds for the realtime ASR pipeline.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path

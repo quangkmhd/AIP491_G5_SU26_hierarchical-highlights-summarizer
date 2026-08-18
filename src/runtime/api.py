@@ -1,5 +1,3 @@
-"""FastAPI server with /api/v1/meetings/stream SSE and /ws WebSocket ASR endpoints."""
-
 from __future__ import annotations
 
 import asyncio
@@ -17,8 +15,7 @@ from pydantic import ValidationError
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from src.logging import (
@@ -27,8 +24,7 @@ from src.logging import (
     log_error_with_fix,
     request_context,
 )
-from src.config.demo import DemoConfig
-from src.service import Custom10hTimeline, RecapEventType, StreamingOrchestrator
+from src.service import RecapEventType, StreamingOrchestrator
 from src.types.schemas import TranscriptIngestionRequest
 from src.types.transcript import DialogueTranscript
 from src.types.audio import AudioSessionStart
@@ -79,7 +75,6 @@ def _decode_pcm_float32(payload: bytes) -> np.ndarray:
 def create_app(
     orchestrator: StreamingOrchestrator | None = None,
     audio_session_factory: object | None = None,
-    demo_timeline: Custom10hTimeline | None = None,
 ) -> FastAPI:
     """Khởi tạo và cấu hình ứng dụng FastAPI web server với các endpoint streaming và WebSocket ASR."""
     app = FastAPI(title="Meeting Recap", version="0.1.0")
@@ -127,50 +122,8 @@ def create_app(
         allow_methods=["POST", "GET", "OPTIONS"],
         allow_headers=["Content-Type"],
     )
-    # Phục vụ giao diện người dùng tĩnh (React build từ thư mục frontend/dist)
-    dist_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
-    if dist_dir.is_dir():
-        app.mount("/assets", StaticFiles(directory=str(dist_dir / "assets")), name="frontend-assets")
-
-        @app.get("/")
-        async def index() -> FileResponse:
-            return FileResponse(str(dist_dir / "index.html"))
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
-
-    resolved_demo_timeline = demo_timeline
-    if resolved_demo_timeline is None:
-        demo_config = DemoConfig()
-        if demo_config.enabled:
-            resolved_demo_timeline = Custom10hTimeline.build(
-                data_dir=demo_config.data_dir,
-                duration_seconds=demo_config.duration_seconds,
-                gap_seconds=demo_config.gap_seconds,
-            )
-    app.state.demo_timeline = resolved_demo_timeline
-
-    if resolved_demo_timeline is not None:
-        @app.get("/api/v1/demo/custom10h/status")
-        async def demo_status() -> dict[str, object]:
-            return {
-                "enabled": True,
-                "recording_count": len(resolved_demo_timeline.items),
-            }
-
-        @app.get("/api/v1/demo/custom10h/manifest")
-        async def demo_manifest() -> dict[str, object]:
-            return resolved_demo_timeline.manifest_payload()
-
-        @app.get("/api/v1/demo/custom10h/audio/{recording_id}")
-        async def demo_audio(recording_id: str) -> FileResponse:
-            try:
-                audio_path = resolved_demo_timeline.resolve_audio(recording_id)
-            except KeyError as exc:
-                raise HTTPException(
-                    status_code=404,
-                    detail="unknown demo recording id",
-                ) from exc
-            return FileResponse(str(audio_path), media_type="audio/wav")
 
     # --- Khởi tạo công cụ ASR ---
     asr_engine_instance = None

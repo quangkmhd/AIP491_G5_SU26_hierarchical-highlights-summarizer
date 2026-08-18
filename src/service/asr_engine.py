@@ -1,16 +1,3 @@
-"""AsrEngine -- manages ASR + VAD + Speaker Identification engines.
-
-Copied from viet_iter3_inference/streaming_ui/backend/main.py with minimal
-structural refactoring (global functions -> class methods). All inference
-logic is preserved exactly as-is.
-
-Pipeline per client connection:
-  microphone (browser) --16kHz Float32--> WebSocket
-       |-> Silero VAD splits stream into speech segments
-            |-> OfflineRecognizer decodes each completed segment
-                 |-> SpeakerEmbeddingExtractor identifies speaker
-"""
-
 from __future__ import annotations
 
 import logging

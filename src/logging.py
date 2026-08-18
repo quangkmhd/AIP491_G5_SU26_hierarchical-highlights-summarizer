@@ -1,30 +1,3 @@
-"""Centralized logging for the meeting-recap project.
-
-Design goals:
-  1. **Structured**: every log record is a JSON object (one per line)
-     with stable fields: timestamp, level, logger, message, request_id,
-     event, plus arbitrary `extra` fields.
-  2. **Bounded verbosity**: by default INFO; opt-in to DEBUG via
-     `MEETING_RECAP_LOG_LEVEL=DEBUG` or per-logger override
-     `MEETING_RECAP_LOG_<LOGGER>_LEVEL=DEBUG`.
-  3. **Useful by default**: the human-readable formatter includes the
-     request_id and event tag. The JSON formatter is for log aggregators.
-  4. **Fix suggestions on errors**: when raising a `LoggableError`, the
-     `fix` field is logged and surfaced in API responses.
-  5. **Request tracing**: `with request_context(...)` sets a
-     `request_id` ContextVar that every log call within the block tags.
-     CLI invocations get a synthetic id; FastAPI middleware sets one per
-     request.
-
-Public API:
-  - get_logger(name): return a configured logger
-  - request_context(request_id=None, event=""): context manager that
-    tags every log call within its block
-  - log_error_with_fix(logger, error, *, fix, hint=""): convenience for
-    the common pattern "log an error and include a fix suggestion"
-  - LoggableError: base class for errors that carry a `fix` field
-"""
-
 from __future__ import annotations
 
 import json

@@ -1,9 +1,3 @@
-"""Shared base class for every domain and API schema in src/types.
-
-Centralising the Pydantic config here keeps each subclass focused on its own
-fields and guarantees the same strictness across the whole layer.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict

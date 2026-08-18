@@ -1,5 +1,3 @@
-"""Inspect retained session evidence and identify the most likely loss stage."""
-
 from __future__ import annotations
 
 import argparse

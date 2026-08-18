@@ -1,5 +1,3 @@
-"""Versioned wire types for far-field microphone sessions."""
-
 from __future__ import annotations
 
 from typing import Literal

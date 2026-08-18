@@ -1,5 +1,3 @@
-"""Accuracy-first composition for one recoverable microphone session."""
-
 from __future__ import annotations
 
 import time

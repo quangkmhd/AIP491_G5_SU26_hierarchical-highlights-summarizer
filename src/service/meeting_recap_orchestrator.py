@@ -1,24 +1,3 @@
-"""StreamingOrchestrator -- end-to-end meeting recap with 5 event types.
-
-Wires SlidingTextTilingService + ChunkingService +
-HierarchicalSummarizationService into a single async generator that yields
-incremental state events as the pipeline produces them.
-
-The segmentation layer is standalone lexical Sliding TextTiling
-(multi-scale BoW + cosine + depth); it requires no external scoring model.
-
-Event types (per spec D5, revised):
-  - utterance-accepted: every new utterance after the first
-  - segment-closed: Sliding TextTiling boundary crossed
-  - chunk-closed: chunk filled (8 utt) or segment closed; rolling_summary is synchronous
-  - title-emitted: segment closed; title generated from all completed chunk summaries
-  - meeting-completed: transcript exhausted; final HierarchicalRecap attached
-
-Both process_stream (async generator) and process_batch (one-shot returning
-the final HierarchicalRecap) are exposed. The batch path is implemented in
-terms of the stream: collect all events, return the final recap.
-"""
-
 from __future__ import annotations
 
 import time

@@ -1,10 +1,3 @@
-"""ChunkingConfig: 8-utterance chunking parameters (paper-2 §3.3).
-
-Defaults are paper-anchored:
-  * chunk_size = 8 utterances (paper-2 §3.3)
-  * overlap    = 0 utterances  (no overlap; configurable per experiment)
-"""
-
 from __future__ import annotations
 
 from pydantic import Field, model_validator

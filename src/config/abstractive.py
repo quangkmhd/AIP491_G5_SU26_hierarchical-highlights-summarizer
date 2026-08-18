@@ -1,8 +1,3 @@
-"""AbstractiveConfig: abstractive-summary context window (paper-2 §3.3, 512 tokens).
-
-Default: context_window = 512 tokens (paper-2 §3.3).
-"""
-
 from __future__ import annotations
 
 from pydantic import Field

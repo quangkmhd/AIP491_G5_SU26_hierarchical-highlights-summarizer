@@ -1,27 +1,3 @@
-"""TranscriptRepo -- read raw JSON files into DialogueTranscript domain objects.
-
-Spec: docs/superpowers/specs/2026-07-04-model-002-design.md (D5).
-
-Supports the 6 standardised data files under `data/eval_vi/`, each a
-list of `{dial_id, utterances, segments, set, utterances_vi,
-utterances_en}` records (paper-1 / paper-2 standard schema; see
-`references_code/dialogue-topic-segmenter/data/` for the original
-English equivalents). The Vietnamese text is canonical for this
-project; speaker labels are synthesised as `S{original_index + 1}`
-because the source schema does not include them.
-
-Annotation handling (C1): the AMI/ICSI corpora include disfluency
-markers like `{vocalsound}`, `{gap}`, `{disfmarker}` both as fully
-placeholder utterances ("{vocalsound}" alone) and **inline** within
-real utterances ("{vocalsound} Vâng, ạ."). The repo:
-
-1. drops fully-placeholder / empty utterances (records the original
-   index in `metadata["dropped_empty_indices"]` so downstream
-   segments can re-align if needed), and
-2. strips inline `{...}` annotations from the kept text so the
-   downstream LLM does not see literal `{vocalsound}` as a word.
-"""
-
 from __future__ import annotations
 
 import logging

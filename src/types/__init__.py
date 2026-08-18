@@ -1,8 +1,3 @@
-"""Types layer -- core data structures shared across all layers.
-
-No dependencies on any other layer. Pure data definitions only.
-"""
-
 from ._base import BaseSchema
 from .audio import (
     AppliedAudioSettings,

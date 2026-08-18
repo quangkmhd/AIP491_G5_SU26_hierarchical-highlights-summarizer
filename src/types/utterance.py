@@ -1,10 +1,3 @@
-"""Utterance -- the smallest unit of a meeting transcript.
-
-A single spoken statement by one speaker. Immutable once created because
-utterances are raw input data and form the ordering base for downstream
-segmentation and summarization.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime

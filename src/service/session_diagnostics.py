@@ -1,5 +1,3 @@
-"""Best-effort JSONL evidence for tracing one microphone session."""
-
 from __future__ import annotations
 
 import json

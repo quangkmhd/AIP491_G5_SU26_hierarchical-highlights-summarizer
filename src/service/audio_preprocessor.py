@@ -1,5 +1,3 @@
-"""Chunked far-field enhancement with overlap context and signal metrics."""
-
 from __future__ import annotations
 
 import time
