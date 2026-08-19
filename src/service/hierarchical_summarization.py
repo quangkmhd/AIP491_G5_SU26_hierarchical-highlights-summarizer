@@ -35,13 +35,13 @@ class HierarchicalSummarizationService:
         """Định dạng danh sách câu thoại dạng 'Người nói: Nội dung' cho mô hình tóm tắt."""
         return "\n".join(f"{u.speaker}: {u.text}" for u in utterances)
 
-    def abstractive(self, chunk: Chunk, *args: Any, **kwargs: Any) -> str:
+    def abstractive(self, chunk: Chunk) -> str:
         """Sinh câu tóm tắt trừu tượng cho một khối câu thoại Chunk bằng ViT5."""
         if not chunk.utterances:
-            return "Đoạn trống"
+            return ""
         return self._chunk_summarizer.summarize(self._format_utterances(chunk.utterances))
 
-    def title(self, segment: SegmentResult, *args: Any, **kwargs: Any) -> str:
+    def title(self, segment: SegmentResult) -> str:
         """Sinh tiêu đề chương từ các câu tóm tắt khối của phân đoạn bằng BARTpho."""
         summaries = [
             c.rolling_summary.strip()
@@ -49,7 +49,7 @@ class HierarchicalSummarizationService:
             if c.rolling_summary and c.rolling_summary.strip()
         ]
         if not summaries:
-            return "Chương trống"
+            return ""
         joined = " / ".join(summaries)
         return self._topic_titler.generate_title(joined[-self.TITLE_INPUT_MAX_CHARS:])
 
