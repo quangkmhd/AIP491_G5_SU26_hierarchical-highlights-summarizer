@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Protocol
+from typing import Any
 
 import numpy as np
 
 logger = logging.getLogger("src.service.diarization_engine")
-
-
-class SpeakerEmbedder(Protocol):
-    def extract(self, samples: np.ndarray) -> np.ndarray: ...
 
 
 class SherpaSpeakerEmbedder:
@@ -75,14 +71,12 @@ class DiarizationEngine:
 
     def __init__(
         self,
-        embedder: SpeakerEmbedder,
+        embedder: Any,
         *,
         matching_threshold: float = 0.65,
         profile_min_duration: float = 1.5,
         profile_min_confidence: float = 0.9,
     ) -> None:
-        if not 0.0 <= matching_threshold <= 1.0:
-            raise ValueError("matching_threshold must be between 0 and 1")
         self.embedder = embedder
         self.matching_threshold = matching_threshold
         self.profile_min_duration = profile_min_duration
@@ -163,21 +157,11 @@ class DiarizationEngine:
             return None
         return (vector / norm).astype(np.float32, copy=False)
 
-    def _valid_audio(self, samples: np.ndarray) -> bool:
-        audio = np.asarray(samples)
-        return (
-            audio.ndim == 1
-            and audio.dtype == np.float32
-            and len(audio) > 0
-            and bool(np.isfinite(audio).all())
-        )
-
 
 __all__ = [
     "DiarizationEngine",
     "DiarizationResult",
     "DiarizedStream",
     "SherpaSpeakerEmbedder",
-    "SpeakerEmbedder",
     "SpeakerProfile",
 ]
