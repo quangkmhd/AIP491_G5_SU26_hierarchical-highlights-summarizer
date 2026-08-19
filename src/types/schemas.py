@@ -4,13 +4,11 @@ from typing import Annotated, Optional
 
 from pydantic import BaseModel, Field
 
-from .hierarchical_summary import HierarchicalSummary, MeetingStatus
 from .transcript import DialogueTranscript
 from .utterance import Utterance
 
 __all__ = [
     "TranscriptIngestionRequest",
-    "MeetingProcessResponse",
 ]
 
 
@@ -65,12 +63,3 @@ class TranscriptIngestionRequest(BaseModel):
             meeting_title=self.meeting_title,
             metadata={"language": self.language, **self.metadata},
         )
-
-
-class MeetingProcessResponse(BaseModel):
-    """Response returned by `POST /api/v1/meetings/process`."""
-
-    meeting_id: str
-    status: MeetingStatus
-    summary: Optional[HierarchicalSummary] = None
-    error: Optional[str] = None

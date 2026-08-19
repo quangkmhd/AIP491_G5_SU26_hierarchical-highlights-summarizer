@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -10,22 +9,8 @@ from pydantic import BaseModel, Field
 from .segment import SegmentResult
 
 
-class MeetingStatus(str, Enum):
-    """Lifecycle state of a meeting processing job."""
-
-    QUEUED = "queued"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
 class HierarchicalSummary(BaseModel):
-    """The complete hierarchical meeting recap output.
-
-    Contains all topic-segmented chapters with their titles and rolling
-    summaries. Highlights (notes and tasks) were removed in model-001+ because
-    the product surface is hierarchical-only (DR1 dropped from scope).
-    """
+    """Kết quả tóm tắt phân cấp cuộc họp hoàn chỉnh gồm các chương và khối tóm tắt."""
 
     meeting_id: UUID = Field(
         default_factory=uuid4,
