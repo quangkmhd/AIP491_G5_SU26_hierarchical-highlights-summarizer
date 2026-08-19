@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
-from ._base import BaseSchema
-# Highlight family removed in model-001+ (DR1 dropped from scope).
 from .hierarchical_recap import HierarchicalRecap, MeetingStatus
 from .transcript import DialogueTranscript
 from .utterance import Utterance
@@ -16,7 +14,7 @@ __all__ = [
 ]
 
 
-class TranscriptIngestionRequest(BaseSchema):
+class TranscriptIngestionRequest(BaseModel):
     """Payload accepted by `POST /api/v1/meetings/process`.
 
     The caller may submit either a flat list of utterance texts (the common
@@ -93,7 +91,7 @@ class TranscriptIngestionRequest(BaseSchema):
         )
 
 
-class MeetingProcessResponse(BaseSchema):
+class MeetingProcessResponse(BaseModel):
     """Response returned by `POST /api/v1/meetings/process`."""
 
     meeting_id: str

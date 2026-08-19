@@ -4,18 +4,16 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
-from pydantic import Field
-
-from ._base import BaseSchema
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class Utterance(BaseSchema):
+class Utterance(BaseModel):
     """A single spoken statement by one speaker in a meeting transcript.
 
     Immutable once created -- utterances are raw input data.
     """
 
-    model_config = BaseSchema.model_config | {"frozen": True}
+    model_config = ConfigDict(frozen=True)
 
     speaker: str = Field(
         ...,

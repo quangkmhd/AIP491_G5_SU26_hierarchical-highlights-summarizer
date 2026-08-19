@@ -5,13 +5,12 @@ from itertools import pairwise
 from typing import ClassVar, Iterator, Optional
 from uuid import UUID, uuid4
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
-from ._base import BaseSchema
 from .utterance import Utterance
 
 
-class DialogueTranscript(BaseSchema):
+class DialogueTranscript(BaseModel):
     """An ordered sequence of utterances representing a full meeting transcript.
 
     Attributes:

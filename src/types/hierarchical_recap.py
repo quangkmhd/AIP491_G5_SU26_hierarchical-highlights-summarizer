@@ -5,10 +5,8 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from ._base import BaseSchema
-# Highlight family removed in model-001+ (DR1 dropped from scope).
 from .segment import SegmentResult
 
 
@@ -21,7 +19,7 @@ class MeetingStatus(str, Enum):
     FAILED = "failed"
 
 
-class HierarchicalRecap(BaseSchema):
+class HierarchicalRecap(BaseModel):
     """The complete hierarchical meeting recap output.
 
     Contains all topic-segmented chapters with their titles and rolling

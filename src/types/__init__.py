@@ -1,4 +1,3 @@
-from ._base import BaseSchema
 from .hierarchical_recap import HierarchicalRecap, MeetingStatus
 from .schemas import (
     MeetingProcessResponse,
@@ -9,7 +8,6 @@ from .transcript import DialogueTranscript
 from .utterance import Utterance
 
 __all__ = [
-    "BaseSchema",
     "Chunk",
     "DialogueTranscript",
     "HierarchicalRecap",
