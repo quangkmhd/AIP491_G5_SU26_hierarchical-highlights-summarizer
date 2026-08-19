@@ -1,6 +1,6 @@
 from .chunking_service import ChunkingService
 from .hierarchical_summarization import HierarchicalSummarizationService
-from .sliding_text_tiling import SegmentEvent, SlidingTextTilingService
+from .multiscale_text_tiling import MultiscaleTextTilingService, SegmentEvent
 from .summarization_orchestrator import (
     OrchestratorEvent,
     StreamingOrchestrator,
@@ -10,9 +10,9 @@ from .summarization_orchestrator import (
 __all__ = [
     "ChunkingService",
     "HierarchicalSummarizationService",
+    "MultiscaleTextTilingService",
     "OrchestratorEvent",
     "SegmentEvent",
-    "SlidingTextTilingService",
     "StreamingOrchestrator",
     "SummarizationEventType",
 ]

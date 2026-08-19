@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
-from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
+from src.service.multiscale_text_tiling import MultiscaleTextTilingService, SegmentEvent
 from src.types.hierarchical_summary import HierarchicalSummary
 from src.types.segment import Chunk, SegmentResult
 from src.types.transcript import DialogueTranscript
@@ -35,23 +35,17 @@ class OrchestratorEvent:
 
 
 class StreamingOrchestrator:
-    """Wires the segmentation + summarization pipeline into a single stream.
-
-    The orchestrator owns the meeting_id lifecycle and the per-segment
-    accumulation of chunks. It emits events in the documented order; the
-    final event is always MEETING_COMPLETED carrying the full
-    HierarchicalRecap.
-    """
+    """Wires the segmentation + summarization pipeline into a single stream."""
 
     def __init__(
         self,
-        tiler: SlidingTextTilingService | None = None,
+        tiler: MultiscaleTextTilingService | None = None,
         chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
         """Khởi tạo điều phối viên pipeline StreamingOrchestrator."""
         self.logger = logging.getLogger("src.service.orchestrator")
-        self.tiler = tiler or SlidingTextTilingService()
+        self.tiler = tiler or MultiscaleTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
 

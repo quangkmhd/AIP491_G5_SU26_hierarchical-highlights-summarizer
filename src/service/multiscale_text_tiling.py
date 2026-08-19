@@ -413,8 +413,8 @@ class SegmentEvent:
         self.boundary_index = boundary_index
 
 
-class SlidingTextTilingService:
-    """Dịch vụ phân đoạn chủ đề đa tỷ lệ SlidingTextTilingService."""
+class MultiscaleTextTilingService:
+    """Dịch vụ phân đoạn chủ đề đa tỷ lệ MultiscaleTextTilingService."""
 
     def __init__(
         self,
@@ -428,8 +428,8 @@ class SlidingTextTilingService:
         window_size: int = 40,
         stride: int = 5,
     ) -> None:
-        """Khởi tạo dịch vụ phân đoạn chủ đề SlidingTextTilingService."""
-        self.logger = logging.getLogger("src.service.sliding_text_tiling")
+        """Khởi tạo dịch vụ phân đoạn chủ đề MultiscaleTextTilingService."""
+        self.logger = logging.getLogger("src.service.multiscale_text_tiling")
         self.block_size = block_size
         self.radii = radii if radii is not None else [3, 5, 10, 15, 20]
         self.alpha = alpha
