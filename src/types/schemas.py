@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from .hierarchical_summary import HierarchicalSummary, MeetingStatus
 from .transcript import DialogueTranscript
@@ -15,13 +15,7 @@ __all__ = [
 
 
 class TranscriptIngestionRequest(BaseModel):
-    """Payload accepted by `POST /api/v1/meetings/process`.
-
-    The caller may submit either a flat list of utterance texts (the common
-    case for transcripts without speaker labels) or a list of pre-built
-    `Utterance` objects when speaker information is available. Exactly one
-    of the two must be provided.
-    """
+    """Payload accepted by `POST /api/v1/meetings/process`."""
 
     meeting_title: Optional[str] = Field(
         default=None,
@@ -49,26 +43,15 @@ class TranscriptIngestionRequest(BaseModel):
         description="Optional key-value metadata.",
     )
 
-    @model_validator(mode="after")
-    def _validate_payload(self) -> "TranscriptIngestionRequest":
+    def materialize(self) -> DialogueTranscript:
+        """Chuyển đổi yêu cầu nạp bản ghi thành đối tượng DialogueTranscript."""
         has_utterances = bool(self.utterances)
         has_flat = bool(self.flat_texts)
         if has_utterances and has_flat:
-            raise ValueError(
-                "Provide either `utterances` or `flat_texts`, not both."
-            )
+            raise ValueError("Provide either `utterances` or `flat_texts`, not both.")
         if not has_utterances and not has_flat:
-            raise ValueError(
-                "Provide at least one of `utterances` or `flat_texts`."
-            )
-        return self
+            raise ValueError("Provide at least one of `utterances` or `flat_texts`.")
 
-    def materialize(self) -> DialogueTranscript:
-        """Materialize this request into a domain `DialogueTranscript`.
-
-        Enforces `DialogueTranscript.MAX_UTTERANCES` so an over-sized payload
-        is rejected with a clear message at the API boundary.
-        """
         if self.flat_texts:
             utterances = [
                 Utterance(speaker=f"S{i + 1}", text=t, index=i)
@@ -76,13 +59,6 @@ class TranscriptIngestionRequest(BaseModel):
             ]
         else:
             utterances = list(self.utterances)
-
-        if len(utterances) > DialogueTranscript.MAX_UTTERANCES:
-            raise ValueError(
-                f"Request contains {len(utterances)} utterances, "
-                f"exceeds MAX_UTTERANCES={DialogueTranscript.MAX_UTTERANCES}. "
-                "Submit the meeting asynchronously via the async job endpoint."
-            )
 
         return DialogueTranscript(
             utterances=utterances,
