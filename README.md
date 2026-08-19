@@ -1,10 +1,10 @@
-# 📖 Hierarchical Text Summarization & Topic Segmentation Service
+# Hierarchical Text Summarization & Topic Segmentation Service
 
 Dịch vụ **Tóm Tắt Văn Bản Phân Cấp & Phân Đoạn Chủ Đề Cuộc Họp** được xây dựng trên framework **FastAPI**, tích hợp thuật toán phân đoạn chủ đề đa tỷ lệ **Multiscale TextTiling** cùng hai mô hình Deep Learning **ViT5 (Chunk Summarizer)** và **BARTpho (Topic Titler)**.
 
 ---
 
-## 🚀 1. Khởi Chạy Server
+## 1. Khởi Chạy Server
 
 Khởi chạy Uvicorn Web Server ở chế độ Factory:
 
@@ -22,9 +22,9 @@ uv run uvicorn src.runtime.api:create_app --factory --host 0.0.0.0 --port 8000
 
 ---
 
-## 📡 2. Danh Sách API Endpoints & Cách Kết Nối
+## 2. Danh Sách API Endpoints & Cách Kết Nối
 
-### 1️⃣ `GET /health` — Kiểm Tra Trạng Thái Dịch Vụ
+### 2.1. `GET /health` — Kiểm Tra Trạng Thái Dịch Vụ
 
 - **Phương thức:** `GET`
 - **URL:** `http://localhost:8000/health`
@@ -45,7 +45,7 @@ curl -X GET http://localhost:8000/health
 
 ---
 
-### 2️⃣ `POST /api/v1/meetings/process` — Tóm Tắt Hàng Loạt (Batch API)
+### 2.2. `POST /api/v1/meetings/process` — Tóm Tắt Hàng Loạt (Batch API)
 
 - **Phương thức:** `POST`
 - **URL:** `http://localhost:8000/api/v1/meetings/process`
@@ -111,7 +111,7 @@ print(response.json())
 
 ---
 
-### 3️⃣ `WebSocket /ws` — Kết Nối Real-Time Two-Way Streaming
+### 2.3. `WebSocket /ws` — Kết Nối Real-Time Two-Way Streaming
 
 - **Giao thức:** `WebSocket`
 - **URL:** `ws://localhost:8000/ws`
@@ -177,7 +177,7 @@ ws.onmessage = (event) => {
 
 ---
 
-## 💻 3. Sử Dụng Công Cụ Dòng Lệnh (CLI Runner)
+## 3. Sử Dụng Công Cụ Dòng Lệnh (CLI Runner)
 
 Thực thi xử lý cuộc họp trực tiếp bằng Command Line:
 
