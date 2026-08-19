@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import uuid
 from pathlib import Path
-from typing import Protocol
+from typing import Any
 
 import numpy as np
 
@@ -14,55 +14,16 @@ from .audio_capture import StreamingAudioSession, cleanup_expired_recordings
 from .audio_preprocessor import AudioPreprocessor, ProcessedAudioChunk
 from .diarization_engine import (
     DiarizationEngine,
-    DiarizationResult,
 )
 
 
-class AudioSession(Protocol):
-    source_rate: int
-
-    def push(self, samples: np.ndarray) -> np.ndarray: ...
-    def flush(self) -> np.ndarray: ...
-    def close(self, *, retain: bool = True) -> Path: ...
-
-
-class Preprocessor(Protocol):
-    def process(self, samples: np.ndarray) -> list[ProcessedAudioChunk]: ...
-    def flush(self) -> list[ProcessedAudioChunk]: ...
-
 
 class VadSpeechSegment:
-    def __init__(
-        self,
-        samples: np.ndarray,
-        start_sample: int,
-        end_sample: int,
-        confidence: float,
-    ) -> None:
+    def __init__(self, samples: np.ndarray, start_sample: int, end_sample: int, confidence: float) -> None:
         self.samples = samples
         self.start_sample = start_sample
         self.end_sample = end_sample
         self.confidence = confidence
-
-
-class VadProcessor(Protocol):
-    def accept(self, chunk: ProcessedAudioChunk) -> list[VadSpeechSegment]: ...
-    def flush(self) -> list[VadSpeechSegment]: ...
-
-
-class Diarizer(Protocol):
-    def process(
-        self,
-        enhanced_audio: np.ndarray,
-        speaker_audio: np.ndarray,
-        *,
-        speech_duration: float,
-        vad_confidence: float,
-    ) -> DiarizationResult: ...
-
-
-class SegmentRecognizer(Protocol):
-    def decode_segment(self, samples: np.ndarray, sample_rate: int = 16000) -> str: ...
 
 
 class FarFieldSession:
@@ -74,11 +35,11 @@ class FarFieldSession:
         self,
         *,
         session_id: str,
-        audio: AudioSession,
-        preprocessor: Preprocessor,
-        vad: VadProcessor,
-        diarizer: Diarizer,
-        asr: SegmentRecognizer,
+        audio: Any,
+        preprocessor: Any,
+        vad: Any,
+        diarizer: Any,
+        asr: Any,
     ) -> None:
         self.session_id = session_id
         self.audio = audio
