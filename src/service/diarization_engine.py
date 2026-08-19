@@ -9,10 +9,6 @@ import numpy as np
 logger = logging.getLogger("src.service.diarization_engine")
 
 
-class OverlapDetector(Protocol):
-    def detect(self, samples: np.ndarray) -> bool: ...
-
-
 class SpeakerEmbedder(Protocol):
     def extract(self, samples: np.ndarray) -> np.ndarray: ...
 
@@ -29,14 +25,6 @@ class SherpaSpeakerEmbedder:
         stream.accept_waveform(self.sample_rate, samples)
         stream.input_finished()
         return np.asarray(self.extractor.compute(stream), dtype=np.float32).reshape(-1)
-
-
-class SourceSeparator(Protocol):
-    def separate(
-        self,
-        samples: np.ndarray,
-        profiles: tuple["SpeakerProfile", ...],
-    ) -> list[np.ndarray]: ...
 
 
 class SpeakerProfile:
@@ -83,13 +71,11 @@ class DiarizationResult:
 
 
 class DiarizationEngine:
-    """Identify sequential speakers and isolate failures at the overlap boundary."""
+    """Identify sequential speakers for meeting audio."""
 
     def __init__(
         self,
         embedder: SpeakerEmbedder,
-        overlap_detector: OverlapDetector | None = None,
-        separator: SourceSeparator | None = None,
         *,
         matching_threshold: float = 0.65,
         profile_min_duration: float = 1.5,
@@ -97,9 +83,7 @@ class DiarizationEngine:
     ) -> None:
         if not 0.0 <= matching_threshold <= 1.0:
             raise ValueError("matching_threshold must be between 0 and 1")
-        self.overlap_detector = overlap_detector
         self.embedder = embedder
-        self.separator = separator
         self.matching_threshold = matching_threshold
         self.profile_min_duration = profile_min_duration
         self.profile_min_confidence = profile_min_confidence
@@ -117,41 +101,15 @@ class DiarizationEngine:
         vad_confidence: float,
     ) -> DiarizationResult:
         started = time.perf_counter()
-        has_overlap = bool(self.overlap_detector.detect(speaker_audio)) if self.overlap_detector else False
-        if has_overlap and self.separator:
-            try:
-                separated = self.separator.separate(
-                    enhanced_audio,
-                    tuple(self.profiles),
-                )
-                streams = tuple(
-                    self._identify(
-                        stream,
-                        stream,
-                        speech_duration=len(stream) / 16000,
-                        vad_confidence=vad_confidence,
-                    )
-                    for stream in separated
-                    if self._valid_audio(stream)
-                )
-                if not streams:
-                    raise ValueError("source separator returned no valid streams")
-            except Exception as exc:  # noqa: BLE001 - this boundary must retain speech
-                logger.warning("Diarization overlap fallback: %s", exc)
-                streams = (DiarizedStream("Unknown Speaker", enhanced_audio.copy(), True),)
-        else:
-            streams = (
-                self._identify(
-                    enhanced_audio,
-                    speaker_audio,
-                    speech_duration=speech_duration,
-                    vad_confidence=vad_confidence,
-                ),
-            )
-
+        stream = self._identify(
+            enhanced_audio,
+            speaker_audio,
+            speech_duration=speech_duration,
+            vad_confidence=vad_confidence,
+        )
         return DiarizationResult(
-            streams=streams,
-            has_overlap=has_overlap,
+            streams=(stream,),
+            has_overlap=False,
             latency_ms=(time.perf_counter() - started) * 1000,
         )
 
@@ -219,8 +177,7 @@ __all__ = [
     "DiarizationEngine",
     "DiarizationResult",
     "DiarizedStream",
-    "OverlapDetector",
-    "SourceSeparator",
+    "SherpaSpeakerEmbedder",
     "SpeakerEmbedder",
     "SpeakerProfile",
 ]

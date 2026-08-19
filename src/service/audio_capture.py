@@ -106,7 +106,7 @@ def cleanup_expired_recordings(
 
     cutoff = (time.time() if now is None else now) - retention_hours * 60 * 60
     removed: list[Path] = []
-    candidates = [*root.glob("*.wav"), *root.glob("*.diagnostics.jsonl")]
+    candidates = list(root.glob("*.wav"))
     for path in sorted(candidates):
         if path.is_file() and path.stat().st_mtime < cutoff:
             path.unlink()
