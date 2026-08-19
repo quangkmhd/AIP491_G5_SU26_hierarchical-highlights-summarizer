@@ -3,13 +3,8 @@ from __future__ import annotations
 import math
 import numpy as np
 
-# Các tham số bán kính mặc định theo công trình nghiên cứu TextTiling đa tỷ lệ.
 DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
 
-
-# ============================================================================
-# BƯỚC 1: XỬ LÝ VĂN BẢN VÀ TÍNH ĐỘ TƯƠNG ĐỒNG COSINE (BAG-OF-WORDS)
-# ============================================================================
 
 def bow(text: str, stopwords: set[str]) -> dict[str, int]:
     """Tách từ, chuyển về chữ thường và đếm tần suất từ sau khi lọc stop-words."""
@@ -53,10 +48,6 @@ def similarity_scores(
         scores.append(cosine(b1, b2))
     return scores
 
-
-# ============================================================================
-# BƯỚC 2: TÍNH ĐIỂM ĐỘ SÂU ĐA TỶ LỆ (MULTISCALE DEPTH SCORES)
-# ============================================================================
 
 def depth_scores(scores: list[float], radius: int | None = None) -> np.ndarray:
     """Tính điểm độ sâu (depth score) tại mỗi khoảng hẫng dựa trên bán kính đỉnh xung quanh."""
@@ -112,10 +103,6 @@ def multiscale_depth(
         return stacked.sum(axis=0)
     return stacked.mean(axis=0)
 
-
-# ============================================================================
-# BƯỚC 3: HỢP NHẤT PHÂN ĐOẠN NGẮN VÀ TÌM RANH GIỚI BATCH
-# ============================================================================
 
 def merge_small_segments(
     boundaries: list[int],
@@ -247,10 +234,6 @@ def find_boundaries(
 
     return boundaries, boundary_depths
 
-
-# ============================================================================
-# BƯỚC 4: THUẬT TOÁN STREAMING VÀ ĐỐI TƯỢNG PHỤC VỤ STREAMING SERVICE
-# ============================================================================
 
 class StreamingTextTilingSegmenter:
     """Thuật toán phân đoạn streaming Sliding TextTiling theo cửa sổ trượt."""
@@ -408,24 +391,6 @@ class StreamingTextTilingSegmenter:
         return newly_committed
 
 
-class SegmentEvent:
-    """Sự kiện ranh giới phân đoạn chủ đề SegmentEvent."""
-
-    def __init__(
-        self,
-        segment_id: str,
-        utterances_start: int,
-        utterances_end: int,
-        depth_score: float,
-        boundary_index: int,
-    ) -> None:
-        self.segment_id = segment_id
-        self.utterances_start = utterances_start
-        self.utterances_end = utterances_end
-        self.depth_score = depth_score
-        self.boundary_index = boundary_index
-
-
 class MultiscaleTextTilingService:
     """Dịch vụ phân đoạn chủ đề đa tỷ lệ MultiscaleTextTilingService."""
 
@@ -451,7 +416,6 @@ class MultiscaleTextTilingService:
         self.window_size = window_size
         self.stride = stride
 
-        self._segment_counter = 0
         if self.use_stopwords:
             import stopwordsiso
             self._stopwords = stopwordsiso.stopwords(["vi"])
@@ -471,71 +435,39 @@ class MultiscaleTextTilingService:
         )
         self.reset()
 
-    def _new_segment_id(self) -> str:
-        """Sinh mã ID duy nhất cho phân đoạn mới (ví dụ: seg-0, seg-1)."""
-        sid = f"seg-{self._segment_counter}"
-        self._segment_counter += 1
-        return sid
-
     def reset(self) -> None:
         """Đặt lại trạng thái streaming của dịch vụ về ban đầu."""
-        self._segment_counter = 0
         self._streamer.reset()
         self._last_emitted_boundary: int = -1
 
-    def update(self, utterance: str) -> list[SegmentEvent]:
-        """Tiếp nhận một câu thoại mới ở chế độ streaming và trả về sự kiện phân đoạn nếu có."""
+    def update(self, utterance: str) -> list[tuple[int, int]]:
+        """Tiếp nhận một câu thoại mới ở chế độ streaming và trả về danh sách phạm vi (start, end) phân đoạn nếu có."""
         committed = self._streamer.update(utterance)
-        events: list[SegmentEvent] = []
-        for b, d in committed:
-            events.append(
-                SegmentEvent(
-                    segment_id=self._new_segment_id(),
-                    utterances_start=self._last_emitted_boundary + 1,
-                    utterances_end=b,
-                    depth_score=d,
-                    boundary_index=b,
-                )
-            )
+        ranges: list[tuple[int, int]] = []
+        for b, _ in committed:
+            ranges.append((self._last_emitted_boundary + 1, b))
             self._last_emitted_boundary = b
-        return events
+        return ranges
 
-    def flush(self) -> list[SegmentEvent]:
-        """Xả bộ đệm câu thoại còn lại ở cuối cuộc họp để chốt phân đoạn cuối."""
+    def flush(self) -> list[tuple[int, int]]:
+        """Xả bộ đệm câu thoại còn lại ở cuối cuộc họp để chốt phạm vi phân đoạn cuối."""
         committed = self._streamer.flush()
-        events: list[SegmentEvent] = []
-        for b, d in committed:
-            events.append(
-                SegmentEvent(
-                    segment_id=self._new_segment_id(),
-                    utterances_start=self._last_emitted_boundary + 1,
-                    utterances_end=b,
-                    depth_score=d,
-                    boundary_index=b,
-                )
-            )
+        ranges: list[tuple[int, int]] = []
+        for b, _ in committed:
+            ranges.append((self._last_emitted_boundary + 1, b))
             self._last_emitted_boundary = b
-        return events
+        return ranges
 
-    def process(self, utterances: list[str]) -> list[SegmentEvent]:
-        """Xử lý danh sách câu thoại dạng batch và xác định ranh giới phân đoạn chủ đề."""
+    def process(self, utterances: list[str]) -> list[tuple[int, int]]:
+        """Xử lý danh sách câu thoại dạng batch và trả về danh sách phạm vi (start, end) các phân đoạn."""
         self.reset()
-
         n = len(utterances)
         if n == 0:
             return []
         if n == 1:
-            return [
-                SegmentEvent(
-                    segment_id=self._new_segment_id(),
-                    utterances_start=0,
-                    utterances_end=0,
-                    depth_score=0.0,
-                    boundary_index=0,
-                )
-            ]
+            return [(0, 0)]
 
-        boundaries, boundary_depths = find_boundaries(
+        boundaries, _ = find_boundaries(
             utterances,
             block_size=self.block_size,
             radii=self.radii,
@@ -548,22 +480,9 @@ class MultiscaleTextTilingService:
             stride=self.stride,
         )
 
-        assert boundaries and boundaries[-1] == n - 1, (
-            "find_boundaries must append n-1 as the force-close tail"
-        )
-
-        events: list[SegmentEvent] = []
+        ranges: list[tuple[int, int]] = []
         prev = -1
         for b in boundaries:
-            depth_score = boundary_depths.get(b, 0.0)
-            events.append(
-                SegmentEvent(
-                    segment_id=self._new_segment_id(),
-                    utterances_start=prev + 1,
-                    utterances_end=b,
-                    depth_score=depth_score,
-                    boundary_index=b,
-                )
-            )
+            ranges.append((prev + 1, b))
             prev = b
-        return events
+        return ranges

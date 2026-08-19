@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
-from src.service.multiscale_text_tiling import MultiscaleTextTilingService, SegmentEvent
+from src.service.multiscale_text_tiling import MultiscaleTextTilingService
 from src.types.hierarchical_summary import HierarchicalSummary
 from src.types.segment import Chunk, SegmentResult
 from src.types.transcript import DialogueTranscript
@@ -77,10 +77,7 @@ class StreamingOrchestrator:
 
         # Giai đoạn 2: Phân đoạn theo batch sử dụng dịch vụ SlidingTextTilingService.
         utterance_texts = [u.text for u in all_utterances]
-        seg_events = self.tiler.process(utterance_texts)
-
-        # Xây dựng phạm vi câu thoại cho từng phân đoạn từ các ranh giới.
-        seg_ranges = [(e.utterances_start, e.utterances_end) for e in seg_events]
+        seg_ranges = self.tiler.process(utterance_texts)
 
         # Giai đoạn 3: Khởi tạo phân đoạn và phát các sự kiện tương ứng.
         for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
@@ -181,14 +178,13 @@ class StreamingOrchestrator:
             yield from self._process_streaming_segment_events(new_events)
 
     def _process_streaming_segment_events(
-        self, seg_events: list[SegmentEvent],
+        self, seg_ranges: list[tuple[int, int]],
     ) -> Iterator[OrchestratorEvent]:
-        """Xử lý các sự kiện phân đoạn trong streaming để tạo khối, tóm tắt và sinh tiêu đề."""
+        """Xử lý các phạm vi phân đoạn trong streaming để tạo khối, tóm tắt và sinh tiêu đề."""
         all_utterances = self._incremental_utterances
 
-        for e in seg_events:
+        for start_utt, end_utt in seg_ranges:
             seg_idx = len(self._incremental_segments)
-            start_utt, end_utt = e.utterances_start, e.utterances_end
 
             segment_utts = [u for u in all_utterances if start_utt <= u.index <= end_utt]
             if not segment_utts:
