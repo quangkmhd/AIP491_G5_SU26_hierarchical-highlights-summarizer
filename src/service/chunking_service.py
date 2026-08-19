@@ -1,20 +1,11 @@
 from __future__ import annotations
 
-import logging
-
 from src.types.segment import Chunk
 from src.types.utterance import Utterance
 
-logger = logging.getLogger("src.service.chunking_service")
-
 
 class ChunkingService:
-    """Slice a list of utterances into 8-utterance Chunks.
-
-    Usage:
-        service = ChunkingService()
-        chunks = service.chunk(utterances)
-    """
+    """Slice a list of utterances into 8-utterance Chunks."""
 
     CHUNK_SIZE: int = Chunk.MAX_CHUNK_SIZE
 
@@ -26,12 +17,6 @@ class ChunkingService:
         for i in range(0, len(utterances), self.CHUNK_SIZE):
             chunk_utts = utterances[i : i + self.CHUNK_SIZE]
             chunks.append(Chunk(utterances=chunk_utts))
-        logger.debug(
-            "chunking done utterances=%d chunks=%d chunk_size=%d",
-            len(utterances),
-            len(chunks),
-            self.CHUNK_SIZE,
-        )
         return chunks
 
     def chunk_indices(self, n_utterances: int) -> list[tuple[int, int]]:
@@ -42,10 +27,4 @@ class ChunkingService:
         for i in range(0, n_utterances, self.CHUNK_SIZE):
             end = min(i + self.CHUNK_SIZE, n_utterances) - 1
             result.append((i, end))
-        logger.debug(
-            "chunk indices computed utterances=%d chunks=%d chunk_size=%d",
-            n_utterances,
-            len(result),
-            self.CHUNK_SIZE,
-        )
         return result

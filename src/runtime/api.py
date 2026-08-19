@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import json
-import time
 import uuid
 from typing import AsyncIterator
-
-import logging
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
@@ -23,17 +20,14 @@ def create_app(
 ) -> FastAPI:
     """Khởi tạo và cấu hình ứng dụng FastAPI web server phục vụ dịch vụ Tóm tắt & Phân đoạn Văn bản."""
     app = FastAPI(title="Hierarchical Text Summarization Service", version="0.1.0")
-    logger = logging.getLogger("src.runtime.api")
 
     # Middleware tạo request-id và đo thời gian xử lý HTTP request.
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
         rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
-        t0 = time.perf_counter()
         try:
             response = await call_next(request)
         except Exception as e:  # noqa: BLE001
-            logger.exception("Unhandled error processing request: %s", e)
             return JSONResponse(
                 status_code=500,
                 content={
@@ -42,15 +36,7 @@ def create_app(
                     "request_id": rid,
                 },
             )
-        elapsed_ms = (time.perf_counter() - t0) * 1000
         response.headers["X-Request-Id"] = rid
-        logger.info(
-            "%s %s status=%d elapsed_ms=%.1f",
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed_ms,
-        )
         return response
 
     app.add_middleware(
@@ -62,16 +48,8 @@ def create_app(
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
 
-    logger.info(
-        "AI Text Summarization & Topic Segmentation Service Initialized:\n"
-        "  [Title Model]   : BARTpho Topic Titler\n"
-        "  [Summary Model] : ViT5 Chunk Summarizer\n"
-        "  [Segmentation]  : Multiscale Sliding TextTiling\n"
-    )
-
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):  # type: ignore[no-untyped-def]
-        logger.warning("HTTPException status=%d detail=%s", exc.status_code, exc.detail)
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -84,7 +62,6 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):  # type: ignore[no-untyped-def]
-        logger.warning("request validation failed errors=%d", len(exc.errors()))
         return JSONResponse(
             status_code=422,
             content={
@@ -96,7 +73,6 @@ def create_app(
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):  # type: ignore[no-untyped-def]
-        logger.warning("ValueError: %s", exc)
         return JSONResponse(
             status_code=400,
             content={
@@ -141,7 +117,6 @@ def create_app(
     async def websocket_text_summarization(websocket: WebSocket):
         """Streaming text WebSocket endpoint for real-time utterance ingestion and topic recap."""
         await websocket.accept()
-        logger.info("WebSocket client connected: %s", websocket.client)
         ws_orchestrator = app.state.orchestrator
         ws_orchestrator.reset_incremental()
         utterance_counter = 0
@@ -174,9 +149,9 @@ def create_app(
                     await websocket.send_json({"type": evt.type.value, **evt.data})
 
         except WebSocketDisconnect:
-            logger.info("WebSocket client disconnected.")
-        except Exception as exc:
-            logger.exception("Error in WebSocket handler: %s", exc)
+            pass
+        except Exception:
+            pass
 
     return app
 

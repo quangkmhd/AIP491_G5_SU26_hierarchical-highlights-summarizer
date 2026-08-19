@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterator
@@ -44,7 +43,6 @@ class StreamingOrchestrator:
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
         """Khởi tạo điều phối viên pipeline StreamingOrchestrator."""
-        self.logger = logging.getLogger("src.service.orchestrator")
         self.tiler = tiler or MultiscaleTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
@@ -57,21 +55,12 @@ class StreamingOrchestrator:
         meeting_id = uuid4()
         n = len(transcript.utterances)
         if n == 0:
-            self.logger.warning("process_stream called with empty transcript")
             raise ValueError("transcript has no utterances")
-        self.logger.info(
-            "orchestrator start n_utterances=%d meeting_id=%s",
-            n, str(meeting_id),
-        )
         segments: list[SegmentResult] = []
 
-        try:
-            yield from self._process_stream_body(
-                transcript, t0, meeting_id, segments,
-            )
-        except Exception as e:
-            self.logger.exception("Error in process_stream: %s", e)
-            raise
+        yield from self._process_stream_body(
+            transcript, t0, meeting_id, segments,
+        )
 
     def _process_stream_body(  # type: ignore[no-untyped-def]
         self, transcript, t0, meeting_id, segments,
@@ -93,17 +82,6 @@ class StreamingOrchestrator:
         # Xây dựng phạm vi câu thoại cho từng phân đoạn từ các ranh giới.
         seg_ranges = [(e.utterances_start, e.utterances_end) for e in seg_events]
 
-        self.logger.info(
-            "segmentation complete n_segments=%d ranges=%s",
-            len(seg_ranges), seg_ranges,
-        )
-        for i, (s, e) in enumerate(seg_ranges):
-            utt_texts = [all_utterances[j].text[:50] for j in range(s, e + 1)]
-            self.logger.info(
-                "  segment %d: utt[%d..%d] (%d utts) %s",
-                i + 1, s, e, e - s + 1, utt_texts,
-            )
-
         # Giai đoạn 3: Khởi tạo phân đoạn và phát các sự kiện tương ứng.
         for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
             segment_utts = all_utterances[start_utt:end_utt + 1]
@@ -121,12 +99,6 @@ class StreamingOrchestrator:
                     chunk, chapter_number=seg_idx + 1, chunk_index=chunk_idx,
                 )
                 seg.chunks.append(chunk)
-                self.logger.info(
-                    "  chunk seg=%d utt[%d..%d] summary=\"%s\"",
-                    seg_idx + 1,
-                    chunk_utts[0].index, chunk_utts[-1].index,
-                    chunk.rolling_summary,
-                )
                 yield OrchestratorEvent(
                     type=SummarizationEventType.CHUNK_CLOSED,
                     data={
@@ -151,20 +123,12 @@ class StreamingOrchestrator:
             title = self.summarizer.title(seg, chapter_number=seg_idx + 1)
             seg.title = title
             segments.append(seg)
-            self.logger.info(
-                "  title seg=%d title=\"%s\"",
-                seg_idx + 1, title,
-            )
             yield OrchestratorEvent(
                 type=SummarizationEventType.TITLE_EMITTED,
                 data={"segment_id": str(seg.segment_id), "title": title},
             )
 
         processing_time_ms = int((time.perf_counter() - t0) * 1000)
-        self.logger.info(
-            "orchestrator done n_segments=%d n_chunks=%d processing_time_ms=%d",
-            len(segments), sum(len(s.chunks) for s in segments), processing_time_ms,
-        )
         summary = HierarchicalSummary(
             meeting_id=meeting_id,
             segments=segments,

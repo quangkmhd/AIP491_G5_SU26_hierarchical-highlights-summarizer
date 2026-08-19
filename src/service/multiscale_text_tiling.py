@@ -3,8 +3,6 @@ from __future__ import annotations
 import math
 import numpy as np
 
-import logging
-
 # Default parameters match the reference implementation in 16-eval-DTS.
 DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
 
@@ -429,7 +427,6 @@ class MultiscaleTextTilingService:
         stride: int = 5,
     ) -> None:
         """Khởi tạo dịch vụ phân đoạn chủ đề MultiscaleTextTilingService."""
-        self.logger = logging.getLogger("src.service.multiscale_text_tiling")
         self.block_size = block_size
         self.radii = radii if radii is not None else [3, 5, 10, 15, 20]
         self.alpha = alpha
@@ -539,15 +536,6 @@ class MultiscaleTextTilingService:
 
         assert boundaries and boundaries[-1] == n - 1, (
             "find_boundaries must append n-1 as the force-close tail"
-        )
-
-        n_boundaries = sum(1 for b in boundaries if b != n - 1)
-        used_streaming = n > self.window_size
-        self.logger.info(
-            "sliding text tiling done utterances=%d boundaries=%d mode=%s",
-            n,
-            n_boundaries,
-            "streaming" if used_streaming else "batch",
         )
 
         events: list[SegmentEvent] = []

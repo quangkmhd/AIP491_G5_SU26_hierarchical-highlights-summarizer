@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from src.repo.model_loader import ModelLoader, get_model_loader
 from src.repo.seq2seq_inference import (
     BARTphoTopicTitler,
@@ -10,8 +9,6 @@ from src.repo.seq2seq_inference import (
 )
 from src.types.segment import Chunk, SegmentResult
 from src.types.utterance import Utterance
-
-logger = logging.getLogger("src.service.hierarchical_summarization")
 
 
 class HierarchicalSummarizationService:
