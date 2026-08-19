@@ -259,10 +259,3 @@ class DefaultFarFieldSessionFactory:
             asr=self.asr,
         )
 
-
-__all__ = [
-    "DefaultFarFieldSessionFactory",
-    "FarFieldSession",
-    "SherpaVadProcessor",
-    "VadSpeechSegment",
-]

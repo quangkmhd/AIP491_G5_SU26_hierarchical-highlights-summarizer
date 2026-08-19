@@ -175,10 +175,3 @@ def _install_torchaudio_backend_compat(torchaudio_module: object) -> None:
     sys.modules["torchaudio.backend"] = backend
     sys.modules["torchaudio.backend.common"] = common
 
-
-__all__ = [
-    "AudioPreprocessor",
-    "DeepFilterNetEnhancer",
-    "PassthroughEnhancer",
-    "ProcessedAudioChunk",
-]

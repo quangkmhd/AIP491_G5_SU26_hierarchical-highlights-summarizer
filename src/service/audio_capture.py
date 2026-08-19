@@ -77,5 +77,3 @@ def cleanup_expired_recordings(root: Path, retention_hours: int) -> list[Path]:
             removed.append(path)
     return removed
 
-
-__all__ = ["StreamingAudioSession", "cleanup_expired_recordings"]

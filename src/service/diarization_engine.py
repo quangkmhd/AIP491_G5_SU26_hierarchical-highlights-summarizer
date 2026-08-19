@@ -93,9 +93,3 @@ class DiarizationEngine:
 
         return "Unknown Speaker"
 
-
-__all__ = [
-    "DiarizationEngine",
-    "DiarizationResult",
-    "DiarizedStream",
-]
