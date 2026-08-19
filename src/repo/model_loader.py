@@ -48,11 +48,3 @@ class ModelLoader:
         if self._bartpho_handle is None:
             self._bartpho_handle = load_seq2seq_model(BARTPHO_MODEL_PATH)
         return self._bartpho_handle
-
-
-_global_loader = ModelLoader()
-
-
-def get_model_loader() -> ModelLoader:
-    """Trả về đối tượng Singleton ModelLoader dùng chung cho hệ thống."""
-    return _global_loader

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.repo.model_loader import ModelLoader, get_model_loader
+from src.repo.model_loader import ModelLoader
 from src.repo.seq2seq_inference import (
     BARTphoTopicTitler,
     ViT5ChunkSummarizer,
@@ -23,7 +23,7 @@ class HierarchicalSummarizationService:
         loader: ModelLoader | None = None,
     ) -> None:
         """Khởi tạo 2 mô hình ViT5 tóm tắt và BARTpho sinh tiêu đề."""
-        model_loader = loader or get_model_loader()
+        model_loader = loader or ModelLoader()
         self._chunk_summarizer = chunk_summarizer or ViT5ChunkSummarizer(
             model_loader.load_chunk_summarizer()
         )

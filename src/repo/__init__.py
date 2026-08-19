@@ -5,7 +5,6 @@ from .model_loader import (
     VIT5_MODEL_PATH,
     ModelHandle,
     ModelLoader,
-    get_model_loader,
 )
 from .seq2seq_inference import (
     BARTphoTopicTitler,
@@ -14,7 +13,6 @@ from .seq2seq_inference import (
 
 __all__ = [
     "ModelLoader",
-    "get_model_loader",
     "ModelHandle",
     "VIT5_MODEL_PATH",
     "BARTPHO_MODEL_PATH",
