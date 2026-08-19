@@ -36,9 +36,9 @@ def _load_transcript(file: TextIO) -> DialogueTranscript:
 def cmd_process(args: argparse.Namespace) -> int:
     """Thực thi lệnh xử lý batch cho file bản ghi cuộc họp và in ra kết quả."""
     transcript = _load_transcript(args.file)
-    orchestrator = StreamingOrchestrator()
-    summary = orchestrator.process_batch(transcript)
+    summary = StreamingOrchestrator().process_batch(transcript)
     output = summary.model_dump(mode="json")
+
     if args.output:
         Path(args.output).write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"wrote summary to {args.output}")
@@ -57,28 +57,18 @@ def cmd_stream(args: argparse.Namespace) -> int:
     seg_count = 0
     final_summary: dict | None = None
 
-    segment_id_to_num: dict[str, int] = {}
-    segment_chunk_counts: dict[str, int] = {}
-
     for event in orchestrator.process_stream(transcript):
         if event.type.value == "segment-closed":
             seg_count += 1
         if event.type.value == "meeting-completed":
-            final_summary = event.data["hierarchical_summary"]
+            final_summary = event.data.get("hierarchical_summary")
 
         if getattr(args, "pretty", False):
             if event.type.value == "chunk-closed":
-                seg_id = event.data.get("segment_id")
-                if seg_id:
-                    if seg_id not in segment_id_to_num:
-                        segment_id_to_num[seg_id] = len(segment_id_to_num) + 1
-                    segment_chunk_counts[seg_id] = segment_chunk_counts.get(seg_id, 0) + 1
-                    summary_text = event.data.get("rolling_summary")
-                    print(f"Tóm tắt chunk: {summary_text}")
-                    sys.stdout.flush()
+                print(f"Tóm tắt chunk: {event.data.get('rolling_summary')}")
+                sys.stdout.flush()
             elif event.type.value == "title-emitted":
-                title = event.data.get("title")
-                print(f"Chủ đề: {title}\n" + "-" * 40)
+                print(f"Chủ đề: {event.data.get('title')}\n" + "-" * 40)
                 sys.stdout.flush()
         else:
             print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
