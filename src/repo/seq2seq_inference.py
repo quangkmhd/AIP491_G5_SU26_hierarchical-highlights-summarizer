@@ -1,26 +1,8 @@
 from __future__ import annotations
 
-from typing import Protocol
-
 import torch
 
 from .model_loader import ModelHandle, ModelKind
-
-
-class ChunkSummarizer(Protocol):
-    def summarize(self, formatted_utterances: str) -> str:
-        """Định nghĩa giao thức tóm tắt khối câu thoại."""
-        ...
-
-
-class TopicTitler(Protocol):
-    def generate_title(self, joined_summaries: str) -> str:
-        """Định nghĩa giao thức sinh tiêu đề cho phân đoạn."""
-        ...
-
-
-class GenerationError(RuntimeError):
-    """A model completed inference without producing usable text."""
 
 
 class _Seq2SeqGenerator:
@@ -57,14 +39,10 @@ class _Seq2SeqGenerator:
                     do_sample=False,
                 )
         except torch.cuda.OutOfMemoryError as exc:
-            raise GenerationError(
-                f"{task_name} exhausted CUDA VRAM; fix: free GPU memory and retry"
-            ) from exc
+            raise RuntimeError(f"{task_name} exhausted CUDA VRAM") from exc
         output = self._tokenizer.batch_decode(token_ids, skip_special_tokens=True)[0].strip()
         if not output:
-            raise GenerationError(
-                f"{task_name} returned empty output; fix: verify the local checkpoint and input text"
-            )
+            raise RuntimeError(f"{task_name} returned empty output")
         return output
 
 

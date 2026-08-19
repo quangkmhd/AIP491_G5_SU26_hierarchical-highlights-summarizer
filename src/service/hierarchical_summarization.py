@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from src.repo.model_loader import ModelLoader, get_model_loader
 from src.repo.seq2seq_inference import (
     BARTphoTopicTitler,
-    ChunkSummarizer,
-    TopicTitler,
     ViT5ChunkSummarizer,
 )
 from src.types.segment import Chunk, SegmentResult
@@ -16,8 +16,8 @@ class HierarchicalSummarizationService:
 
     def __init__(
         self,
-        chunk_summarizer: ChunkSummarizer | None = None,
-        topic_titler: TopicTitler | None = None,
+        chunk_summarizer: Any = None,
+        topic_titler: Any = None,
         loader: ModelLoader | None = None,
     ) -> None:
         """Khởi tạo dịch vụ tóm tắt phân cấp và sinh tiêu đề."""

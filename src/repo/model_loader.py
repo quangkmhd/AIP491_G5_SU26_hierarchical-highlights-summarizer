@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import threading
 from enum import Enum
 from pathlib import Path
@@ -10,7 +9,6 @@ from typing import Any
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-logger = logging.getLogger("src.repo.model_loader")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHUNK_SUMMARIZER_PATH = PROJECT_ROOT / "models" / "vit5-chunk-summarizer-v1"
 TOPIC_TITLER_PATH = (
@@ -21,10 +19,6 @@ TOPIC_TITLER_PATH = (
 class ModelKind(str, Enum):
     CHUNK_SUMMARIZER = "chunk_summarizer"
     TOPIC_TITLER = "topic_titler"
-
-
-class ModelLoadError(RuntimeError):
-    """A local model cannot be loaded with its required runtime contract."""
 
 
 class ModelHandle:
@@ -65,14 +59,11 @@ def _tokenizer_compat_kwargs(path: Path) -> dict[str, Any]:
 def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
     """Nạp mô hình seq2seq và tokenizer từ đĩa lên GPU CUDA."""
     if not torch.cuda.is_available():
-        raise ModelLoadError(
-            "CUDA is unavailable; fix: run the recap service on the configured CUDA host"
-        )
+        raise RuntimeError("CUDA is unavailable; run the recap service on CUDA host")
     missing = sorted(name for name in REQUIRED_FILES[kind] if not (path / name).is_file())
     if missing:
-        raise ModelLoadError(
-            f"{kind.value} checkpoint is incomplete at {path}; missing={missing}; "
-            "fix: copy the complete inference artifact set"
+        raise RuntimeError(
+            f"{kind.value} checkpoint is incomplete at {path}; missing={missing}"
         )
     try:
         tokenizer = AutoTokenizer.from_pretrained(
@@ -85,10 +76,7 @@ def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
         model.to("cuda")
         model.eval()
     except Exception as exc:
-        raise ModelLoadError(
-            f"failed to load {kind.value} from {path}: {exc}; "
-            "fix: verify CUDA memory and the complete local inference artifacts"
-        ) from exc
+        raise RuntimeError(f"failed to load {kind.value} from {path}: {exc}") from exc
     return ModelHandle(kind, model, tokenizer, "cuda", str(path))
 
 
@@ -121,12 +109,6 @@ class ModelLoader:
         with self._cache_lock:
             if kind not in self._cache:
                 self._cache[kind] = _load_seq2seq_handle(kind, path)
-                if kind == ModelKind.CHUNK_SUMMARIZER:
-                    logger.info("Summary Model loaded: ViT5 Chunk Summarizer (ViT5-base fine-tuned) [checkpoint=%s]", path)
-                elif kind == ModelKind.TOPIC_TITLER:
-                    logger.info("Title Model loaded: BARTpho Topic Titler (BARTpho-syllable fine-tuned) [checkpoint=%s]", path)
-                else:
-                    logger.info("model cache store kind=%s checkpoint=%s", kind.value, path)
             return self._cache[kind]
 
     def load_chunk_summarizer(self) -> ModelHandle:
