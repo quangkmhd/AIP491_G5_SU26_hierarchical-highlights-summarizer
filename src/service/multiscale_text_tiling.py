@@ -3,12 +3,16 @@ from __future__ import annotations
 import math
 import numpy as np
 
-# Default parameters match the reference implementation in 16-eval-DTS.
+# Các tham số bán kính mặc định theo công trình nghiên cứu TextTiling đa tỷ lệ.
 DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
 
 
+# ============================================================================
+# BƯỚC 1: XỬ LÝ VĂN BẢN VÀ TÍNH ĐỘ TƯƠNG ĐỒNG COSINE (BAG-OF-WORDS)
+# ============================================================================
+
 def bow(text: str, stopwords: set[str]) -> dict[str, int]:
-    """Tách từ, chuyển về chữ thường và đếm tần suất từ sau khi lọc stop-word."""
+    """Tách từ, chuyển về chữ thường và đếm tần suất từ sau khi lọc stop-words."""
     words = [w.strip(".,!?\"'()[]:;-") for w in text.lower().split()]
     words = [w for w in words if w and w not in stopwords]
     out: dict[str, int] = {}
@@ -30,7 +34,7 @@ def similarity_scores(
     block_size: int,
     stopwords: set[str],
 ) -> list[float]:
-    """Tính độ tương đồng Cosine cho n-1 khoảng trống giữa các khối câu thoại liên tiếp."""
+    """Tính độ tương đồng Cosine giữa các khối câu thoại liên tiếp."""
     bows = [bow(u, stopwords) for u in utterances]
     scores: list[float] = []
     n = len(bows)
@@ -50,8 +54,12 @@ def similarity_scores(
     return scores
 
 
+# ============================================================================
+# BƯỚC 2: TÍNH ĐIỂM ĐỘ SÂU ĐA TỶ LỆ (MULTISCALE DEPTH SCORES)
+# ============================================================================
+
 def depth_scores(scores: list[float], radius: int | None = None) -> np.ndarray:
-    """Tính điểm độ sâu (depth score) tại mỗi khoảng trống theo bán kính đỉnh xung quanh."""
+    """Tính điểm độ sâu (depth score) tại mỗi khoảng hẫng dựa trên bán kính đỉnh xung quanh."""
     depth: list[float] = []
     n = len(scores)
     for i in range(n):
@@ -73,7 +81,7 @@ def depth_scores(scores: list[float], radius: int | None = None) -> np.ndarray:
 
 
 def normalize(arr: np.ndarray, mode: str) -> np.ndarray:
-    """Chuẩn hóa điểm độ sâu theo từng bán kính (z-score hoặc min-max)."""
+    """Chuẩn hóa điểm độ sâu theo z-score hoặc min-max."""
     if len(arr) == 0:
         return arr
     if mode == "zscore":
@@ -105,12 +113,16 @@ def multiscale_depth(
     return stacked.mean(axis=0)
 
 
+# ============================================================================
+# BƯỚC 3: HỢP NHẤT PHÂN ĐOẠN NGẮN VÀ TÌM RANH GIỚI BATCH
+# ============================================================================
+
 def merge_small_segments(
     boundaries: list[int],
     boundary_depths: dict[int, float],
     min_seg: int,
 ) -> list[int]:
-    """Gộp các phân đoạn quá nhỏ vào phân đoạn lân cận có độ sâu nông hơn."""
+    """Gộp các phân đoạn quá nhỏ vào phân đoạn lân cận có độ hẫng nhỏ hơn."""
     result = list(boundaries)
     while True:
         sizes: list[int] = []
@@ -160,7 +172,7 @@ def find_boundaries(
     window_size: int = 40,
     stride: int = 5,
 ) -> tuple[list[int], dict[int, float]]:
-    """Chạy thuật toán Sliding TextTiling để tìm danh sách vị trí ranh giới phân đoạn chủ đề."""
+    """Thực thi thuật toán Sliding TextTiling để tìm vị trí ranh giới phân đoạn chủ đề."""
     n = len(utterances)
     if n <= 1:
         return [n - 1] if n == 1 else [], {}
@@ -236,6 +248,10 @@ def find_boundaries(
     return boundaries, boundary_depths
 
 
+# ============================================================================
+# BƯỚC 4: THUẬT TOÁN STREAMING VÀ ĐỐI TƯỢNG PHỤC VỤ STREAMING SERVICE
+# ============================================================================
+
 class StreamingTextTilingSegmenter:
     """Thuật toán phân đoạn streaming Sliding TextTiling theo cửa sổ trượt."""
 
@@ -252,7 +268,6 @@ class StreamingTextTilingSegmenter:
         stride: int = 5,
         lookahead: int = 20,
     ) -> None:
-        """Khởi tạo thuật toán phân đoạn streaming StreamingTextTilingSegmenter."""
         self.block_size = block_size
         self.radii = list(radii) if radii is not None else list(DEFAULT_RADII)
         self.alpha = alpha
@@ -394,7 +409,7 @@ class StreamingTextTilingSegmenter:
 
 
 class SegmentEvent:
-    """Sự kiện phân đoạn chủ đề SegmentEvent do dịch vụ SlidingTextTilingService phát ra."""
+    """Sự kiện ranh giới phân đoạn chủ đề SegmentEvent."""
 
     def __init__(
         self,
@@ -426,7 +441,6 @@ class MultiscaleTextTilingService:
         window_size: int = 40,
         stride: int = 5,
     ) -> None:
-        """Khởi tạo dịch vụ phân đoạn chủ đề MultiscaleTextTilingService."""
         self.block_size = block_size
         self.radii = radii if radii is not None else [3, 5, 10, 15, 20]
         self.alpha = alpha
