@@ -60,10 +60,6 @@ class AudioPreprocessor:
         self.sample_rate = sample_rate
         self.chunk_samples = round(sample_rate * chunk_seconds)
         self.overlap_samples = round(sample_rate * overlap_seconds)
-        if self.chunk_samples <= 0:
-            raise ValueError("chunk duration must be positive")
-        if self.overlap_samples < 0 or self.overlap_samples >= self.chunk_samples:
-            raise ValueError("overlap must be non-negative and shorter than a chunk")
 
         self._buffer = np.empty(0, dtype=np.float32)
         self._emitted_samples = 0
@@ -74,7 +70,7 @@ class AudioPreprocessor:
         """Accept resampled PCM and emit every complete enhanced chunk."""
         if self._flushed:
             raise RuntimeError("audio preprocessor was already flushed")
-        pcm = self._validate(samples)
+        pcm = np.asarray(samples, dtype=np.float32)
         if pcm.size:
             self._buffer = np.concatenate((self._buffer, pcm))
 
@@ -113,10 +109,6 @@ class AudioPreprocessor:
         started = time.perf_counter()
         enhanced = np.asarray(self.enhancer.enhance(window.copy()), dtype=np.float32)
         elapsed_ms = (time.perf_counter() - started) * 1000
-        if enhanced.ndim != 1 or len(enhanced) != len(window):
-            raise ValueError("enhancer must preserve mono shape and sample count")
-        if not np.isfinite(enhanced).all():
-            raise ValueError("enhancer returned non-finite audio")
 
         samples = enhanced[trim_left:].copy()
         start = self._emitted_samples
@@ -133,14 +125,6 @@ class AudioPreprocessor:
             clipped=bool(np.any(magnitude >= 0.999)),
             preprocessing_ms=elapsed_ms,
         )
-
-    def _validate(self, samples: np.ndarray) -> np.ndarray:
-        pcm = np.asarray(samples)
-        if pcm.ndim != 1 or pcm.dtype != np.float32:
-            raise ValueError("preprocessor expects mono Float32 PCM")
-        if not np.isfinite(pcm).all():
-            raise ValueError("preprocessor expects finite PCM")
-        return pcm
 
 
 class DeepFilterNetEnhancer:
