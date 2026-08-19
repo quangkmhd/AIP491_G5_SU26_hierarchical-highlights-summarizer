@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import logging
 import time
 from typing import Any
 
 import numpy as np
-
-logger = logging.getLogger("src.service.diarization_engine")
 
 
 class SherpaSpeakerEmbedder:
@@ -24,27 +21,18 @@ class SherpaSpeakerEmbedder:
 
 
 class SpeakerProfile:
-    def __init__(
-        self,
-        speaker: str,
-        centroid: np.ndarray,
-        observations: int,
-        reference_audio: np.ndarray,
-    ) -> None:
+    def __init__(self, speaker: str, centroid: np.ndarray, observations: int = 1) -> None:
         self.speaker = speaker
         self.centroid = centroid
         self.observations = observations
-        self.reference_audio = reference_audio
 
-    def update(self, embedding: np.ndarray, reference_audio: np.ndarray) -> None:
-        """Update a bounded running centroid so old meetings do not freeze a profile."""
+    def update(self, embedding: np.ndarray) -> None:
         weight = min(self.observations, 9)
         merged = (self.centroid * weight + embedding) / (weight + 1)
         norm = float(np.linalg.norm(merged))
         if norm > 1e-6:
-            self.centroid = (merged / norm).astype(np.float32, copy=False)
+            self.centroid = (merged / norm).astype(np.float32)
         self.observations += 1
-        self.reference_audio = reference_audio.copy()
 
 
 class DiarizedStream:
@@ -55,12 +43,7 @@ class DiarizedStream:
 
 
 class DiarizationResult:
-    def __init__(
-        self,
-        streams: tuple[DiarizedStream, ...],
-        has_overlap: bool,
-        latency_ms: float,
-    ) -> None:
+    def __init__(self, streams: tuple[DiarizedStream, ...], has_overlap: bool, latency_ms: float) -> None:
         self.streams = streams
         self.has_overlap = has_overlap
         self.latency_ms = latency_ms
@@ -120,42 +103,35 @@ class DiarizationEngine:
             return DiarizedStream("Unknown Speaker", output_audio.copy())
 
         matched = self._best_match(embedding)
-        good_reference = (
+        good_ref = (
             speech_duration >= self.profile_min_duration
             and vad_confidence >= self.profile_min_confidence
         )
         if matched is None:
-            if not good_reference:
+            if not good_ref:
                 return DiarizedStream("Unknown Speaker", output_audio.copy())
             matched = SpeakerProfile(
                 speaker=f"Speaker {len(self.profiles) + 1:02d}",
                 centroid=embedding,
-                observations=1,
-                reference_audio=embedding_audio.copy(),
             )
             self.profiles.append(matched)
-        elif good_reference:
-            matched.update(embedding, embedding_audio)
+        elif good_ref:
+            matched.update(embedding)
         return DiarizedStream(matched.speaker, output_audio.copy())
 
     def _best_match(self, embedding: np.ndarray) -> SpeakerProfile | None:
-        best: SpeakerProfile | None = None
-        best_score = -1.0
-        for profile in self.profiles:
-            score = float(np.dot(embedding, profile.centroid))
-            if score > best_score:
-                best = profile
-                best_score = score
-        return best if best_score >= self.matching_threshold else None
+        if not self.profiles:
+            return None
+        scores = [(float(np.dot(embedding, p.centroid)), p) for p in self.profiles]
+        best_score, best_profile = max(scores, key=lambda x: x[0])
+        return best_profile if best_score >= self.matching_threshold else None
 
     def _normalize(self, embedding: np.ndarray) -> np.ndarray | None:
         vector = np.asarray(embedding, dtype=np.float32).reshape(-1)
         if not len(vector) or not np.isfinite(vector).all():
             return None
         norm = float(np.linalg.norm(vector))
-        if norm <= 1e-6:
-            return None
-        return (vector / norm).astype(np.float32, copy=False)
+        return (vector / norm).astype(np.float32) if norm > 1e-6 else None
 
 
 __all__ = [
