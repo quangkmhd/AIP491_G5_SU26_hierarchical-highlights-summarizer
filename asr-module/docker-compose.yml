@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  vietasr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: asr-module-service
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=VietASR Hosting Service
+      - LOG_LEVEL=INFO
+      - HOST=0.0.0.0
+      - PORT=8000
+      - NUM_THREADS=4
+      - DECODING_METHOD=greedy_search
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,18 +1,16 @@
 from __future__ import annotations
-
 import argparse
 import json
 import sys
 from pathlib import Path
 from typing import TextIO
-
 from src.service import StreamingOrchestrator
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
 
 
 def _load_transcript(file: TextIO) -> DialogueTranscript:
-    """Đọc dữ liệu bản ghi từ file JSON và chuyển đổi thành đối tượng DialogueTranscript."""
+    """Load transcript data from a JSON file and convert into a DialogueTranscript object."""
     raw = json.load(file)
     if isinstance(raw, dict):
         raw = [raw]
@@ -34,7 +32,7 @@ def _load_transcript(file: TextIO) -> DialogueTranscript:
 
 
 def cmd_process(args: argparse.Namespace) -> int:
-    """Thực thi lệnh xử lý batch cho file bản ghi cuộc họp và in ra kết quả."""
+    """Execute batch processing for a meeting transcript file and output results."""
     transcript = _load_transcript(args.file)
     summary = StreamingOrchestrator().process_batch(transcript)
     output = summary.model_dump(mode="json")
@@ -51,7 +49,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 
 
 def cmd_stream(args: argparse.Namespace) -> int:
-    """Thực thi lệnh xử lý stream phát sự kiện trực tiếp cho bản ghi cuộc họp."""
+    """Execute stream processing to emit real-time events for a meeting transcript."""
     transcript = _load_transcript(args.file)
     orchestrator = StreamingOrchestrator()
     seg_count = 0
@@ -65,10 +63,10 @@ def cmd_stream(args: argparse.Namespace) -> int:
 
         if getattr(args, "pretty", False):
             if event.type.value == "chunk-closed":
-                print(f"Tóm tắt chunk: {event.data.get('rolling_summary')}")
+                print(f"Chunk Summary: {event.data.get('rolling_summary')}")
                 sys.stdout.flush()
             elif event.type.value == "title-emitted":
-                print(f"Chủ đề: {event.data.get('title')}\n" + "-" * 40)
+                print(f"Topic: {event.data.get('title')}\n" + "-" * 40)
                 sys.stdout.flush()
         else:
             print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
@@ -84,7 +82,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Xây dựng và cấu hình bộ đọc tham số dòng lệnh ArgumentParser."""
+    """Build and configure the ArgumentParser for command-line arguments."""
     parser = argparse.ArgumentParser(prog="src.runtime.cli")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -103,7 +101,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Điểm nhập chính (entry point) để thực thi CLI runner."""
+    """Main entry point to execute the CLI runner."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

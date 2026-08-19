@@ -11,7 +11,7 @@ from .utterance import Utterance
 
 
 class DialogueTranscript(BaseModel):
-    """Bản ghi cuộc họp gồm danh sách thứ tự các câu thoại Utterance."""
+    """Meeting transcript containing an ordered list of Utterance objects."""
 
     utterances: list[Utterance] = Field(
         ...,
@@ -41,5 +41,5 @@ class DialogueTranscript(BaseModel):
         return len(self.utterances)
 
     def get_utterance_pairs(self) -> Iterator[tuple[Utterance, Utterance]]:
-        """Trả về cặp (câu thoại trước, câu thoại sau) liên tiếp."""
+        """Return consecutive (previous_utterance, next_utterance) pairs."""
         return pairwise(self.utterances)

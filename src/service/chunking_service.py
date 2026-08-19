@@ -5,12 +5,12 @@ from src.types.utterance import Utterance
 
 
 class ChunkingService:
-    """Dịch vụ chia nhỏ các câu thoại thành các khối Chunk (mặc định tối đa 8 câu/khối)."""
+    """Service to split utterances into Chunk blocks (default max 8 utterances/chunk)."""
 
     CHUNK_SIZE: int = 8
 
     def chunk(self, utterances: list[Utterance]) -> list[Chunk]:
-        """Phân chia danh sách câu thoại thành các khối Chunk (tối đa 8 câu/khối)."""
+        """Split a list of utterances into Chunk blocks (max 8 utterances/chunk)."""
         if not utterances:
             raise ValueError("Cannot chunk empty utterance list")
         return [
@@ -19,7 +19,7 @@ class ChunkingService:
         ]
 
     def chunk_indices(self, n_utterances: int) -> list[tuple[int, int]]:
-        """Tính toán khoảng chỉ số (bắt đầu, kết thúc) cho từng khối câu thoại."""
+        """Calculate (start_index, end_index) index ranges for each chunk block."""
         if n_utterances <= 0:
             raise ValueError(f"n_utterances must be > 0; got {n_utterances}")
         return [

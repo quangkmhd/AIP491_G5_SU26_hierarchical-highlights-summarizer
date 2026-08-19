@@ -12,7 +12,7 @@ from src.types.utterance import Utterance
 
 
 class HierarchicalSummarizationService:
-    """Dịch vụ tóm tắt phân cấp gồm: Tóm tắt khối (ViT5) & Sinh tiêu đề chương (BARTpho)."""
+    """Hierarchical summarization service: Chunk summarization (ViT5) & Chapter titling (BARTpho)."""
 
     TITLE_INPUT_MAX_CHARS: int = 1500
 
@@ -22,7 +22,7 @@ class HierarchicalSummarizationService:
         topic_titler: Any = None,
         loader: ModelLoader | None = None,
     ) -> None:
-        """Khởi tạo 2 mô hình ViT5 tóm tắt và BARTpho sinh tiêu đề."""
+        """Initialize ViT5 chunk summarizer and BARTpho topic titler models."""
         model_loader = loader or ModelLoader()
         self._chunk_summarizer = chunk_summarizer or ViT5ChunkSummarizer(
             model_loader.load_chunk_summarizer()
@@ -32,17 +32,17 @@ class HierarchicalSummarizationService:
         )
 
     def _format_utterances(self, utterances: list[Utterance]) -> str:
-        """Định dạng danh sách câu thoại dạng 'Người nói: Nội dung' cho mô hình tóm tắt."""
+        """Format a list of utterances into 'Speaker: Content' lines for summarization model input."""
         return "\n".join(f"{u.speaker}: {u.text}" for u in utterances)
 
     def abstractive(self, chunk: Chunk) -> str:
-        """Sinh câu tóm tắt trừu tượng cho một khối câu thoại Chunk bằng ViT5."""
+        """Generate an abstractive summary for a Chunk block using ViT5."""
         if not chunk.utterances:
             return ""
         return self._chunk_summarizer.summarize(self._format_utterances(chunk.utterances))
 
     def title(self, segment: SegmentResult) -> str:
-        """Sinh tiêu đề chương từ các câu tóm tắt khối của phân đoạn bằng BARTpho."""
+        """Generate a chapter title from chunk summaries of a segment using BARTpho."""
         summaries = [
             c.rolling_summary.strip()
             for c in segment.chunks
@@ -54,5 +54,5 @@ class HierarchicalSummarizationService:
         return self._topic_titler.generate_title(joined[-self.TITLE_INPUT_MAX_CHARS:])
 
     def abstractive_utterances(self, utterances: list[Utterance]) -> str:
-        """Tóm tắt trực tiếp danh sách câu thoại Utterance."""
+        """Summarize a list of Utterance objects directly."""
         return self.abstractive(Chunk(utterances=utterances))

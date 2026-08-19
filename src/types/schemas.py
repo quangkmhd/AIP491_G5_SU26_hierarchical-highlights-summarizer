@@ -44,7 +44,7 @@ class TranscriptIngestionRequest(BaseModel):
     )
 
     def materialize(self) -> DialogueTranscript:
-        """Chuyển đổi yêu cầu nạp bản ghi thành đối tượng DialogueTranscript."""
+        """Convert ingestion request into a DialogueTranscript object."""
         has_utterances = bool(self.utterances)
         has_flat = bool(self.flat_texts)
         if has_utterances and has_flat:

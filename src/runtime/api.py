@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 import json
-
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from pathlib import Path
+from typing import Any
+from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
+from src.repo.model_loader import BARTPHO_MODEL_PATH, PROJECT_ROOT, VIT5_MODEL_PATH
 from src.service import StreamingOrchestrator
 from src.types.schemas import TranscriptIngestionRequest
 
@@ -13,11 +12,11 @@ from src.types.schemas import TranscriptIngestionRequest
 def create_app(
     orchestrator: StreamingOrchestrator | None = None,
 ) -> FastAPI:
-    """Khởi tạo ứng dụng FastAPI Web Server phục vụ dịch vụ Tóm tắt & Phân đoạn Văn bản."""
+    """Initialize FastAPI Web Server for Text Summarization & Segmentation service."""
     app = FastAPI(
         title="Hierarchical Text Summarization Service",
         version="0.1.0",
-        description="Dịch vụ phân đoạn chủ đề Multiscale TextTiling và Tóm tắt phân cấp ViT5 & BARTpho",
+        description="Multiscale TextTiling topic segmentation and ViT5 & BARTpho hierarchical summarization service",
     )
 
     app.add_middleware(
@@ -30,16 +29,53 @@ def create_app(
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
 
     @app.get("/health")
-    def health_check() -> dict[str, str]:
-        """Endpoint kiểm tra sức khỏe của dịch vụ."""
+    def health_check(response: Response) -> dict[str, Any]:
+        """Health check endpoint verifying the presence of local model checkpoints."""
+        vit5_exists = (VIT5_MODEL_PATH / "config.json").is_file()
+        bartpho_exists = (BARTPHO_MODEL_PATH / "config.json").is_file()
+
+        summarizer = getattr(app.state.orchestrator, "summarizer", None)
+        vit5_loaded = (
+            summarizer is not None
+            and getattr(summarizer, "_chunk_summarizer", None) is not None
+            and getattr(summarizer._chunk_summarizer, "handle", None) is not None
+        )
+        bartpho_loaded = (
+            summarizer is not None
+            and getattr(summarizer, "_topic_titler", None) is not None
+            and getattr(summarizer._topic_titler, "handle", None) is not None
+        )
+
+        is_healthy = vit5_exists and bartpho_exists
+        if not is_healthy:
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+        def _to_rel_path(p: Path) -> str:
+            try:
+                return p.relative_to(PROJECT_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
         return {
-            "status": "healthy",
+            "status": "healthy" if is_healthy else "unhealthy",
             "service": "Text Summarization & Topic Segmentation",
+            "models": {
+                "vit5_chunk_summarizer": {
+                    "path": _to_rel_path(VIT5_MODEL_PATH),
+                    "exists": vit5_exists,
+                    "loaded": vit5_loaded,
+                },
+                "bartpho_topic_titler": {
+                    "path": _to_rel_path(BARTPHO_MODEL_PATH),
+                    "exists": bartpho_exists,
+                    "loaded": bartpho_loaded,
+                },
+            },
         }
 
     @app.post("/api/v1/meetings/process")
     async def process_meeting(payload: TranscriptIngestionRequest) -> JSONResponse:
-        """Endpoint xử lý tóm tắt văn bản dạng Batch đồng bộ."""
+        """Synchronous batch meeting transcript summarization endpoint."""
         try:
             transcript = payload.materialize()
         except ValueError as e:
@@ -50,7 +86,7 @@ def create_app(
 
     @app.websocket("/ws")
     async def websocket_text_summarization(websocket: WebSocket) -> None:
-        """Endpoint WebSocket tiếp nhận câu thoại real-time và trả về các sự kiện tóm tắt."""
+        """WebSocket endpoint for real-time utterance ingestion and summarization event streaming."""
         await websocket.accept()
         ws_orchestrator = app.state.orchestrator
         ws_orchestrator.reset_incremental()

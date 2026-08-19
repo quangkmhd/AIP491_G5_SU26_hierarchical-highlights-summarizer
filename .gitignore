@@ -42,8 +42,12 @@ dialog_datasets/
 data/
 bamibert-1dod-vi-v1/
 
-# Local inference checkpoints (copied by the operator; never committed)
-models/
+# Local inference checkpoints & model weight binaries (never committed to Git due to size limits)
+/models/
+*.onnx
+*.safetensors
+*.bin
+*.pt
 
 # Frontend build artifacts
 frontend/node_modules/
@@ -52,5 +56,5 @@ frontend/dist/
 # Obsidian settings
 report_compilation/.obsidian/
 Source_Code/
-Source_Code.zip
+*.zip
 Source_Code_Summary/

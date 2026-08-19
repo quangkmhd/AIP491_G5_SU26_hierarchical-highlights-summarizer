@@ -16,7 +16,7 @@ from src.types.utterance import Utterance
 
 
 class SummarizationEventType(str, Enum):
-    """5 loại sự kiện chính trong luồng pipeline tóm tắt hội thoại."""
+    """5 main event types in the meeting summarization pipeline."""
 
     UTTERANCE_ACCEPTED = "utterance-accepted"
     SEGMENT_CLOSED = "segment-closed"
@@ -26,7 +26,7 @@ class SummarizationEventType(str, Enum):
 
 
 class OrchestratorEvent:
-    """Đối tượng chứa thông tin sự kiện trong luồng tóm tắt."""
+    """Container for event details in the summarization flow."""
 
     def __init__(self, type: str, data: dict[str, Any] | None = None) -> None:
         self.type = type
@@ -34,7 +34,7 @@ class OrchestratorEvent:
 
 
 class StreamingOrchestrator:
-    """Bộ điều phối liên kết toàn bộ pipeline phân đoạn chủ đề và tóm tắt phân cấp."""
+    """Orchestrator linking topic segmentation and hierarchical summarization pipelines."""
 
     def __init__(
         self,
@@ -42,7 +42,7 @@ class StreamingOrchestrator:
         chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
-        """Khởi tạo các dịch vụ phân đoạn, chia khối và tóm tắt."""
+        """Initialize segmentation, chunking, and summarization services."""
         self.tiler = tiler or MultiscaleTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
@@ -53,7 +53,7 @@ class StreamingOrchestrator:
         seg_ranges: list[tuple[int, int]],
         segments_target: list[SegmentResult],
     ) -> Iterator[OrchestratorEvent]:
-        """Tóm tắt các khối thoại và phát các sự kiện CHUNK_CLOSED, SEGMENT_CLOSED, TITLE_EMITTED."""
+        """Summarize dialogue chunks and emit CHUNK_CLOSED, SEGMENT_CLOSED, and TITLE_EMITTED events."""
         for start_utt, end_utt in seg_ranges:
             seg_idx = len(segments_target)
             segment_utts = [u for u in all_utterances if start_utt <= u.index <= end_utt] or all_utterances[start_utt : end_utt + 1]
@@ -102,7 +102,7 @@ class StreamingOrchestrator:
     def process_stream(
         self, transcript: DialogueTranscript
     ) -> Iterator[OrchestratorEvent]:
-        """Xử lý bản ghi hội thoại và phát ra các sự kiện theo luồng."""
+        """Process meeting transcript and emit events in a stream."""
         t0 = time.perf_counter()
         meeting_id = uuid4()
         if not transcript.utterances:
@@ -110,19 +110,19 @@ class StreamingOrchestrator:
 
         all_utterances = transcript.utterances
 
-        # 1. Phát sự kiện tiếp nhận câu thoại
+        # 1. Emit utterance accepted events
         for utt in all_utterances[1:]:
             yield OrchestratorEvent(
                 type=SummarizationEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
             )
 
-        # 2. Phân đoạn và tóm tắt
+        # 2. Segmentation and summarization
         segments: list[SegmentResult] = []
         seg_ranges = self.tiler.process([u.text for u in all_utterances])
         yield from self._build_segment_events(all_utterances, seg_ranges, segments)
 
-        # 3. Hoàn tất cuộc họp và đóng gói kết quả
+        # 3. Finalize meeting and package results
         summary = HierarchicalSummary(
             meeting_id=meeting_id,
             segments=segments,
@@ -137,16 +137,16 @@ class StreamingOrchestrator:
     def process_batch(
         self, transcript: DialogueTranscript
     ) -> HierarchicalSummary:
-        """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp."""
+        """Process an entire meeting transcript in batch mode and return hierarchical summary results."""
         for event in self.process_stream(transcript):
             if event.type == SummarizationEventType.MEETING_COMPLETED:
                 return HierarchicalSummary.model_validate(event.data["hierarchical_summary"])
         raise ValueError("Failed to process meeting batch")
 
-    # --- Giao diện xử lý tăng tiến / streaming real-time ---
+    # --- Incremental / real-time streaming processing interface ---
 
     def reset_incremental(self) -> None:
-        """Đặt lại trạng thái xử lý tăng tiến cho một phiên làm việc streaming mới."""
+        """Reset incremental processing state for a new streaming session."""
         self._incremental_utterances: list[Utterance] = []
         self._incremental_segments: list[SegmentResult] = []
         self._incremental_meeting_id = uuid4()
@@ -156,7 +156,7 @@ class StreamingOrchestrator:
     def accept_utterance(
         self, text: str, speaker: str, index: int,
     ) -> Iterator[OrchestratorEvent]:
-        """Tiếp nhận một câu thoại real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
+        """Accept a real-time utterance and push into segmentation/summarization pipeline."""
         if not hasattr(self, "_incremental_utterances"):
             self.reset_incremental()
 
@@ -175,7 +175,7 @@ class StreamingOrchestrator:
             )
 
     def flush_and_finalize(self) -> Iterator[OrchestratorEvent]:
-        """Xả nốt các câu thoại cuối cùng và phát ra sự kiện hoàn thành cuộc họp."""
+        """Flush remaining utterances and emit meeting completed event."""
         if not hasattr(self, "_incremental_utterances") or not self._incremental_utterances:
             return
 

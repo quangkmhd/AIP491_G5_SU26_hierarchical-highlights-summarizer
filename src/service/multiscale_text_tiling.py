@@ -7,7 +7,7 @@ DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
 
 
 def bow(text: str, stopwords: set[str]) -> dict[str, int]:
-    """Tách từ, chuyển về chữ thường và đếm tần suất từ sau khi lọc stop-words."""
+    """Tokenize, lowercase, and count word frequencies after filtering stop-words."""
     words = [w.strip(".,!?\"'()[]:;-") for w in text.lower().split()]
     words = [w for w in words if w and w not in stopwords]
     out: dict[str, int] = {}
@@ -17,7 +17,7 @@ def bow(text: str, stopwords: set[str]) -> dict[str, int]:
 
 
 def cosine(a: dict[str, int], b: dict[str, int]) -> float:
-    """Tính độ tương đồng Cosine giữa hai từ điển Bag-of-Words."""
+    """Calculate Cosine similarity between two Bag-of-Words dictionaries."""
     inter = set(a) & set(b)
     num = sum(a[w] * b[w] for w in inter)
     den = math.sqrt(sum(v ** 2 for v in a.values())) * math.sqrt(sum(v ** 2 for v in b.values()))
@@ -29,7 +29,7 @@ def similarity_scores(
     block_size: int,
     stopwords: set[str],
 ) -> list[float]:
-    """Tính độ tương đồng Cosine giữa các khối câu thoại liên tiếp."""
+    """Calculate Cosine similarity between consecutive utterance block pairs."""
     bows = [bow(u, stopwords) for u in utterances]
     scores: list[float] = []
     n = len(bows)
@@ -50,7 +50,7 @@ def similarity_scores(
 
 
 def depth_scores(scores: list[float], radius: int | None = None) -> np.ndarray:
-    """Tính điểm độ sâu (depth score) tại mỗi khoảng hẫng dựa trên bán kính đỉnh xung quanh."""
+    """Calculate depth scores at each gap based on surrounding peak radii."""
     depth: list[float] = []
     n = len(scores)
     for i in range(n):
@@ -72,7 +72,7 @@ def depth_scores(scores: list[float], radius: int | None = None) -> np.ndarray:
 
 
 def normalize(arr: np.ndarray, mode: str) -> np.ndarray:
-    """Chuẩn hóa điểm độ sâu theo z-score hoặc min-max."""
+    """Normalize depth scores using z-score or min-max normalization."""
     if len(arr) == 0:
         return arr
     if mode == "zscore":
@@ -94,7 +94,7 @@ def multiscale_depth(
     agg: str = "mean",
     normalize_mode: str = "zscore",
 ) -> np.ndarray:
-    """Tổng hợp điểm độ sâu đa tỷ lệ từ nhiều bán kính khác nhau."""
+    """Aggregate multiscale depth scores across multiple radii."""
     all_depths = [normalize(depth_scores(scores, radius=r), normalize_mode) for r in radii]
     stacked = np.stack(all_depths)
     if agg == "max":
@@ -109,7 +109,7 @@ def merge_small_segments(
     boundary_depths: dict[int, float],
     min_seg: int,
 ) -> list[int]:
-    """Gộp các phân đoạn quá nhỏ vào phân đoạn lân cận có độ hẫng nhỏ hơn."""
+    """Merge small segments into neighboring segments with smaller depth drops."""
     result = list(boundaries)
     while True:
         sizes: list[int] = []
@@ -159,7 +159,7 @@ def find_boundaries(
     window_size: int = 40,
     stride: int = 5,
 ) -> tuple[list[int], dict[int, float]]:
-    """Thực thi thuật toán Sliding TextTiling để tìm vị trí ranh giới phân đoạn chủ đề."""
+    """Execute Sliding TextTiling algorithm to find topic segment boundary positions."""
     n = len(utterances)
     if n <= 1:
         return [n - 1] if n == 1 else [], {}
@@ -236,7 +236,7 @@ def find_boundaries(
 
 
 class StreamingTextTilingSegmenter:
-    """Thuật toán phân đoạn streaming Sliding TextTiling theo cửa sổ trượt."""
+    """Sliding window TextTiling streaming segmentation algorithm."""
 
     def __init__(
         self,
@@ -264,7 +264,7 @@ class StreamingTextTilingSegmenter:
         self.reset()
 
     def reset(self) -> None:
-        """Đặt lại toàn bộ bộ đệm và trạng thái phân đoạn streaming về ban đầu."""
+        """Reset streaming buffers and segmentation state to initial values."""
         self.buffer: list[str] = []
         self.next_window_start: int = 0
         self.committed_boundaries: list[int] = []
@@ -273,7 +273,7 @@ class StreamingTextTilingSegmenter:
         self.last_committed_index: int = -1
 
     def update(self, utterance: str) -> list[tuple[int, float]]:
-        """Nạp một câu thoại mới, đánh giá cửa sổ trượt và trả về danh sách ranh giới đã chốt."""
+        """Ingest a new utterance, evaluate sliding windows, and return committed boundaries."""
         self.buffer.append(utterance)
         n = len(self.buffer)
         W = self.window_size
@@ -331,7 +331,7 @@ class StreamingTextTilingSegmenter:
         return newly_committed
 
     def flush(self) -> list[tuple[int, float]]:
-        """Xử lý nốt các câu thoại trong bộ đệm đuôi và chốt ranh giới cuối cuộc họp."""
+        """Flush remaining utterances in tail buffer and commit final meeting boundary."""
         n = len(self.buffer)
         newly_committed: list[tuple[int, float]] = []
         if n == 0:
@@ -392,7 +392,7 @@ class StreamingTextTilingSegmenter:
 
 
 class MultiscaleTextTilingService:
-    """Dịch vụ phân đoạn chủ đề đa tỷ lệ MultiscaleTextTilingService."""
+    """MultiscaleTextTilingService topic segmentation service."""
 
     def __init__(
         self,
@@ -436,12 +436,12 @@ class MultiscaleTextTilingService:
         self.reset()
 
     def reset(self) -> None:
-        """Đặt lại trạng thái streaming của dịch vụ về ban đầu."""
+        """Reset streaming service state to initial values."""
         self._streamer.reset()
         self._last_emitted_boundary: int = -1
 
     def update(self, utterance: str) -> list[tuple[int, int]]:
-        """Tiếp nhận một câu thoại mới ở chế độ streaming và trả về danh sách phạm vi (start, end) phân đoạn nếu có."""
+        """Accept a new utterance in streaming mode and return (start, end) segment ranges if committed."""
         committed = self._streamer.update(utterance)
         ranges: list[tuple[int, int]] = []
         for b, _ in committed:
@@ -450,7 +450,7 @@ class MultiscaleTextTilingService:
         return ranges
 
     def flush(self) -> list[tuple[int, int]]:
-        """Xả bộ đệm câu thoại còn lại ở cuối cuộc họp để chốt phạm vi phân đoạn cuối."""
+        """Flush remaining utterance buffer at the end of a meeting to finalize segment ranges."""
         committed = self._streamer.flush()
         ranges: list[tuple[int, int]] = []
         for b, _ in committed:
@@ -459,7 +459,33 @@ class MultiscaleTextTilingService:
         return ranges
 
     def process(self, utterances: list[str]) -> list[tuple[int, int]]:
-        """Xử lý danh sách câu thoại dạng batch và trả về danh sách phạm vi (start, end) các phân đoạn."""
+        """Process a list of utterances in batch mode and return segment index ranges (start, end)."""
+        self.reset()
+        n = len(utterances)
+        if n == 0:
+            return []
+        if n == 1:
+            return [(0, 0)]
+
+        boundaries, _ = find_boundaries(
+            utterances,
+            block_size=self.block_size,
+            radii=self.radii,
+            alpha=self.alpha,
+            stopwords=self._stopwords,
+            agg=self.agg,
+            normalize_mode=self.normalize,
+            min_segment_ratio=self.min_segment_ratio,
+            window_size=self.window_size,
+            stride=self.stride,
+        )
+
+        ranges: list[tuple[int, int]] = []
+        prev = -1
+        for b in boundaries:
+            ranges.append((prev + 1, b))
+            prev = b
+        return ranges
         self.reset()
         n = len(utterances)
         if n == 0:
