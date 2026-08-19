@@ -15,7 +15,6 @@ from .audio_preprocessor import AudioPreprocessor, ProcessedAudioChunk
 from .diarization_engine import (
     DiarizationEngine,
     DiarizationResult,
-    SherpaSpeakerEmbedder,
 )
 
 
@@ -287,7 +286,7 @@ class DefaultFarFieldSessionFactory:
             int(getattr(self.asr, "vad_window_size")),
         )
         diarizer = DiarizationEngine(
-            embedder=SherpaSpeakerEmbedder(getattr(self.asr, "embedding_extractor")),
+            embedder=getattr(self.asr, "embedding_extractor"),
             matching_threshold=float(getattr(self.config, "speaker_similarity_threshold")),
         )
         return FarFieldSession(
