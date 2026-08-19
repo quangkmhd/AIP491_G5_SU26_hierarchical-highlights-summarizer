@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from .model_loader import (
-    CHUNK_SUMMARIZER_PATH,
-    TOPIC_TITLER_PATH,
+    BARTPHO_MODEL_PATH,
+    VIT5_MODEL_PATH,
     ModelHandle,
-    ModelKind,
     ModelLoader,
     get_model_loader,
-    reset_model_loader,
 )
 from .seq2seq_inference import (
     BARTphoTopicTitler,
@@ -17,11 +15,9 @@ from .seq2seq_inference import (
 __all__ = [
     "ModelLoader",
     "get_model_loader",
-    "reset_model_loader",
     "ModelHandle",
-    "ModelKind",
-    "CHUNK_SUMMARIZER_PATH",
-    "TOPIC_TITLER_PATH",
+    "VIT5_MODEL_PATH",
+    "BARTPHO_MODEL_PATH",
     "ViT5ChunkSummarizer",
     "BARTphoTopicTitler",
 ]

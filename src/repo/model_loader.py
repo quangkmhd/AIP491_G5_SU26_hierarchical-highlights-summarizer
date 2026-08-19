@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-import threading
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -10,111 +7,52 @@ import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CHUNK_SUMMARIZER_PATH = PROJECT_ROOT / "models" / "vit5-chunk-summarizer-v1"
-TOPIC_TITLER_PATH = (
-    PROJECT_ROOT / "models" / "bartpho-topic-titler-v2" / "checkpoint-230"
-)
-
-
-class ModelKind(str, Enum):
-    CHUNK_SUMMARIZER = "chunk_summarizer"
-    TOPIC_TITLER = "topic_titler"
+VIT5_MODEL_PATH = PROJECT_ROOT / "models" / "vit5-chunk-summarizer-v1"
+BARTPHO_MODEL_PATH = PROJECT_ROOT / "models" / "bartpho-topic-titler-v2" / "checkpoint-230"
 
 
 class ModelHandle:
-    def __init__(
-        self,
-        kind: ModelKind,
-        model: Any,
-        tokenizer: Any,
-        device: str,
-        checkpoint_path: str,
-    ) -> None:
-        self.kind = kind
+    """Đối tượng chứa thông tin mô hình PyTorch và Tokenizer đã được nạp."""
+
+    def __init__(self, model: Any, tokenizer: Any, device: str) -> None:
         self.model = model
         self.tokenizer = tokenizer
         self.device = device
-        self.checkpoint_path = checkpoint_path
 
 
-REQUIRED_FILES = {
-    ModelKind.CHUNK_SUMMARIZER: {
-        "config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json",
-    },
-    ModelKind.TOPIC_TITLER: {
-        "config.json", "model.safetensors", "dict.txt", "sentencepiece.bpe.model", "tokenizer_config.json",
-    },
-}
-
-
-def _tokenizer_compat_kwargs(path: Path) -> dict[str, Any]:
-    """Chuẩn hóa tham số cấu hình tokenizer cũ cho tương thích với Transformers mới."""
-    config_path = path / "tokenizer_config.json"
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    if isinstance(config.get("extra_special_tokens"), list):
-        return {"extra_special_tokens": {}}
-    return {}
-
-
-def _load_seq2seq_handle(kind: ModelKind, path: Path) -> ModelHandle:
-    """Nạp mô hình seq2seq và tokenizer từ đĩa lên GPU CUDA."""
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is unavailable; run the recap service on CUDA host")
-    missing = sorted(name for name in REQUIRED_FILES[kind] if not (path / name).is_file())
-    if missing:
-        raise RuntimeError(
-            f"{kind.value} checkpoint is incomplete at {path}; missing={missing}"
-        )
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(
-            path,
-            local_files_only=True,
-            use_fast=True,
-            **_tokenizer_compat_kwargs(path),
-        )
-        model = AutoModelForSeq2SeqLM.from_pretrained(path, local_files_only=True)
-        model.to("cuda")
-        model.eval()
-    except Exception as exc:
-        raise RuntimeError(f"failed to load {kind.value} from {path}: {exc}") from exc
-    return ModelHandle(kind, model, tokenizer, "cuda", str(path))
-
-
-_global_loader_instance: ModelLoader | None = None
-_global_loader_lock: threading.Lock = threading.Lock()
-
-
-def get_model_loader() -> ModelLoader:
-    global _global_loader_instance
-    with _global_loader_lock:
-        if _global_loader_instance is None:
-            _global_loader_instance = ModelLoader()
-        return _global_loader_instance
-
-
-def reset_model_loader() -> None:
-    global _global_loader_instance
-    with _global_loader_lock:
-        _global_loader_instance = None
+def load_seq2seq_model(path: Path) -> ModelHandle:
+    """Nạp mô hình Transformer Seq2Seq và Tokenizer từ đường dẫn đĩa cục bộ."""
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True)
+    model = AutoModelForSeq2SeqLM.from_pretrained(path, local_files_only=True)
+    model.to(device)
+    model.eval()
+    return ModelHandle(model=model, tokenizer=tokenizer, device=device)
 
 
 class ModelLoader:
-    def __init__(self) -> None:
-        """Khởi tạo đối tượng nạp mô hình ModelLoader và bộ nhớ đệm cache."""
-        self._cache: dict[ModelKind, ModelHandle] = {}
-        self._cache_lock = threading.Lock()
+    """Quản lý nạp và lưu cache 2 mô hình ViT5 và BARTpho."""
 
-    def _load(self, kind: ModelKind, path: Path) -> ModelHandle:
-        """Quản lý việc nạp mô hình vào cache hoặc lấy từ cache ra."""
-        with self._cache_lock:
-            if kind not in self._cache:
-                self._cache[kind] = _load_seq2seq_handle(kind, path)
-            return self._cache[kind]
+    def __init__(self) -> None:
+        self._vit5_handle: ModelHandle | None = None
+        self._bartpho_handle: ModelHandle | None = None
 
     def load_chunk_summarizer(self) -> ModelHandle:
-        """Nạp mô hình ViT5 Chunk Summarizer."""
-        return self._load(ModelKind.CHUNK_SUMMARIZER, CHUNK_SUMMARIZER_PATH)
+        """Nạp mô hình ViT5 Chunk Summarizer (lưu cache khi đã nạp)."""
+        if self._vit5_handle is None:
+            self._vit5_handle = load_seq2seq_model(VIT5_MODEL_PATH)
+        return self._vit5_handle
 
     def load_topic_titler(self) -> ModelHandle:
-        """Nạp mô hình BARTpho Topic Titler."""
-        return self._load(ModelKind.TOPIC_TITLER, TOPIC_TITLER_PATH)
+        """Nạp mô hình BARTpho Topic Titler (lưu cache khi đã nạp)."""
+        if self._bartpho_handle is None:
+            self._bartpho_handle = load_seq2seq_model(BARTPHO_MODEL_PATH)
+        return self._bartpho_handle
+
+
+_global_loader = ModelLoader()
+
+
+def get_model_loader() -> ModelLoader:
+    """Trả về đối tượng Singleton ModelLoader dùng chung cho hệ thống."""
+    return _global_loader

@@ -2,19 +2,16 @@ from __future__ import annotations
 
 import torch
 
-from .model_loader import ModelHandle, ModelKind
+from .model_loader import ModelHandle
 
 
 class _Seq2SeqGenerator:
     prefix: str
     max_input_tokens: int
     max_new_tokens: int
-    expected_kind: ModelKind
 
     def __init__(self, handle: ModelHandle) -> None:
         """Khởi tạo generator Seq2Seq với mô hình và tokenizer tương ứng."""
-        if handle.kind is not self.expected_kind:
-            raise ValueError(f"expected {self.expected_kind.value}, got {handle.kind.value}")
         self._model = handle.model
         self._tokenizer = handle.tokenizer
         self._device = handle.device
@@ -50,7 +47,6 @@ class ViT5ChunkSummarizer(_Seq2SeqGenerator):
     prefix = "Tóm tắt: "
     max_input_tokens = 512
     max_new_tokens = 128
-    expected_kind = ModelKind.CHUNK_SUMMARIZER
 
     def summarize(self, formatted_utterances: str) -> str:
         """Tóm tắt khối thoại bằng mô hình ViT5."""
@@ -61,7 +57,6 @@ class BARTphoTopicTitler(_Seq2SeqGenerator):
     prefix = "Tạo tiêu đề: "
     max_input_tokens = 1024
     max_new_tokens = 200
-    expected_kind = ModelKind.TOPIC_TITLER
 
     def generate_title(self, joined_summaries: str) -> str:
         """Sinh tiêu đề bằng mô hình BARTpho."""
