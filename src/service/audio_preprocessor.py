@@ -1,22 +1,11 @@
 from __future__ import annotations
 
+import sys
 import time
 from types import ModuleType
-from typing import Protocol
-import sys
+from typing import Any
 
 import numpy as np
-
-
-class AudioPreprocessingUnavailable(RuntimeError):
-    """Raised when accuracy-mode enhancement cannot be initialized."""
-
-
-class Enhancer(Protocol):
-    """Narrow audio-enhancement boundary used by the streaming pipeline."""
-
-    def enhance(self, samples: np.ndarray) -> np.ndarray:
-        """Return an enhanced array with the same sample count."""
 
 
 class PassthroughEnhancer:
@@ -51,7 +40,7 @@ class AudioPreprocessor:
 
     def __init__(
         self,
-        enhancer: Enhancer,
+        enhancer: Any,
         sample_rate: int = 16000,
         chunk_seconds: float = 2.5,
         overlap_seconds: float = 0.3,
@@ -137,7 +126,7 @@ class DeepFilterNetEnhancer:
             _install_torchaudio_backend_compat(torchaudio)
             from df.enhance import enhance, init_df
         except ImportError as exc:
-            raise AudioPreprocessingUnavailable(
+            raise RuntimeError(
                 "DeepFilterNet is required when ASR accuracy mode is enabled"
             ) from exc
 
@@ -188,10 +177,8 @@ def _install_torchaudio_backend_compat(torchaudio_module: object) -> None:
 
 
 __all__ = [
-    "AudioPreprocessingUnavailable",
     "AudioPreprocessor",
     "DeepFilterNetEnhancer",
-    "Enhancer",
     "PassthroughEnhancer",
     "ProcessedAudioChunk",
 ]

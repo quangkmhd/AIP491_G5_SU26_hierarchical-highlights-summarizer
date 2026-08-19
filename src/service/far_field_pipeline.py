@@ -11,7 +11,7 @@ from src.types.audio import AudioQualityMetrics, FinalUtteranceEvent
 from src.types.audio import AudioSessionStart
 
 from .audio_capture import StreamingAudioSession, cleanup_expired_recordings
-from .audio_preprocessor import AudioPreprocessor, Enhancer, ProcessedAudioChunk
+from .audio_preprocessor import AudioPreprocessor, ProcessedAudioChunk
 from .diarization_engine import (
     DiarizationEngine,
     DiarizationResult,
@@ -255,7 +255,7 @@ class DefaultFarFieldSessionFactory:
         *,
         config: object,
         asr: object,
-        enhancer: Enhancer,
+        enhancer: object,
         recordings_root: Path,
     ) -> None:
         if getattr(asr, "embedding_extractor", None) is None:
