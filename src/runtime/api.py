@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sse_starlette.sse import EventSourceResponse
 
 from src.service import StreamingOrchestrator
 from src.types.schemas import TranscriptIngestionRequest
@@ -49,21 +47,6 @@ def create_app(
 
         summary = app.state.orchestrator.process_batch(transcript)
         return JSONResponse(content=summary.model_dump(mode="json"))
-
-    @app.post("/api/v1/meetings/stream")
-    async def stream_meeting(payload: TranscriptIngestionRequest) -> EventSourceResponse:
-        """Endpoint tóm tắt văn bản theo luồng sự kiện SSE (Server-Sent Events)."""
-        try:
-            transcript = payload.materialize()
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e)) from e
-
-        async def event_generator() -> AsyncIterator[dict]:
-            for event in app.state.orchestrator.process_stream(transcript):
-                yield {"event": event.type.value, "data": json.dumps(event.data, default=str)}
-            yield {"event": "end", "data": "{}"}
-
-        return EventSourceResponse(event_generator())
 
     @app.websocket("/ws")
     async def websocket_text_summarization(websocket: WebSocket) -> None:

@@ -111,29 +111,7 @@ print(response.json())
 
 ---
 
-### 3️⃣ `POST /api/v1/meetings/stream` — Tóm Tắt Phát Luồng SSE (Server-Sent Events)
-
-- **Phương thức:** `POST`
-- **URL:** `http://localhost:8000/api/v1/meetings/stream`
-- **Header:** `Content-Type: application/json`
-- **Chức năng:** Trả về các sự kiện theo luồng phát thời gian thực (SSE). Phía client sẽ nhận lần lượt các sự kiện: `utterance-accepted` ➔ `chunk-closed` ➔ `segment-closed` ➔ `title-emitted` ➔ `meeting-completed`.
-
-#### Ví dụ cURL:
-```bash
-curl -N -X POST http://localhost:8000/api/v1/meetings/stream \
-  -H "Content-Type: application/json" \
-  -d '{
-    "meeting_title": "Họp Luồng SSE",
-    "utterances": [
-      {"speaker": "A", "text": "Nội dung câu thoại 1", "index": 0},
-      {"speaker": "B", "text": "Nội dung câu thoại 2", "index": 1}
-    ]
-  }'
-```
-
----
-
-### 4️⃣ `WebSocket /ws` — Kết Nối Real-Time Two-Way Streaming
+### 3️⃣ `WebSocket /ws` — Kết Nối Real-Time Two-Way Streaming
 
 - **Giao thức:** `WebSocket`
 - **URL:** `ws://localhost:8000/ws`
