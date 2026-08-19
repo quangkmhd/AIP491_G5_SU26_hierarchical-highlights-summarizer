@@ -5,26 +5,24 @@ from src.types.utterance import Utterance
 
 
 class ChunkingService:
-    """Slice a list of utterances into 8-utterance Chunks."""
+    """Dịch vụ chia nhỏ các câu thoại thành các khối Chunk (mặc định tối đa 8 câu/khối)."""
 
     CHUNK_SIZE: int = Chunk.MAX_CHUNK_SIZE
 
     def chunk(self, utterances: list[Utterance]) -> list[Chunk]:
-        """Chia danh sách các câu thoại thành danh sách các khối Chunk (tối đa 8 câu/khối)."""
+        """Phân chia danh sách câu thoại thành các khối Chunk (tối đa 8 câu/khối)."""
         if not utterances:
             raise ValueError("Cannot chunk empty utterance list")
-        chunks: list[Chunk] = []
-        for i in range(0, len(utterances), self.CHUNK_SIZE):
-            chunk_utts = utterances[i : i + self.CHUNK_SIZE]
-            chunks.append(Chunk(utterances=chunk_utts))
-        return chunks
+        return [
+            Chunk(utterances=utterances[i : i + self.CHUNK_SIZE])
+            for i in range(0, len(utterances), self.CHUNK_SIZE)
+        ]
 
     def chunk_indices(self, n_utterances: int) -> list[tuple[int, int]]:
-        """Tính toán cặp chỉ số (bắt đầu, kết thúc) cho từng khối Chunk từ tổng số câu thoại."""
+        """Tính toán khoảng chỉ số (bắt đầu, kết thúc) cho từng khối câu thoại."""
         if n_utterances <= 0:
             raise ValueError(f"n_utterances must be > 0; got {n_utterances}")
-        result: list[tuple[int, int]] = []
-        for i in range(0, n_utterances, self.CHUNK_SIZE):
-            end = min(i + self.CHUNK_SIZE, n_utterances) - 1
-            result.append((i, end))
-        return result
+        return [
+            (i, min(i + self.CHUNK_SIZE, n_utterances) - 1)
+            for i in range(0, n_utterances, self.CHUNK_SIZE)
+        ]
