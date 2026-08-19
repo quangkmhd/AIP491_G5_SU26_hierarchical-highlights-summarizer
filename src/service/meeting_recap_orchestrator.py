@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Any, Iterator
 from uuid import uuid4
 
-from src.config.sliding_text_tiling import SlidingTextTilingConfig
 from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
 from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
@@ -56,7 +55,7 @@ class StreamingOrchestrator:
     ) -> None:
         """Khởi tạo điều phối viên pipeline StreamingOrchestrator."""
         self.logger = get_logger("src.service.orchestrator")
-        self.tiler = tiler or SlidingTextTilingService(SlidingTextTilingConfig())
+        self.tiler = tiler or SlidingTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
 

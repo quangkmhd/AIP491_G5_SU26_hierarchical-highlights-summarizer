@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from src.config.sliding_text_tiling import SlidingTextTilingConfig
 from src.logging import get_logger
 
 # Default parameters match the reference implementation in 16-eval-DTS.
@@ -417,27 +416,47 @@ class SegmentEvent:
 class SlidingTextTilingService:
     """Dịch vụ phân đoạn chủ đề đa tỷ lệ SlidingTextTilingService."""
 
-    def __init__(self, config: SlidingTextTilingConfig | None = None) -> None:
+    def __init__(
+        self,
+        block_size: int = 2,
+        radii: list[int] | None = None,
+        alpha: float = 1.0,
+        use_stopwords: bool = True,
+        agg: str = "mean",
+        normalize: str = "zscore",
+        min_segment_ratio: float = 0.08,
+        window_size: int = 40,
+        stride: int = 5,
+    ) -> None:
         """Khởi tạo dịch vụ phân đoạn chủ đề SlidingTextTilingService."""
         self.logger = get_logger("src.service.sliding_text_tiling")
-        self.config = config or SlidingTextTilingConfig()
+        self.block_size = block_size
+        self.radii = radii if radii is not None else [3, 5, 10, 15, 20]
+        self.alpha = alpha
+        self.use_stopwords = use_stopwords
+        self.agg = agg
+        self.normalize = normalize
+        self.min_segment_ratio = min_segment_ratio
+        self.window_size = window_size
+        self.stride = stride
+
         self._segment_counter = 0
-        if self.config.use_stopwords:
+        if self.use_stopwords:
             import stopwordsiso
             self._stopwords = stopwordsiso.stopwords(["vi"])
         else:
             self._stopwords = set()
 
         self._streamer = StreamingTextTilingSegmenter(
-            block_size=self.config.block_size,
-            radii=self.config.radii,
-            alpha=self.config.alpha,
+            block_size=self.block_size,
+            radii=self.radii,
+            alpha=self.alpha,
             stopwords=self._stopwords,
-            agg=self.config.agg,
-            normalize_mode=self.config.normalize,
-            min_segment_ratio=self.config.min_segment_ratio,
-            window_size=self.config.window_size,
-            stride=self.config.stride,
+            agg=self.agg,
+            normalize_mode=self.normalize,
+            min_segment_ratio=self.min_segment_ratio,
+            window_size=self.window_size,
+            stride=self.stride,
         )
         self.reset()
 
@@ -507,15 +526,15 @@ class SlidingTextTilingService:
 
         boundaries, boundary_depths = find_boundaries(
             utterances,
-            block_size=self.config.block_size,
-            radii=self.config.radii,
-            alpha=self.config.alpha,
+            block_size=self.block_size,
+            radii=self.radii,
+            alpha=self.alpha,
             stopwords=self._stopwords,
-            agg=self.config.agg,
-            normalize_mode=self.config.normalize,
-            min_segment_ratio=self.config.min_segment_ratio,
-            window_size=self.config.window_size,
-            stride=self.config.stride,
+            agg=self.agg,
+            normalize_mode=self.normalize,
+            min_segment_ratio=self.min_segment_ratio,
+            window_size=self.window_size,
+            stride=self.stride,
         )
 
         assert boundaries and boundaries[-1] == n - 1, (
@@ -523,7 +542,7 @@ class SlidingTextTilingService:
         )
 
         n_boundaries = sum(1 for b in boundaries if b != n - 1)
-        used_streaming = n > self.config.window_size
+        used_streaming = n > self.window_size
         self.logger.info(
             "sliding text tiling done utterances=%d boundaries=%d mode=%s",
             n,
