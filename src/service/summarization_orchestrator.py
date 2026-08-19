@@ -16,7 +16,7 @@ from src.types.utterance import Utterance
 
 
 class SummarizationEventType(str, Enum):
-    """The 5 canonical event types in the summarization pipeline."""
+    """5 loại sự kiện chính trong luồng pipeline tóm tắt hội thoại."""
 
     UTTERANCE_ACCEPTED = "utterance-accepted"
     SEGMENT_CLOSED = "segment-closed"
@@ -26,15 +26,15 @@ class SummarizationEventType(str, Enum):
 
 
 class OrchestratorEvent:
-    """A single event in the summarization stream."""
+    """Đối tượng chứa thông tin sự kiện trong luồng tóm tắt."""
 
-    def __init__(self, type: SummarizationEventType, data: dict[str, Any] | None = None) -> None:
+    def __init__(self, type: str, data: dict[str, Any] | None = None) -> None:
         self.type = type
         self.data = data if data is not None else {}
 
 
 class StreamingOrchestrator:
-    """Wires the segmentation + summarization pipeline into a single stream."""
+    """Bộ điều phối liên kết toàn bộ pipeline phân đoạn chủ đề và tóm tắt phân cấp."""
 
     def __init__(
         self,
@@ -42,7 +42,7 @@ class StreamingOrchestrator:
         chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
-        """Khởi tạo điều phối viên pipeline StreamingOrchestrator."""
+        """Khởi tạo các dịch vụ phân đoạn, chia khối và tóm tắt."""
         self.tiler = tiler or MultiscaleTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
@@ -50,7 +50,7 @@ class StreamingOrchestrator:
     def process_stream(
         self, transcript: DialogueTranscript
     ) -> Iterator[OrchestratorEvent]:
-        """Xử lý một bản ghi hội thoại và phát ra các sự kiện trong luồng pipeline."""
+        """Xử lý bản ghi hội thoại và phát ra các sự kiện theo luồng."""
         t0 = time.perf_counter()
         meeting_id = uuid4()
         n = len(transcript.utterances)
@@ -58,44 +58,34 @@ class StreamingOrchestrator:
             raise ValueError("transcript has no utterances")
         segments: list[SegmentResult] = []
 
-        yield from self._process_stream_body(
-            transcript, t0, meeting_id, segments,
-        )
-
-    def _process_stream_body(  # type: ignore[no-untyped-def]
-        self, transcript, t0, meeting_id, segments,
-    ):
-        """Thực hiện nội dung chính của luồng xử lý stream bao gồm phân đoạn và tóm tắt."""
         all_utterances = transcript.utterances
 
-        # Giai đoạn 1: Tiếp nhận câu thoại — phát sự kiện utterance-accepted cho từng câu thoại từ câu thứ 2.
+        # 1. Phát sự kiện tiếp nhận câu thoại
         for idx, utt in enumerate(all_utterances[1:], start=1):
             yield OrchestratorEvent(
                 type=SummarizationEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
             )
 
-        # Giai đoạn 2: Phân đoạn theo batch sử dụng dịch vụ SlidingTextTilingService.
+        # 2. Phân đoạn chủ đề TextTiling
         utterance_texts = [u.text for u in all_utterances]
         seg_ranges = self.tiler.process(utterance_texts)
 
-        # Giai đoạn 3: Khởi tạo phân đoạn và phát các sự kiện tương ứng.
+        # 3. Tóm tắt từng khối và sinh tiêu đề từng phân đoạn
         for seg_idx, (start_utt, end_utt) in enumerate(seg_ranges):
-            segment_utts = all_utterances[start_utt:end_utt + 1]
+            segment_utts = all_utterances[start_utt : end_utt + 1]
             seg = SegmentResult(
                 title=f"Chapter {seg_idx + 1}",
                 utterances_start=start_utt,
                 utterances_end=end_utt,
             )
 
-            for chunk_idx in range(0, (len(segment_utts) + self.chunker.CHUNK_SIZE - 1) // self.chunker.CHUNK_SIZE):
-                start = chunk_idx * self.chunker.CHUNK_SIZE
-                chunk_utts = segment_utts[start : start + self.chunker.CHUNK_SIZE]
+            for chunk_idx, i in enumerate(range(0, len(segment_utts), self.chunker.CHUNK_SIZE)):
+                chunk_utts = segment_utts[i : i + self.chunker.CHUNK_SIZE]
                 chunk = Chunk(utterances=chunk_utts)
-                chunk.rolling_summary = self.summarizer.abstractive(
-                    chunk, chapter_number=seg_idx + 1, chunk_index=chunk_idx,
-                )
+                chunk.rolling_summary = self.summarizer.abstractive(chunk)
                 seg.chunks.append(chunk)
+
                 yield OrchestratorEvent(
                     type=SummarizationEventType.CHUNK_CLOSED,
                     data={
@@ -117,7 +107,7 @@ class StreamingOrchestrator:
                 },
             )
 
-            title = self.summarizer.title(seg, chapter_number=seg_idx + 1)
+            title = self.summarizer.title(seg)
             seg.title = title
             segments.append(seg)
             yield OrchestratorEvent(
@@ -125,6 +115,7 @@ class StreamingOrchestrator:
                 data={"segment_id": str(seg.segment_id), "title": title},
             )
 
+        # 4. Hoàn tất cuộc họp và đóng gói kết quả
         processing_time_ms = int((time.perf_counter() - t0) * 1000)
         summary = HierarchicalSummary(
             meeting_id=meeting_id,
@@ -140,14 +131,14 @@ class StreamingOrchestrator:
     def process_batch(
         self, transcript: DialogueTranscript
     ) -> HierarchicalSummary:
-        """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp hoàn chỉnh."""
+        """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp."""
         summary_dict: dict[str, Any] = {}
         for event in self.process_stream(transcript):
             if event.type == SummarizationEventType.MEETING_COMPLETED:
                 summary_dict = event.data["hierarchical_summary"]
         return HierarchicalSummary.model_validate(summary_dict)
 
-    # --- Giao diện xử lý tăng tiến / streaming ---
+    # --- Giao diện xử lý tăng tiến / streaming real-time ---
 
     def reset_incremental(self) -> None:
         """Đặt lại trạng thái xử lý tăng tiến cho một phiên làm việc streaming mới."""
@@ -155,13 +146,12 @@ class StreamingOrchestrator:
         self._incremental_segments: list[SegmentResult] = []
         self._incremental_meeting_id = uuid4()
         self._incremental_t0 = time.perf_counter()
-        self._last_processed_count = 0
         self.tiler.reset()
 
     def accept_utterance(
         self, text: str, speaker: str, index: int,
     ) -> Iterator[OrchestratorEvent]:
-        """Tiếp nhận một câu thoại từ ASR real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
+        """Tiếp nhận một câu thoại real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
         if not hasattr(self, "_incremental_utterances"):
             self.reset_incremental()
 
@@ -173,9 +163,9 @@ class StreamingOrchestrator:
             data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
         )
 
-        new_events = self.tiler.update(utt.text)
-        if new_events:
-            yield from self._process_streaming_segment_events(new_events)
+        new_ranges = self.tiler.update(utt.text)
+        if new_ranges:
+            yield from self._process_streaming_segment_events(new_ranges)
 
     def _process_streaming_segment_events(
         self, seg_ranges: list[tuple[int, int]],
@@ -196,13 +186,12 @@ class StreamingOrchestrator:
                 utterances_end=end_utt,
             )
 
-            for i in range(0, len(segment_utts), self.chunker.CHUNK_SIZE):
+            for chunk_idx, i in enumerate(range(0, len(segment_utts), self.chunker.CHUNK_SIZE)):
                 chunk_utts = segment_utts[i : i + self.chunker.CHUNK_SIZE]
                 chunk = Chunk(utterances=chunk_utts)
-                chunk.rolling_summary = self.summarizer.abstractive(
-                    chunk, chapter_number=seg_idx + 1, chunk_index=i // self.chunker.CHUNK_SIZE,
-                )
+                chunk.rolling_summary = self.summarizer.abstractive(chunk)
                 seg.chunks.append(chunk)
+
                 yield OrchestratorEvent(
                     type=SummarizationEventType.CHUNK_CLOSED,
                     data={
@@ -223,7 +212,7 @@ class StreamingOrchestrator:
                 },
             )
 
-            title = self.summarizer.title(seg, chapter_number=seg_idx + 1)
+            title = self.summarizer.title(seg)
             seg.title = title
             self._incremental_segments.append(seg)
             yield OrchestratorEvent(
@@ -240,9 +229,9 @@ class StreamingOrchestrator:
         if not all_utterances:
             return
 
-        tail_events = self.tiler.flush()
-        if tail_events:
-            yield from self._process_streaming_segment_events(tail_events)
+        tail_ranges = self.tiler.flush()
+        if tail_ranges:
+            yield from self._process_streaming_segment_events(tail_ranges)
 
         processing_time_ms = int((time.perf_counter() - self._incremental_t0) * 1000)
         summary = HierarchicalSummary(
