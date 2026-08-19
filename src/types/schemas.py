@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from .hierarchical_recap import HierarchicalRecap, MeetingStatus
+from .hierarchical_summary import HierarchicalSummary, MeetingStatus
 from .transcript import DialogueTranscript
 from .utterance import Utterance
 
@@ -96,5 +96,5 @@ class MeetingProcessResponse(BaseModel):
 
     meeting_id: str
     status: MeetingStatus
-    recap: Optional[HierarchicalRecap] = None
+    summary: Optional[HierarchicalSummary] = None
     error: Optional[str] = None

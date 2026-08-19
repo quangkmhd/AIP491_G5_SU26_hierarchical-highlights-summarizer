@@ -19,7 +19,7 @@ class MeetingStatus(str, Enum):
     FAILED = "failed"
 
 
-class HierarchicalRecap(BaseModel):
+class HierarchicalSummary(BaseModel):
     """The complete hierarchical meeting recap output.
 
     Contains all topic-segmented chapters with their titles and rolling

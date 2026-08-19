@@ -112,8 +112,8 @@ def create_app(
             transcript = _materialize(payload)
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
-        recap = app.state.orchestrator.process_batch(transcript)
-        return JSONResponse(content=recap.model_dump(mode="json"))
+        summary = app.state.orchestrator.process_batch(transcript)
+        return JSONResponse(content=summary.model_dump(mode="json"))
 
     @app.post("/api/v1/meetings/stream")
     async def stream_meeting(payload: TranscriptIngestionRequest) -> EventSourceResponse:

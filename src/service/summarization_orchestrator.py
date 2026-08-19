@@ -10,14 +10,14 @@ from uuid import uuid4
 from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
 from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
-from src.types.hierarchical_recap import HierarchicalRecap
+from src.types.hierarchical_summary import HierarchicalSummary
 from src.types.segment import Chunk, SegmentResult
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
 
 
-class RecapEventType(str, Enum):
-    """The 5 canonical recap event types from spec D5 (revised)."""
+class SummarizationEventType(str, Enum):
+    """The 5 canonical event types in the summarization pipeline."""
 
     UTTERANCE_ACCEPTED = "utterance-accepted"
     SEGMENT_CLOSED = "segment-closed"
@@ -27,9 +27,9 @@ class RecapEventType(str, Enum):
 
 
 class OrchestratorEvent:
-    """A single event in the recap stream."""
+    """A single event in the summarization stream."""
 
-    def __init__(self, type: RecapEventType, data: dict[str, Any] | None = None) -> None:
+    def __init__(self, type: SummarizationEventType, data: dict[str, Any] | None = None) -> None:
         self.type = type
         self.data = data if data is not None else {}
 
@@ -88,7 +88,7 @@ class StreamingOrchestrator:
         # Giai đoạn 1: Tiếp nhận câu thoại — phát sự kiện utterance-accepted cho từng câu thoại từ câu thứ 2.
         for idx, utt in enumerate(all_utterances[1:], start=1):
             yield OrchestratorEvent(
-                type=RecapEventType.UTTERANCE_ACCEPTED,
+                type=SummarizationEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
             )
 
@@ -119,11 +119,12 @@ class StreamingOrchestrator:
                 utterances_end=end_utt,
             )
 
-            for i in range(0, len(segment_utts), self.chunker.CHUNK_SIZE):
-                chunk_utts = segment_utts[i:i + self.chunker.CHUNK_SIZE]
+            for chunk_idx in range(0, (len(segment_utts) + self.chunker.CHUNK_SIZE - 1) // self.chunker.CHUNK_SIZE):
+                start = chunk_idx * self.chunker.CHUNK_SIZE
+                chunk_utts = segment_utts[start : start + self.chunker.CHUNK_SIZE]
                 chunk = Chunk(utterances=chunk_utts)
                 chunk.rolling_summary = self.summarizer.abstractive(
-                    chunk, chapter_number=seg_idx + 1, chunk_index=i // self.chunker.CHUNK_SIZE,
+                    chunk, chapter_number=seg_idx + 1, chunk_index=chunk_idx,
                 )
                 seg.chunks.append(chunk)
                 self.logger.info(
@@ -133,10 +134,11 @@ class StreamingOrchestrator:
                     chunk.rolling_summary,
                 )
                 yield OrchestratorEvent(
-                    type=RecapEventType.CHUNK_CLOSED,
+                    type=SummarizationEventType.CHUNK_CLOSED,
                     data={
-                        "chunk_id": str(chunk.chunk_id),
                         "segment_id": str(seg.segment_id),
+                        "chunk_id": str(chunk.chunk_id),
+                        "chunk_index": chunk_idx,
                         "utterances_start": chunk_utts[0].index,
                         "utterances_end": chunk_utts[-1].index,
                         "rolling_summary": chunk.rolling_summary,
@@ -144,7 +146,7 @@ class StreamingOrchestrator:
                 )
 
             yield OrchestratorEvent(
-                type=RecapEventType.SEGMENT_CLOSED,
+                type=SummarizationEventType.SEGMENT_CLOSED,
                 data={
                     "segment_id": str(seg.segment_id),
                     "utterances_start": seg.utterances_start,
@@ -160,7 +162,7 @@ class StreamingOrchestrator:
                 seg_idx + 1, title,
             )
             yield OrchestratorEvent(
-                type=RecapEventType.TITLE_EMITTED,
+                type=SummarizationEventType.TITLE_EMITTED,
                 data={"segment_id": str(seg.segment_id), "title": title},
             )
 
@@ -169,26 +171,26 @@ class StreamingOrchestrator:
             "orchestrator done n_segments=%d n_chunks=%d processing_time_ms=%d",
             len(segments), sum(len(s.chunks) for s in segments), processing_time_ms,
         )
-        recap = HierarchicalRecap(
+        summary = HierarchicalSummary(
             meeting_id=meeting_id,
             segments=segments,
             generated_at=datetime.now(timezone.utc),
             processing_time_ms=processing_time_ms,
         )
         yield OrchestratorEvent(
-            type=RecapEventType.MEETING_COMPLETED,
-            data={"hierarchical_recap": recap.model_dump(mode="json")},
+            type=SummarizationEventType.MEETING_COMPLETED,
+            data={"hierarchical_summary": summary.model_dump(mode="json")},
         )
 
     def process_batch(
         self, transcript: DialogueTranscript
-    ) -> HierarchicalRecap:
+    ) -> HierarchicalSummary:
         """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp hoàn chỉnh."""
-        recap_dict: dict[str, Any] = {}
+        summary_dict: dict[str, Any] = {}
         for event in self.process_stream(transcript):
-            if event.type == RecapEventType.MEETING_COMPLETED:
-                recap_dict = event.data["hierarchical_recap"]
-        return HierarchicalRecap.model_validate(recap_dict)
+            if event.type == SummarizationEventType.MEETING_COMPLETED:
+                summary_dict = event.data["hierarchical_summary"]
+        return HierarchicalSummary.model_validate(summary_dict)
 
     # --- Giao diện xử lý tăng tiến / streaming ---
 
@@ -212,7 +214,7 @@ class StreamingOrchestrator:
         self._incremental_utterances.append(utt)
 
         yield OrchestratorEvent(
-            type=RecapEventType.UTTERANCE_ACCEPTED,
+            type=SummarizationEventType.UTTERANCE_ACCEPTED,
             data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
         )
 
@@ -248,7 +250,7 @@ class StreamingOrchestrator:
                 )
                 seg.chunks.append(chunk)
                 yield OrchestratorEvent(
-                    type=RecapEventType.CHUNK_CLOSED,
+                    type=SummarizationEventType.CHUNK_CLOSED,
                     data={
                         "chunk_id": str(chunk.chunk_id),
                         "segment_id": str(seg.segment_id),
@@ -259,7 +261,7 @@ class StreamingOrchestrator:
                 )
 
             yield OrchestratorEvent(
-                type=RecapEventType.SEGMENT_CLOSED,
+                type=SummarizationEventType.SEGMENT_CLOSED,
                 data={
                     "segment_id": str(seg.segment_id),
                     "utterances_start": seg.utterances_start,
@@ -271,7 +273,7 @@ class StreamingOrchestrator:
             seg.title = title
             self._incremental_segments.append(seg)
             yield OrchestratorEvent(
-                type=RecapEventType.TITLE_EMITTED,
+                type=SummarizationEventType.TITLE_EMITTED,
                 data={"segment_id": str(seg.segment_id), "title": title},
             )
 
@@ -289,13 +291,13 @@ class StreamingOrchestrator:
             yield from self._process_streaming_segment_events(tail_events)
 
         processing_time_ms = int((time.perf_counter() - self._incremental_t0) * 1000)
-        recap = HierarchicalRecap(
+        summary = HierarchicalSummary(
             meeting_id=self._incremental_meeting_id,
             segments=self._incremental_segments,
             generated_at=datetime.now(timezone.utc),
             processing_time_ms=processing_time_ms,
         )
         yield OrchestratorEvent(
-            type=RecapEventType.MEETING_COMPLETED,
-            data={"hierarchical_recap": recap.model_dump(mode="json")},
+            type=SummarizationEventType.MEETING_COMPLETED,
+            data={"hierarchical_summary": summary.model_dump(mode="json")},
         )

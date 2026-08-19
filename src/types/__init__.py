@@ -1,4 +1,4 @@
-from .hierarchical_recap import HierarchicalRecap, MeetingStatus
+from .hierarchical_summary import HierarchicalSummary, MeetingStatus
 from .schemas import (
     MeetingProcessResponse,
     TranscriptIngestionRequest,
@@ -10,7 +10,7 @@ from .utterance import Utterance
 __all__ = [
     "Chunk",
     "DialogueTranscript",
-    "HierarchicalRecap",
+    "HierarchicalSummary",
     "MeetingProcessResponse",
     "MeetingStatus",
     "SegmentResult",
