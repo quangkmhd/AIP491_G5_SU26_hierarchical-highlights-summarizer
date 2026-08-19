@@ -3,16 +3,16 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import uuid
 from pathlib import Path
 from typing import TextIO
 
-from src.logging import get_logger, log_error_with_fix, request_context
+import logging
+
 from src.service import StreamingOrchestrator
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
 
-logger = get_logger("src.runtime.cli")
+logger = logging.getLogger("src.runtime.cli")
 
 def _load_transcript(file: TextIO) -> DialogueTranscript:
     """Đọc dữ liệu bản ghi từ file JSON và chuyển đổi thành đối tượng DialogueTranscript."""
@@ -138,20 +138,16 @@ def main(argv: list[str] | None = None) -> int:
     """Điểm nhập chính (entry point) để thực thi CLI runner."""
     parser = build_parser()
     args = parser.parse_args(argv)
-    request_id = uuid.uuid4().hex[:12]
-    with request_context(request_id=request_id, event=f"cli {args.command}"):
-        try:
-            return args.func(args)
-        except (json.JSONDecodeError, ValueError) as exc:
-            fix = _suggest_fix_for_cli_error(exc)
-            log_error_with_fix(logger, exc, fix=fix)
-            print(f"Error: {exc}", file=sys.stderr)
-            print(f"Fix: {fix}", file=sys.stderr)
-            return 2
-        finally:
-            file_obj = getattr(args, "file", None)
-            if file_obj is not None and hasattr(file_obj, "close"):
-                file_obj.close()
+    try:
+        return args.func(args)
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.exception("CLI execution error: %s", exc)
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    finally:
+        file_obj = getattr(args, "file", None)
+        if file_obj is not None and hasattr(file_obj, "close"):
+            file_obj.close()
 
 
 def _suggest_fix_for_cli_error(exc: BaseException) -> str:

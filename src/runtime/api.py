@@ -5,18 +5,14 @@ import time
 import uuid
 from typing import AsyncIterator
 
+import logging
+
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
-from src.logging import (
-    LoggableError,
-    get_logger,
-    log_error_with_fix,
-    request_context,
-)
 from src.service import StreamingOrchestrator
 from src.types.schemas import TranscriptIngestionRequest
 from src.types.transcript import DialogueTranscript
@@ -27,41 +23,35 @@ def create_app(
 ) -> FastAPI:
     """Khởi tạo và cấu hình ứng dụng FastAPI web server phục vụ dịch vụ Tóm tắt & Phân đoạn Văn bản."""
     app = FastAPI(title="Hierarchical Text Summarization Service", version="0.1.0")
-    logger = get_logger("src.runtime.api")
+    logger = logging.getLogger("src.runtime.api")
 
     # Middleware tạo request-id và đo thời gian xử lý HTTP request.
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
         rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
-        event = f"{request.method} {request.url.path}"
-        with request_context(request_id=rid, event=event):
-            t0 = time.perf_counter()
-            request_log_level = _request_log_level(request)
-            logger.log(request_log_level, "request start")
-            try:
-                response = await call_next(request)
-            except Exception as e:  # noqa: BLE001
-                log_error_with_fix(
-                    logger, e,
-                    fix="check server logs for the traceback; report a bug if reproducible",
-                )
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "error": type(e).__name__,
-                        "message": str(e) or type(e).__name__,
-                        "request_id": rid,
-                    },
-                )
-            elapsed_ms = (time.perf_counter() - t0) * 1000
-            response.headers["X-Request-Id"] = rid
-            logger.log(
-                request_log_level,
-                "request done status=%d elapsed_ms=%.1f",
-                response.status_code,
-                elapsed_ms,
+        t0 = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception as e:  # noqa: BLE001
+            logger.exception("Unhandled error processing request: %s", e)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": type(e).__name__,
+                    "message": str(e) or type(e).__name__,
+                    "request_id": rid,
+                },
             )
-            return response
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        response.headers["X-Request-Id"] = rid
+        logger.info(
+            "%s %s status=%d elapsed_ms=%.1f",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed_ms,
+        )
+        return response
 
     app.add_middleware(
         CORSMiddleware,
@@ -81,60 +71,37 @@ def create_app(
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):  # type: ignore[no-untyped-def]
-        fix = _suggest_fix_for_http(exc)
-        logger.warning("HTTPException status=%d detail=%s", exc.status_code, exc.detail, extra={"fix": fix, "status_code": exc.status_code})
+        logger.warning("HTTPException status=%d detail=%s", exc.status_code, exc.detail)
         return JSONResponse(
             status_code=exc.status_code,
             content={
                 "error": "HTTPException",
                 "status_code": exc.status_code,
                 "detail": exc.detail,
-                "fix": fix,
             },
             headers=exc.headers,
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):  # type: ignore[no-untyped-def]
-        fix = _suggest_fix_for_validation(exc)
-        logger.warning(
-            "request validation failed errors=%d",
-            len(exc.errors()),
-            extra={"fix": fix, "status_code": 422},
-        )
+        logger.warning("request validation failed errors=%d", len(exc.errors()))
         return JSONResponse(
             status_code=422,
             content={
                 "error": "RequestValidationError",
                 "status_code": 422,
                 "detail": json.loads(json.dumps(exc.errors(), default=str)),
-                "fix": fix,
-            },
-        )
-
-    @app.exception_handler(LoggableError)
-    async def loggable_error_handler(request: Request, exc: LoggableError):  # type: ignore[no-untyped-def]
-        log_error_with_fix(logger, exc)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": type(exc).__name__,
-                "message": str(exc),
-                "fix": exc.fix,
-                "hint": exc.hint,
             },
         )
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):  # type: ignore[no-untyped-def]
-        fix = _suggest_fix_for_value_error(exc)
-        log_error_with_fix(logger, exc, fix=fix)
+        logger.warning("ValueError: %s", exc)
         return JSONResponse(
             status_code=400,
             content={
                 "error": type(exc).__name__,
                 "message": str(exc),
-                "fix": fix,
             },
         )
 

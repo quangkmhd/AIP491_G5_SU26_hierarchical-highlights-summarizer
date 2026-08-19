@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterator
@@ -11,11 +12,6 @@ from src.service.hierarchical_summarization import HierarchicalSummarizationServ
 from src.service.sliding_text_tiling import SegmentEvent, SlidingTextTilingService
 from src.types.hierarchical_recap import HierarchicalRecap
 from src.types.segment import Chunk, SegmentResult
-from src.logging import (
-    LoggableError,
-    get_logger,
-    log_error_with_fix,
-)
 from src.types.transcript import DialogueTranscript
 from src.types.utterance import Utterance
 
@@ -54,7 +50,7 @@ class StreamingOrchestrator:
         summarizer: HierarchicalSummarizationService | None = None,
     ) -> None:
         """Khởi tạo điều phối viên pipeline StreamingOrchestrator."""
-        self.logger = get_logger("src.service.orchestrator")
+        self.logger = logging.getLogger("src.service.orchestrator")
         self.tiler = tiler or SlidingTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
@@ -68,10 +64,7 @@ class StreamingOrchestrator:
         n = len(transcript.utterances)
         if n == 0:
             self.logger.warning("process_stream called with empty transcript")
-            raise LoggableError(
-                "transcript has no utterances",
-                fix="provide a TranscriptIngestionRequest with non-empty `utterances` or `flat_texts`",
-            )
+            raise ValueError("transcript has no utterances")
         self.logger.info(
             "orchestrator start n_utterances=%d meeting_id=%s",
             n, str(meeting_id),
@@ -82,14 +75,8 @@ class StreamingOrchestrator:
             yield from self._process_stream_body(
                 transcript, t0, meeting_id, segments,
             )
-        except LoggableError:
-            raise
-        except Exception as e:  # noqa: BLE001
-            log_error_with_fix(
-                self.logger, e,
-                fix="check the traceback; common causes: invalid utterance "
-                    "structure, model OOM, or input out of bounds",
-            )
+        except Exception as e:
+            self.logger.exception("Error in process_stream: %s", e)
             raise
 
     def _process_stream_body(  # type: ignore[no-untyped-def]

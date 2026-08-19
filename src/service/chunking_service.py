@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from src.logging import get_logger
+import logging
+
 from src.types.segment import Chunk
 from src.types.utterance import Utterance
 
-logger = get_logger("src.service.chunking_service")
+logger = logging.getLogger("src.service.chunking_service")
 
 
 class ChunkingService:

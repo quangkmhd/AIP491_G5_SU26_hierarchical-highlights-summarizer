@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from src.logging import get_logger
+import logging
 
 # Default parameters match the reference implementation in 16-eval-DTS.
 DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
@@ -429,7 +429,7 @@ class SlidingTextTilingService:
         stride: int = 5,
     ) -> None:
         """Khởi tạo dịch vụ phân đoạn chủ đề SlidingTextTilingService."""
-        self.logger = get_logger("src.service.sliding_text_tiling")
+        self.logger = logging.getLogger("src.service.sliding_text_tiling")
         self.block_size = block_size
         self.radii = radii if radii is not None else [3, 5, 10, 15, 20]
         self.alpha = alpha
