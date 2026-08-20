@@ -20,15 +20,14 @@ class HierarchicalSummarizationService:
         self,
         chunk_summarizer: Any = None,
         topic_titler: Any = None,
-        loader: ModelLoader | None = None,
     ) -> None:
         """Khởi tạo 2 mô hình ViT5 tóm tắt và BARTpho sinh tiêu đề."""
-        model_loader = loader or ModelLoader()
+        loader = ModelLoader()
         self._chunk_summarizer = chunk_summarizer or ViT5ChunkSummarizer(
-            model_loader.load_chunk_summarizer()
+            loader.load_chunk_summarizer()
         )
         self._topic_titler = topic_titler or BARTphoTopicTitler(
-            model_loader.load_topic_titler()
+            loader.load_topic_titler()
         )
 
     def _format_utterances(self, utterances: list[Utterance]) -> str:
