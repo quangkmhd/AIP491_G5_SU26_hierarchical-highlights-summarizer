@@ -108,14 +108,19 @@ Kết quả được xuất ra dưới dạng JSON cấu trúc, dễ dàng để
       "end_time": 4.5,
       "branch": "BRANCH_A",
       "speakers": ["Speaker_01"],
-      "has_overlap": false
+      "has_overlap": false,
+      "audio_files": ["output_chunks/0_4500_Speaker_01_0.wav"]
     },
     {
       "start_time": 4.5,
       "end_time": 8.0,
       "branch": "BRANCH_B",
       "speakers": ["Speaker_01", "Speaker_02"],
-      "has_overlap": true
+      "has_overlap": true,
+      "audio_files": [
+        "output_chunks/4500_8000_Speaker_01_0.wav",
+        "output_chunks/4500_8000_Speaker_02_1.wav"
+      ]
     }
   ]
 }

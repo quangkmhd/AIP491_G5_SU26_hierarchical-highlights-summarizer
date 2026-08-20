@@ -52,6 +52,10 @@ def main():
     duration = len(audio) / sr
     logger.info(f"Audio loaded. Duration: {duration:.2f}s. Starting processing...")
 
+    output_dir = "output_chunks"
+    os.makedirs(output_dir, exist_ok=True)
+    logger.info(f"Separated audio chunks will be saved to: {output_dir}/")
+
     results = []
     start_proc = time.time()
     
@@ -74,12 +78,20 @@ def main():
                 start_time = float(res1["t_d"])
                 end_time = float(res1["t_d"]) + float(len(res1["clean_audio"])/sr)
                 
+                segment_audio_paths = []
+                # Save each separated stream to a WAV file
+                for i, (speaker, audio_array) in enumerate(zip(res2["speakers"], res2.get("audio_streams", []))):
+                    chunk_filename = os.path.join(output_dir, f"{int(start_time*1000)}_{int(end_time*1000)}_{speaker}_{i}.wav")
+                    sf.write(chunk_filename, audio_array, sr)
+                    segment_audio_paths.append(chunk_filename)
+                
                 results.append({
                     "start_time": round(start_time, 3),
                     "end_time": round(end_time, 3),
                     "branch": res2["branch"],
                     "speakers": res2["speakers"],
-                    "has_overlap": res2.get("has_overlap", False)
+                    "has_overlap": res2.get("has_overlap", False),
+                    "audio_files": segment_audio_paths
                 })
                 logger.info(f"[{start_time:.1f}s - {end_time:.1f}s] {res2['branch']} | Speakers: {res2['speakers']}")
 
@@ -92,12 +104,19 @@ def main():
         start_time = float(res1["t_d"])
         end_time = float(res1["t_d"]) + float(len(res1["clean_audio"])/sr)
         
+        segment_audio_paths = []
+        for i, (speaker, audio_array) in enumerate(zip(res2["speakers"], res2.get("audio_streams", []))):
+            chunk_filename = os.path.join(output_dir, f"{int(start_time*1000)}_{int(end_time*1000)}_{speaker}_{i}.wav")
+            sf.write(chunk_filename, audio_array, sr)
+            segment_audio_paths.append(chunk_filename)
+        
         results.append({
             "start_time": round(start_time, 3),
             "end_time": round(end_time, 3),
             "branch": res2["branch"],
             "speakers": res2["speakers"],
-            "has_overlap": res2.get("has_overlap", False)
+            "has_overlap": res2.get("has_overlap", False),
+            "audio_files": segment_audio_paths
         })
         logger.info(f"[{start_time:.1f}s - {end_time:.1f}s] {res2['branch']} | Speakers: {res2['speakers']}")
 
