@@ -10,9 +10,7 @@ from src.service import StreamingOrchestrator
 from src.types.schemas import TranscriptIngestionRequest
 
 
-def create_app(
-    orchestrator: StreamingOrchestrator | None = None,
-) -> FastAPI:
+def create_app() -> FastAPI:
     """Khởi tạo ứng dụng FastAPI Web Server phục vụ dịch vụ Tóm tắt & Phân đoạn Văn bản."""
     app = FastAPI(
         title="Hierarchical Text Summarization Service",
@@ -27,7 +25,7 @@ def create_app(
         allow_headers=["Content-Type"],
     )
 
-    app.state.orchestrator = orchestrator or StreamingOrchestrator()
+    app.state.orchestrator = StreamingOrchestrator()
 
     @app.get("/health")
     def health_check() -> dict[str, str]:
