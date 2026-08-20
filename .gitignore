@@ -58,3 +58,38 @@ report_compilation/.obsidian/
 Source_Code/
 *.zip
 Source_Code_Summary/
+
+# ==========================================
+# Target Diarization Module (sd_with_audio_prep)
+# ==========================================
+
+# 1. Weights
+sd_with_audio_prep/weights/
+sd_with_audio_prep/prepare/
+
+# 2. Package management
+sd_with_audio_prep/uv.lock
+sd_with_audio_prep/.python-version
+sd_with_audio_prep/.venv/
+sd_with_audio_prep/venv/
+
+# 3. Data and results
+sd_with_audio_prep/data/
+sd_with_audio_prep/results/
+sd_with_audio_prep/logs/
+sd_with_audio_prep/docs/
+sd_with_audio_prep/reporting/
+
+# 4. Test scripts & Scratch
+sd_with_audio_prep/tests/
+sd_with_audio_prep/scripts/
+sd_with_audio_prep/scratch/
+
+# 5. IDE/OS
+sd_with_audio_prep/.env
+sd_with_audio_prep/.vscode/
+sd_with_audio_prep/.idea/
+sd_with_audio_prep/.DS_Store
+
+sd_with_audio_prep/.antigravityignore
+sd_with_audio_prep/pyproject.toml

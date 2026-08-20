@@ -1,0 +1,76 @@
+# =============================================================================
+# CENTER CONFIGURATION
+# =============================================================================
+
+audio:
+  sample_rate: 16000
+  channels: 1        # Mono
+  dtype: "float32"
+  chunk_length_s: 2.5
+  overlap_s: 0.3
+
+# --- Module 1: Audio Preprocessing & Quality Gate ---
+module1_preprocessing:
+  denoiser:
+    atten_lim_db: 15.0    # Noise floor cutoff (anti-gating, preserves timbre)
+    post_filter: false     # Disable Valin filter (prevents bubble-like sounds)
+  vad:
+    frame_size_ms: 32      # 512 samples at 16kHz
+  quality_gate:
+    theta_dur: 0.25        # Minimum speech duration (seconds) = 10% of 2.5s chunk
+    theta_conf: 0.5        # Minimum average VAD confidence
+
+# --- Module 2: Speaker Diarization & Routing ---
+module2_diarization:
+  smart_router:
+    n_min: 2               # Minimum profiles to activate Branch B (TSE)
+  ovd:
+    window_duration: 10.0   # 10s context
+    step_duration: 2.5      # 2.5s per chunk
+    overlap_threshold: 0.5
+    onset: 0.55
+    offset: 0.45
+    min_duration_on: 0.1    # (seconds) Ignore short overlap noises
+    min_duration_off: 0.1   # (seconds) Minimum silence between overlap segments
+
+  branch_a_single_speaker:
+    matching_threshold: 0.5       # Cosine similarity threshold for speaker matching
+    tentative_low: 0.60           # Lower threshold for tentative matches
+    tentative_high: 0.75          # Upper threshold for tentative matches
+    pool_update:
+      theta_dur: 0.8              # Lowered to 0.8s to capture short utterances
+      theta_conf: 0.75            # Lowered to 0.75 as EMA helps mitigate noise risk
+
+  branch_b_overlap_tse:
+    theta_low: 0.45               # Cosine threshold on Mix Audio (Top 1)
+    theta_very_low: 0.35          # Cosine threshold on Mix Audio (Top 2)
+
+  branch_c_cold_start_bss:
+    theta_cold: 0.3               # Confidence threshold for Cold Start profile initialization
+    conv_tasnet_sample_rate: 8000  # Original training SR of Conv-TasNet
+
+  voiceprint_pool:
+    save_dir: "results/pool_state" # Directory to save speaker state
+    base_alpha: 0.1                # Base EMA learning rate (10%)
+
+  smart_buffer:
+    chunk_size_ms: 500
+    min_speech_duration_ms: 250
+    min_silence_duration_ms: 500
+    max_speech_duration_s: 10.0
+    vad_threshold: 0.5
+
+  post_vad:
+    theta_dur: 0.8
+    theta_conf: 0.75
+
+# --- Model Paths ---
+model_paths:
+  deepfilternet: "weights/dfn"
+  silero_vad_onnx: "weights/silero_vad.onnx"
+  silero_vad_utils: "utils/silero_vad_utils.py"
+  pyannote_segmentation: "weights/ovd.bin"
+  cam_plus_plus: "weights/campplus"     
+  speakerbeam_checkpoint: "weights/speakerbeam.pth"                         
+  conv_tasnet: "weights/torch_hub"
+  resemblyzer: "weights/resemblyzer.pt"
