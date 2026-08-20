@@ -27,14 +27,6 @@ def create_app() -> FastAPI:
 
     app.state.orchestrator = StreamingOrchestrator()
 
-    @app.get("/health")
-    def health_check() -> dict[str, str]:
-        """Endpoint kiểm tra sức khỏe của dịch vụ."""
-        return {
-            "status": "healthy",
-            "service": "Text Summarization & Topic Segmentation",
-        }
-
     @app.post("/api/v1/meetings/process")
     async def process_meeting(payload: TranscriptIngestionRequest) -> JSONResponse:
         """Endpoint xử lý tóm tắt văn bản dạng Batch đồng bộ."""

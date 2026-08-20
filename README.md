@@ -24,28 +24,7 @@ uv run uvicorn src.runtime.api:create_app --factory --host 0.0.0.0 --port 8000
 
 ## 2. Danh Sách API Endpoints & Cách Kết Nối
 
-### 2.1. `GET /health` — Kiểm Tra Trạng Thái Dịch Vụ
-
-- **Phương thức:** `GET`
-- **URL:** `http://localhost:8000/health`
-- **Chức năng:** Kiểm tra dịch vụ Web Server có đang chạy bình thường hay không.
-
-#### Ví dụ kết nối bằng cURL:
-```bash
-curl -X GET http://localhost:8000/health
-```
-
-#### Phản hồi từ Server (JSON):
-```json
-{
-  "status": "healthy",
-  "service": "Text Summarization & Topic Segmentation"
-}
-```
-
----
-
-### 2.2. `POST /api/v1/meetings/process` — Tóm Tắt Hàng Loạt (Batch API)
+### 2.1. `POST /api/v1/meetings/process` — Tóm Tắt Hàng Loạt (Batch API)
 
 - **Phương thức:** `POST`
 - **URL:** `http://localhost:8000/api/v1/meetings/process`
@@ -111,7 +90,7 @@ print(response.json())
 
 ---
 
-### 2.3. `WebSocket /ws` — Kết Nối Real-Time Two-Way Streaming
+### 2.2. `WebSocket /ws` — Kết Nối Real-Time Two-Way Streaming
 
 - **Giao thức:** `WebSocket`
 - **URL:** `ws://localhost:8000/ws`
