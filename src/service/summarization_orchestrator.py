@@ -99,19 +99,33 @@ class StreamingOrchestrator:
                 data={"segment_id": str(seg.segment_id), "title": title},
             )
 
+    def process_batch(
+        self, transcript: DialogueTranscript
+    ) -> HierarchicalSummary:
+        """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp."""
+        t0 = time.perf_counter()
+        all_utterances = transcript.utterances
+        segments: list[SegmentResult] = []
+        seg_ranges = self.tiler.process([u.text for u in all_utterances])
+        list(self._build_segment_events(all_utterances, seg_ranges, segments))
+        return HierarchicalSummary(
+            meeting_id=uuid4(),
+            meeting_title=transcript.meeting_title,
+            segments=segments,
+            generated_at=datetime.now(timezone.utc),
+            processing_time_ms=int((time.perf_counter() - t0) * 1000),
+        )
+
     def process_stream(
         self, transcript: DialogueTranscript
     ) -> Iterator[OrchestratorEvent]:
         """Xử lý bản ghi hội thoại và phát ra các sự kiện theo luồng."""
         t0 = time.perf_counter()
         meeting_id = uuid4()
-        if not transcript.utterances:
-            raise ValueError("transcript has no utterances")
-
         all_utterances = transcript.utterances
 
         # 1. Phát sự kiện tiếp nhận câu thoại
-        for utt in all_utterances[1:]:
+        for utt in all_utterances:
             yield OrchestratorEvent(
                 type=SummarizationEventType.UTTERANCE_ACCEPTED,
                 data={"index": utt.index, "speaker": utt.speaker, "text": utt.text},
@@ -125,6 +139,7 @@ class StreamingOrchestrator:
         # 3. Hoàn tất cuộc họp và đóng gói kết quả
         summary = HierarchicalSummary(
             meeting_id=meeting_id,
+            meeting_title=transcript.meeting_title,
             segments=segments,
             generated_at=datetime.now(timezone.utc),
             processing_time_ms=int((time.perf_counter() - t0) * 1000),
@@ -133,15 +148,6 @@ class StreamingOrchestrator:
             type=SummarizationEventType.MEETING_COMPLETED,
             data={"hierarchical_summary": summary.model_dump(mode="json")},
         )
-
-    def process_batch(
-        self, transcript: DialogueTranscript
-    ) -> HierarchicalSummary:
-        """Xử lý toàn bộ bản ghi hội thoại dạng batch và trả về kết quả tóm tắt phân cấp."""
-        for event in self.process_stream(transcript):
-            if event.type == SummarizationEventType.MEETING_COMPLETED:
-                return HierarchicalSummary.model_validate(event.data["hierarchical_summary"])
-        raise ValueError("Failed to process meeting batch")
 
     # --- Giao diện xử lý tăng tiến / streaming real-time ---
 
