@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -38,22 +36,14 @@ def create_app() -> FastAPI:
     async def websocket_text_summarization(websocket: WebSocket) -> None:
         """Endpoint WebSocket tiếp nhận câu thoại real-time và trả về các sự kiện tóm tắt."""
         await websocket.accept()
-        ws_orchestrator = app.state.orchestrator
-        ws_orchestrator.reset_incremental()
+        ws_orchestrator = StreamingOrchestrator()
         utterance_counter = 0
 
         try:
             while True:
-                message = await websocket.receive_text()
-                try:
-                    payload = json.loads(message)
-                except json.JSONDecodeError:
-                    await websocket.send_json({"type": "error", "message": "Invalid JSON format"})
-                    continue
+                payload = await websocket.receive_json()
 
-                msg_type = payload.get("type", "utterance")
-
-                if msg_type in {"flush", "session_end", "complete"}:
+                if payload.get("type") == "flush":
                     for evt in ws_orchestrator.flush_and_finalize():
                         await websocket.send_json(evt)
                     break
@@ -69,9 +59,7 @@ def create_app() -> FastAPI:
                 for evt in ws_orchestrator.accept_utterance(text=text, speaker=speaker, index=idx):
                     await websocket.send_json(evt)
 
-        except WebSocketDisconnect:
-            pass
-        except Exception:
+        except (WebSocketDisconnect, Exception):
             pass
 
     return app
