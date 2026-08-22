@@ -37,7 +37,6 @@ def create_app() -> FastAPI:
         """Endpoint WebSocket tiếp nhận câu thoại real-time và trả về các sự kiện tóm tắt."""
         await websocket.accept()
         ws_orchestrator = StreamingOrchestrator()
-        utterance_counter = 0
 
         try:
             while True:
@@ -52,11 +51,11 @@ def create_app() -> FastAPI:
                 if not text:
                     continue
 
-                speaker = payload.get("speaker", "Speaker 01")
-                idx = payload.get("index", utterance_counter)
-                utterance_counter += 1
-
-                for evt in ws_orchestrator.accept_utterance(text=text, speaker=speaker, index=idx):
+                for evt in ws_orchestrator.accept_utterance(
+                    text=text,
+                    speaker=payload.get("speaker", "Speaker 01"),
+                    index=payload.get("index"),
+                ):
                     await websocket.send_json(evt)
 
         except (WebSocketDisconnect, Exception):

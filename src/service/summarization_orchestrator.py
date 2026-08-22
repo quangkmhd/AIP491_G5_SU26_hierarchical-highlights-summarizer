@@ -155,13 +155,14 @@ class StreamingOrchestrator:
         self.tiler.reset()
 
     def accept_utterance(
-        self, text: str, speaker: str, index: int,
+        self, text: str, speaker: str = "Speaker 01", index: int | None = None,
     ) -> Iterator[dict[str, Any]]:
         """Tiếp nhận một câu thoại real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
         if not hasattr(self, "_incremental_utterances"):
             self.reset_incremental()
 
-        utt = Utterance(speaker=speaker, text=text, index=index)
+        utt_idx = index if index is not None else len(self._incremental_utterances)
+        utt = Utterance(speaker=speaker, text=text, index=utt_idx)
         self._incremental_utterances.append(utt)
 
         yield {
