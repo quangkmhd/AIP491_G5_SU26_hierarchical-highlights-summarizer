@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from itertools import pairwise
-from typing import ClassVar, Iterator, Optional
+from typing import Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -34,12 +33,3 @@ class DialogueTranscript(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="UTC timestamp the transcript was submitted.",
     )
-
-    MAX_UTTERANCES: ClassVar[int] = 5000
-
-    def get_utterance_count(self) -> int:
-        return len(self.utterances)
-
-    def get_utterance_pairs(self) -> Iterator[tuple[Utterance, Utterance]]:
-        """Trả về cặp (câu thoại trước, câu thoại sau) liên tiếp."""
-        return pairwise(self.utterances)
