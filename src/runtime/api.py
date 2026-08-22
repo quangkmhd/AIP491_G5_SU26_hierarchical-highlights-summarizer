@@ -55,7 +55,7 @@ def create_app() -> FastAPI:
 
                 if msg_type in {"flush", "session_end", "complete"}:
                     for evt in ws_orchestrator.flush_and_finalize():
-                        await websocket.send_json({"type": evt.type.value, **evt.data})
+                        await websocket.send_json(evt)
                     break
 
                 text = payload.get("text", "").strip()
@@ -67,7 +67,7 @@ def create_app() -> FastAPI:
                 utterance_counter += 1
 
                 for evt in ws_orchestrator.accept_utterance(text=text, speaker=speaker, index=idx):
-                    await websocket.send_json({"type": evt.type.value, **evt.data})
+                    await websocket.send_json(evt)
 
         except WebSocketDisconnect:
             pass

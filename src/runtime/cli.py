@@ -21,7 +21,7 @@ def _load_transcript(file: TextIO) -> DialogueTranscript:
         raise ValueError(f"{path} must contain a non-empty JSON array of transcripts")
 
     item = raw[0]
-    utterances_raw = item.get("utterances") or item.get("flat_texts") or []
+    utterances_raw = item.get("utterances") or []
     utts = [
         Utterance(
             speaker=u.get("speaker", f"S{i + 1}") if isinstance(u, dict) else f"S{i + 1}",
@@ -58,20 +58,21 @@ def cmd_stream(args: argparse.Namespace) -> int:
     final_summary: dict | None = None
 
     for event in orchestrator.process_stream(transcript):
-        if event.type.value == "segment-closed":
+        evt_type = event.get("type")
+        if evt_type == "segment-closed":
             seg_count += 1
-        if event.type.value == "meeting-completed":
-            final_summary = event.data.get("hierarchical_summary")
+        if evt_type == "meeting-completed":
+            final_summary = event.get("hierarchical_summary")
 
         if getattr(args, "pretty", False):
-            if event.type.value == "chunk-closed":
-                print(f"Tóm tắt chunk: {event.data.get('rolling_summary')}")
+            if evt_type == "chunk-closed":
+                print(f"Tóm tắt chunk: {event.get('rolling_summary')}")
                 sys.stdout.flush()
-            elif event.type.value == "title-emitted":
-                print(f"Chủ đề: {event.data.get('title')}\n" + "-" * 40)
+            elif evt_type == "title-emitted":
+                print(f"Chủ đề: {event.get('title')}\n" + "-" * 40)
                 sys.stdout.flush()
         else:
-            print(json.dumps({"type": event.type.value, "payload": event.data}, default=str))
+            print(json.dumps(event, default=str))
 
     if args.output and final_summary is not None:
         Path(args.output).write_text(
