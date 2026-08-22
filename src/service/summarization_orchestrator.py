@@ -48,7 +48,7 @@ class StreamingOrchestrator:
         """Tóm tắt các khối thoại và phát các sự kiện CHUNK_CLOSED, SEGMENT_CLOSED, TITLE_EMITTED."""
         for start_utt, end_utt in seg_ranges:
             seg_idx = len(segments_target)
-            segment_utts = [u for u in all_utterances if start_utt <= u.index <= end_utt] or all_utterances[start_utt : end_utt + 1]
+            segment_utts = all_utterances[start_utt : end_utt + 1]
 
             seg = SegmentResult(
                 title=f"Chapter {seg_idx + 1}",
