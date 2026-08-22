@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -30,11 +30,7 @@ def create_app() -> FastAPI:
     @app.post("/api/v1/meetings/process")
     async def process_meeting(payload: TranscriptIngestionRequest) -> JSONResponse:
         """Endpoint xử lý tóm tắt văn bản dạng Batch đồng bộ."""
-        try:
-            transcript = payload.materialize()
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e)) from e
-
+        transcript = payload.materialize()
         summary = app.state.orchestrator.process_batch(transcript)
         return JSONResponse(content=summary.model_dump(mode="json"))
 
