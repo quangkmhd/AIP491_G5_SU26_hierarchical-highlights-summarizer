@@ -47,14 +47,8 @@ class StreamingOrchestrator:
     ) -> Iterator[dict[str, Any]]:
         """Tóm tắt các khối thoại và phát các sự kiện CHUNK_CLOSED, SEGMENT_CLOSED, TITLE_EMITTED."""
         for start_utt, end_utt in seg_ranges:
-            seg_idx = len(segments_target)
             segment_utts = all_utterances[start_utt : end_utt + 1]
-
-            seg = SegmentResult(
-                title=f"Chapter {seg_idx + 1}",
-                utterances_start=start_utt,
-                utterances_end=end_utt,
-            )
+            seg = SegmentResult(utterances_start=start_utt, utterances_end=end_utt)
 
             for chunk_idx, i in enumerate(range(0, len(segment_utts), self.chunker.CHUNK_SIZE)):
                 chunk_utts = segment_utts[i : i + self.chunker.CHUNK_SIZE]
@@ -79,13 +73,12 @@ class StreamingOrchestrator:
                 "utterances_end": seg.utterances_end,
             }
 
-            title = self.summarizer.title(seg)
-            seg.title = title
+            seg.title = self.summarizer.title(seg)
             segments_target.append(seg)
             yield {
                 "type": SummarizationEventType.TITLE_EMITTED.value,
                 "segment_id": str(seg.segment_id),
-                "title": title,
+                "title": seg.title,
             }
 
     def process_batch(
