@@ -30,8 +30,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sd_module.api")
 
+import shutil
+import subprocess
+
 # Global container instance
 container_instance: DIContainer | None = None
+
+
+def load_audio_bytes(contents: bytes, target_sr: int = 16000) -> np.ndarray:
+    """Robustly load audio bytes (WAV, WebM, OGG, MP3, FLAC, M4A) and return 16kHz mono float32 array."""
+    # Attempt 1: soundfile (WAV, FLAC, OGG)
+    try:
+        audio, orig_sr = sf.read(io.BytesIO(contents))
+        if len(audio.shape) > 1:
+            audio = audio.mean(axis=1)
+        if orig_sr != target_sr:
+            num_samples = int(len(audio) * target_sr / orig_sr)
+            audio = signal.resample(audio, num_samples)
+        return audio.astype(np.float32)
+    except Exception:
+        pass
+
+    # Attempt 2: ffmpeg subprocess (WebM, OGG, MP3, M4A)
+    ffmpeg_bin = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg" or "/usr/local/bin/ffmpeg"
+    try:
+        proc = subprocess.Popen(
+            [ffmpeg_bin, "-i", "pipe:0", "-f", "wav", "-ar", str(target_sr), "-ac", "1", "pipe:1"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        out, err = proc.communicate(input=contents)
+        if proc.returncode == 0 and len(out) > 0:
+            audio, _ = sf.read(io.BytesIO(out))
+            return audio.astype(np.float32)
+        else:
+            logger.warning(f"ffmpeg conversion error: {err.decode('utf-8', errors='ignore')}")
+    except Exception as ex:
+        logger.warning(f"ffmpeg invocation failed: {ex}")
+
+    raise ValueError("Unrecognized audio format. Please provide valid WAV, WebM, OGG, or MP3 audio.")
 
 
 @asynccontextmanager
@@ -91,15 +129,9 @@ def create_app() -> FastAPI:
             )
 
         contents = await file.read()
+        target_sr = container_instance.config.get("audio", {}).get("sample_rate", 16000)
         try:
-            audio, orig_sr = sf.read(io.BytesIO(contents))
-            if len(audio.shape) > 1:
-                audio = audio.mean(axis=1)
-
-            target_sr = container_instance.config.get("audio", {}).get("sample_rate", 16000)
-            if orig_sr != target_sr:
-                num_samples = int(len(audio) * target_sr / orig_sr)
-                audio = signal.resample(audio, num_samples)
+            audio = load_audio_bytes(contents, target_sr=target_sr)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

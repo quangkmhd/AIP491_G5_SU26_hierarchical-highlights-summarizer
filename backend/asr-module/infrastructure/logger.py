@@ -5,7 +5,7 @@ import sys
 from config import settings
 
 
-def setup_logger(name: str = "vietasr") -> logging.Logger:
+def setup_logger(name: str = "asr-module") -> logging.Logger:
     logger = logging.getLogger(name)
     if not logger.handlers:
         logger.setLevel(getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO))

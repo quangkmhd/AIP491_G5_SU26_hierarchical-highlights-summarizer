@@ -56,7 +56,7 @@ module2_diarization:
   smart_buffer:
     chunk_size_ms: 500
     min_speech_duration_ms: 250
-    min_silence_duration_ms: 500
+    min_silence_duration_ms: 1000
     max_speech_duration_s: 10.0
     vad_threshold: 0.5
 
