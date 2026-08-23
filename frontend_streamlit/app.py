@@ -1,11 +1,11 @@
-"""Streamlit Application with Meeting Upload, Google Meet-Style Split UI, & Meeting History."""
-
+import hashlib
 import json
 import os
 import time
 from typing import Any, Optional
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Gateway backend configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
@@ -84,20 +84,26 @@ with st.sidebar:
     st.divider()
 
     # Backend Liveness Check
-    try:
-        health_res = requests.get(f"{BACKEND_URL}/health", timeout=3.0)
-        if health_res.status_code == 200 and health_res.json().get("status") == "healthy":
-            st.success("🟢 Backend Gateway Online")
-        else:
-            st.warning("🟡 Backend Gateway Initializing")
-    except Exception:
+    backend_online = False
+    for _ in range(3):
+        try:
+            health_res = requests.get(f"{BACKEND_URL}/health", timeout=2.0)
+            if health_res.status_code == 200 and health_res.json().get("status") == "healthy":
+                backend_online = True
+                break
+        except Exception:
+            time.sleep(0.5)
+
+    if backend_online:
+        st.success("🟢 Backend Gateway Online")
+    else:
         st.error("🔴 Backend Gateway Offline")
 
     st.divider()
     st.markdown("### 🧩 AI Microservices")
+    st.markdown("- **`asr-module`** (Port 8000): Sherpa-ONNX Zipformer")
     st.markdown("- **`sd-module`** (Port 8002): Diarization & BSS/TSE")
-    st.markdown("- **`asr-module`** (Port 8001): Sherpa-ONNX Zipformer")
-    st.markdown("- **`llms-module`** (Port 8000): ViT5 + BARTpho Summaries")
+    st.markdown("- **`llms-module`** (Port 8003): ViT5 + BARTpho Summaries")
 
 # Main Title Header
 st.title("🎙️ AI Meeting Intelligence Platform")
@@ -233,30 +239,132 @@ with nav_online:
     with left_col:
         st.markdown("### 🎙️ Live Speech Transcript")
         if st.session_state["live_meeting_active"]:
-            mic_audio = st.audio_input("Record Speech Frame", key="live_mic_input")
-            if mic_audio:
-                st.info("Speech frame recorded. Processing diarization & ASR...")
-
             sid = st.session_state["live_session_id"]
+
+            st.caption("🟢 **Live Meeting Connected**. Audio frames are streamed automatically to Backend Gateway.")
+            
+            # Input Mode Switch: Live Mic Audio or Live Audio Sample Streamer
+            stream_source = st.radio(
+                "Streaming Source",
+                ["Microphone Stream", "Stream Live Audio Sample File"],
+                horizontal=True,
+                key="stream_source_choice"
+            )
+
+            if stream_source == "Microphone Stream":
+                components.html(
+                    f"""
+                    <div style="background-color:#1e293b; padding:12px; border-radius:8px; color:#e2e8f0; font-family:sans-serif; text-align:center; border-left:4px solid #10b981;">
+                        <div id="status-indicator" style="font-weight:bold; color:#10b981; margin-bottom:4px; font-size:0.95rem;">
+                            🔴 Hands-Free Live Stream Active (Auto-chunking every 3.5s)
+                        </div>
+                        <div style="font-size:0.8rem; color:#94a3b8;">
+                            Speak into your microphone. Speech frames stream automatically to backend.
+                        </div>
+                    </div>
+                    <script>
+                    (function() {{
+                        let sessionId = "{sid}";
+                        let backendUrl = "{BACKEND_URL}";
+                        
+                        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
+                            document.getElementById('status-indicator').innerHTML = '⚠️ Browser MediaDevices API not supported';
+                            return;
+                        }}
+
+                        navigator.mediaDevices.getUserMedia({{ audio: true }})
+                            .then(stream => {{
+                                let mediaRecorder;
+                                
+                                function startRecording() {{
+                                    mediaRecorder = new MediaRecorder(stream);
+                                    let chunks = [];
+                                    mediaRecorder.ondataavailable = function(e) {{
+                                        if (e.data && e.data.size > 0) {{
+                                            chunks.push(e.data);
+                                        }}
+                                    }};
+                                    mediaRecorder.onstop = function() {{
+                                        let blob = new Blob(chunks, {{ type: mediaRecorder.mimeType }});
+                                        if (blob.size > 0) {{
+                                            let formData = new FormData();
+                                            formData.append('file', blob, 'live_stream_chunk.wav');
+                                            fetch(backendUrl + '/api/v1/sessions/' + sessionId + '/audio', {{
+                                                method: 'POST',
+                                                body: formData
+                                            }}).then(res => {{
+                                                console.log('Live stream chunk sent successfully:', res.status);
+                                            }}).catch(err => {{
+                                                console.error('Live stream chunk error:', err);
+                                            }});
+                                        }}
+                                        // Start next recording slice immediately
+                                        startRecording();
+                                    }};
+                                    
+                                    mediaRecorder.start();
+                                    
+                                    // Stop after 3.5 seconds to trigger onstop
+                                    setTimeout(() => {{
+                                        if (mediaRecorder.state === "recording") {{
+                                            mediaRecorder.stop();
+                                        }}
+                                    }}, 3500);
+                                }}
+                                
+                                startRecording();
+                            }})
+                            .catch(err => {{
+                                document.getElementById('status-indicator').innerHTML = '🔴 Mic Access Error: ' + err.message;
+                            }});
+                    }})();
+                    </script>
+                    """,
+                    height=85,
+                )
+
+            elif stream_source == "Stream Live Audio Sample File":
+                st.info("Simulating continuous real-time live meeting audio stream (3-second chunks).")
+                if st.button("▶ Stream 3-Second Chunk to Pipeline", type="primary", key="stream_chunk_btn"):
+                    # Stream live sample audio chunk
+                    sample_file = "backend/sd-module/data/overlap-audio-sample.wav"
+                    if not os.path.exists(sample_file):
+                        sample_file = "backend/asr-module/data/audio-sample.wav"
+                    
+                    if os.path.exists(sample_file):
+                        with open(sample_file, "rb") as f:
+                            c_bytes = f.read()
+                        with st.spinner("⚡ Streaming chunk -> Diarization -> ASR..."):
+                            files = {"file": ("live_stream_chunk.wav", c_bytes[:96000], "audio/wav")} # 3s frame
+                            res = requests.post(f"{BACKEND_URL}/api/v1/sessions/{sid}/audio", files=files, timeout=60.0)
+                            if res.status_code == 200:
+                                st.toast("3-Second live stream chunk processed!", icon="⚡")
+                                st.rerun()
+
+            # Render Live Transcribed Utterance Cards
             if sid:
-                s_data = requests.get(f"{BACKEND_URL}/api/v1/sessions/{sid}").json()
-                utts = s_data.get("utterances", [])
-                if utts:
-                    for u in utts:
-                        spk = u.get("speaker_id", "Speaker")
-                        badge = "speaker-badge-01" if "01" in spk else "speaker-badge-02"
-                        st.markdown(
-                            f"""
-                            <div class="transcript-card">
-                                <span class="{badge}">{spk}</span>
-                                <span style="font-size:0.75rem; color:#9ca3af; float:right;">{u.get('start_time')}s</span>
-                                <p style="margin-top:6px; font-size:0.95rem;">{u.get('text')}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-                else:
-                    st.info("Listening for speech... Speak into microphone.")
+                try:
+                    s_data = requests.get(f"{BACKEND_URL}/api/v1/sessions/{sid}", timeout=5.0).json()
+                    utts = s_data.get("utterances", [])
+                    if utts:
+                        for u in utts:
+                            spk = u.get("speaker_id", "Speaker")
+                            badge = "speaker-badge-01" if "01" in spk else ("speaker-badge-02" if "02" in spk else "speaker-badge-default")
+                            ov_tag = " <span style='color:#f59e0b;'>⚡ OVERLAP</span>" if u.get("has_overlap") else ""
+                            st.markdown(
+                                f"""
+                                <div class="transcript-card">
+                                    <span class="{badge}">{spk}</span>{ov_tag}
+                                    <span style="font-size:0.75rem; color:#9ca3af; float:right;">{u.get('start_time')}s - {u.get('end_time')}s</span>
+                                    <p style="margin-top:6px; font-size:0.95rem;">{u.get('text')}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                    else:
+                        st.info("Listening for speech... Audio frames stream automatically as speakers talk.")
+                except Exception as ex:
+                    st.warning(f"Connecting to Gateway... ({ex})")
         else:
             st.info("Click '🟢 Start Online Meeting' above to launch the Google Meet-style split screen view.")
 
@@ -322,3 +430,8 @@ with nav_history:
                             st.json(det)
     except Exception as e:
         st.error(f"Failed to load history: {e}")
+
+# Live Stream Auto-Refresh loop
+if st.session_state.get("live_meeting_active", False):
+    time.sleep(0.5)
+    st.rerun()
