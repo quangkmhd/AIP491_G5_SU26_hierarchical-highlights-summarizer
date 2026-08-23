@@ -23,13 +23,11 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type"],
     )
 
-    app.state.orchestrator = StreamingOrchestrator()
-
     @app.post("/api/v1/meetings/process")
     async def process_meeting(payload: TranscriptIngestionRequest) -> JSONResponse:
         """Endpoint xử lý tóm tắt văn bản dạng Batch đồng bộ."""
         transcript = payload.materialize()
-        summary = app.state.orchestrator.process_batch(transcript)
+        summary = StreamingOrchestrator().process_batch(transcript)
         return JSONResponse(content=summary.model_dump(mode="json"))
 
     @app.websocket("/ws")
