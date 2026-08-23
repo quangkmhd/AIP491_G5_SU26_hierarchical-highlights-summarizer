@@ -31,7 +31,7 @@ class TranscriptIngestionRequest(BaseModel):
         description="Optional list of plain utterance strings (no speaker info).",
     )
     language: str = Field(
-        default="en",
+        default="en", # Default is "vi" not "en"
         min_length=2,
         max_length=8,
         pattern=r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$",

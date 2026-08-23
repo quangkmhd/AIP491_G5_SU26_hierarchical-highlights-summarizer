@@ -50,7 +50,7 @@ source .llms-module-venv/bin/activate
 uvicorn runtime.api:create_app --factory --reload --host 0.0.0.0 --port 8000
 ```
 
-Server base URL: **`http://localhost:8000`**
+Server base URL: **`http://localhost:8003`**
 
 ---
 
@@ -65,11 +65,11 @@ Follow this step-by-step roadmap to test each feature of the service after serve
 Verify that the server is active and that both ViT5 and BARTpho models are loaded and ready.
 
 - **Method:** `GET`
-- **URL:** `http://localhost:8000/health`
+- **URL:** `http://localhost:8003/health`
 
 #### cURL Command:
 ```bash
-curl -s http://localhost:8000/health | python -m json.tool
+curl -s http://localhost:8003/health | python -m json.tool
 ```
 
 #### Expected Response (JSON):
@@ -99,7 +99,7 @@ curl -s http://localhost:8000/health | python -m json.tool
 Send a realistic multi-topic meeting transcript to perform automatic topic segmentation (Multiscale TextTiling), chunk summarization (ViT5), and chapter titling (BARTpho).
 
 - **Method:** `POST`
-- **URL:** `http://localhost:8000/api/v1/meetings/process`
+- **URL:** `http://localhost:8003/api/v1/meetings/process`
 - **Header:** `Content-Type: application/json`
 
 #### Detailed Meeting Request Body (JSON):
@@ -194,7 +194,7 @@ Send a realistic multi-topic meeting transcript to perform automatic topic segme
 
 #### cURL Command:
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/meetings/process \
+curl -s -X POST http://localhost:8003/api/v1/meetings/process \
   -H "Content-Type: application/json" \
   -d @data/sample_transcript.json | python -m json.tool --no-ensure-ascii
 ```
@@ -205,7 +205,7 @@ curl -s -X POST http://localhost:8000/api/v1/meetings/process \
 import json
 import requests
 
-url = "http://localhost:8000/api/v1/meetings/process"
+url = "http://localhost:8003/api/v1/meetings/process"
 with open("data/sample_transcript.json", "r", encoding="utf-8") as f:
     payload = json.load(f)
 
