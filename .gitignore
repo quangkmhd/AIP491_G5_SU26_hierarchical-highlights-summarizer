@@ -1,5 +1,10 @@
 # Local environment variables
 .env
+*.env
+.*-venv/
+
+# Keep empty directory structures via .gitkeep
+!.gitkeep
 
 # Python virtual environments & cache
 __pycache__/
@@ -25,29 +30,44 @@ logs/
 .ruff_cache/
 .dmypy.json
 
-# Experiment outputs
-outputs/
+# Heavy data, models, weights, & results (never committed due to size limits)
+data/*
+models/*
+weights/*
+results/*
+**/data/*
+**/models/*
+**/weights/*
+**/results/*
 
-# Jupyter notebooks checkpoints
-.ipynb_checkpoints/
+# Explicitly preserve .gitkeep files in all ignored data, models, weights, results folders
+!**/data/.gitkeep
+!**/models/.gitkeep
+!**/weights/.gitkeep
+!**/results/.gitkeep
+!**/results/pool_state/.gitkeep
+!**/weights/campplus/.gitkeep
+!**/weights/dfn/.gitkeep
+!**/weights/torch_hub/.gitkeep
+
+# Model weights extensions
+*.onnx
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.ckpt.best
 
 # External reference materials and code
 references/
 references_code/
 vibert_checkpoints_vi/
-
-# Git worktrees (isolated feature workspaces)
-.worktrees/
-dialog_datasets/
-data/
 bamibert-1dod-vi-v1/
-
-# Local inference checkpoints & model weight binaries (never committed to Git due to size limits)
-/models/
-*.onnx
-*.safetensors
-*.bin
-*.pt
+dialog_datasets/
+outputs/
+.ipynb_checkpoints/
+.worktrees/
+*.zip
 
 # Frontend build artifacts
 frontend/node_modules/
@@ -56,40 +76,4 @@ frontend/dist/
 # Obsidian settings
 report_compilation/.obsidian/
 Source_Code/
-*.zip
 Source_Code_Summary/
-
-# ==========================================
-# Target Diarization Module (sd_with_audio_prep)
-# ==========================================
-
-# 1. Weights
-sd_with_audio_prep/weights/
-sd_with_audio_prep/prepare/
-
-# 2. Package management
-sd_with_audio_prep/uv.lock
-sd_with_audio_prep/.python-version
-sd_with_audio_prep/.venv/
-sd_with_audio_prep/venv/
-
-# 3. Data and results
-sd_with_audio_prep/data/
-sd_with_audio_prep/results/
-sd_with_audio_prep/logs/
-sd_with_audio_prep/docs/
-sd_with_audio_prep/reporting/
-
-# 4. Test scripts & Scratch
-sd_with_audio_prep/tests/
-sd_with_audio_prep/scripts/
-sd_with_audio_prep/scratch/
-
-# 5. IDE/OS
-sd_with_audio_prep/.env
-sd_with_audio_prep/.vscode/
-sd_with_audio_prep/.idea/
-sd_with_audio_prep/.DS_Store
-
-sd_with_audio_prep/.antigravityignore
-sd_with_audio_prep/pyproject.toml
