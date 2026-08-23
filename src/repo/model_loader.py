@@ -31,20 +31,19 @@ def load_seq2seq_model(path: Path) -> ModelHandle:
 
 
 class ModelLoader:
-    """Quản lý nạp và lưu cache 2 mô hình ViT5 và BARTpho."""
+    """Quản lý nạp và lưu cache duy nhất 2 mô hình ViT5 và BARTpho trong RAM/VRAM."""
 
-    def __init__(self) -> None:
-        self._vit5_handle: ModelHandle | None = None
-        self._bartpho_handle: ModelHandle | None = None
+    _vit5_handle: ModelHandle | None = None
+    _bartpho_handle: ModelHandle | None = None
 
     def load_chunk_summarizer(self) -> ModelHandle:
-        """Nạp mô hình ViT5 Chunk Summarizer (lưu cache khi đã nạp)."""
-        if self._vit5_handle is None:
-            self._vit5_handle = load_seq2seq_model(VIT5_MODEL_PATH)
-        return self._vit5_handle
+        """Nạp mô hình ViT5 Chunk Summarizer (chỉ nạp 1 lần duy nhất)."""
+        if ModelLoader._vit5_handle is None:
+            ModelLoader._vit5_handle = load_seq2seq_model(VIT5_MODEL_PATH)
+        return ModelLoader._vit5_handle
 
     def load_topic_titler(self) -> ModelHandle:
-        """Nạp mô hình BARTpho Topic Titler (lưu cache khi đã nạp)."""
-        if self._bartpho_handle is None:
-            self._bartpho_handle = load_seq2seq_model(BARTPHO_MODEL_PATH)
-        return self._bartpho_handle
+        """Nạp mô hình BARTpho Topic Titler (chỉ nạp 1 lần duy nhất)."""
+        if ModelLoader._bartpho_handle is None:
+            ModelLoader._bartpho_handle = load_seq2seq_model(BARTPHO_MODEL_PATH)
+        return ModelLoader._bartpho_handle
