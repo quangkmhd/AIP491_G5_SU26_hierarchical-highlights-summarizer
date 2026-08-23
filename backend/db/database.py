@@ -13,6 +13,13 @@ DB_PATH = Path(__file__).resolve().parent / "pipeline.db"
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
 
+def _rel_path(p: Path) -> str:
+    try:
+        return str(p.relative_to(Path.cwd()))
+    except Exception:
+        return str(p)
+
+
 class DatabaseManager:
     """Synchronous & Async-compatible SQLite manager for pipeline state management."""
 
@@ -30,7 +37,7 @@ class DatabaseManager:
     def init_db(self) -> None:
         """Initialize database schema from schema.sql DDL."""
         if not SCHEMA_PATH.is_file():
-            logger.error(f"Schema file not found at {SCHEMA_PATH}")
+            logger.error(f"Schema file not found at '{_rel_path(SCHEMA_PATH)}'")
             return
 
         with self.get_connection() as conn:
@@ -38,7 +45,7 @@ class DatabaseManager:
                 schema_sql = f.read()
             conn.executescript(schema_sql)
             conn.commit()
-        logger.info(f"Database initialized at {self.db_path}")
+        logger.info(f"Database initialized at '{_rel_path(self.db_path)}'")
 
     # -------------------------------------------------------------
     # Session Management
@@ -118,6 +125,25 @@ class DatabaseManager:
             )
             conn.commit()
 
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a session and cascade delete all its utterances and summaries."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def update_session_title(self, session_id: str, title: str) -> bool:
+        """Update a session's title."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE sessions SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE session_id = ?",
+                (title, session_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
     # -------------------------------------------------------------
     # Utterance & Summary Management
     # -------------------------------------------------------------
@@ -126,14 +152,24 @@ class DatabaseManager:
         session_id: str,
         speaker_id: str,
         text: str,
-        utterance_index: int,
-        start_time: float,
-        end_time: float,
+        utterance_index: Optional[int] = None,
+        start_time: float = 0.0,
+        end_time: float = 0.0,
         has_overlap: bool = False,
     ) -> dict[str, Any]:
-        """Record a single transcribed utterance."""
+        """Record a single transcribed utterance with monotonic index."""
         uid = str(uuid4())
         with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if utterance_index is None:
+                cursor.execute(
+                    "SELECT COALESCE(MAX(utterance_index), -1) + 1 FROM utterances WHERE session_id = ?",
+                    (session_id,),
+                )
+                final_index = cursor.fetchone()[0]
+            else:
+                final_index = utterance_index
+
             conn.execute(
                 """
                 INSERT INTO utterances (utterance_id, session_id, speaker_id, text, utterance_index, start_time, end_time, has_overlap)
@@ -144,7 +180,7 @@ class DatabaseManager:
                     session_id,
                     speaker_id,
                     text,
-                    utterance_index,
+                    final_index,
                     start_time,
                     end_time,
                     1 if has_overlap else 0,
@@ -157,21 +193,21 @@ class DatabaseManager:
             "session_id": session_id,
             "speaker_id": speaker_id,
             "text": text,
-            "utterance_index": utterance_index,
+            "utterance_index": final_index,
             "start_time": start_time,
             "end_time": end_time,
             "has_overlap": has_overlap,
         }
 
     def get_utterances(self, session_id: str) -> list[dict[str, Any]]:
-        """Retrieve all transcribed utterances for a session in order."""
+        """Retrieve all transcribed utterances for a session in strict chronological order."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT * FROM utterances
                 WHERE session_id = ?
-                ORDER BY utterance_index ASC
+                ORDER BY utterance_index ASC, rowid ASC
                 """,
                 (session_id,),
             )

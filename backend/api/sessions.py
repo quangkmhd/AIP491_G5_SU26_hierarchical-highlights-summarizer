@@ -99,9 +99,74 @@ def get_session_summary(request: Request, session_id: str) -> dict[str, Any]:
             detail=f"Summary for session {session_id} is not ready or failed.",
         )
 
+    return {"status": "success", "summary": summary}
+
+
+@router.post("/{session_id}/audio", response_model=dict[str, Any])
+async def process_live_audio_chunk(
+    request: Request,
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+) -> dict[str, Any]:
+    """Receive live recorded mic audio frame, run diarization, ASR, and update session."""
+    db = request.app.state.db
+    orchestrator = request.app.state.orchestrator
+
+    session = db.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found.",
+        )
+
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Empty audio chunk received.",
+        )
+
+    background_tasks.add_task(
+        orchestrator.process_audio_file,
+        session_id=session_id,
+        audio_bytes=audio_bytes,
+        filename=file.filename or "live_chunk.wav",
+    )
+
     return {
-        "session_id": session_id,
-        "status": session["status"],
-        "summary": summary["hierarchical_json"],
-        "processing_time_ms": summary.get("processing_time_ms"),
+        "status": "success",
+        "message": f"Live audio frame ({len(audio_bytes)} bytes) queued for processing.",
     }
+
+
+@router.delete("/{session_id}", response_model=dict[str, Any])
+def delete_session(request: Request, session_id: str) -> dict[str, Any]:
+    """Delete a meeting session and its associated transcripts and summaries."""
+    db = request.app.state.db
+    deleted = db.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found.",
+        )
+    return {"status": "success", "message": f"Session {session_id} deleted."}
+
+
+@router.put("/{session_id}", response_model=dict[str, Any])
+def update_session(request: Request, session_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """Update meeting session metadata (e.g. title)."""
+    db = request.app.state.db
+    title = payload.get("title")
+    if not title:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Title cannot be empty.",
+        )
+    updated = db.update_session_title(session_id, title)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found.",
+        )
+    return {"status": "success", "session": db.get_session(session_id)}

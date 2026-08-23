@@ -23,6 +23,7 @@ htmlcov/
 # Logs & temporary files
 *.log
 logs/
+*.db
 .DS_Store
 
 # Type checking & linting cache

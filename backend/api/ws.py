@@ -38,8 +38,8 @@ async def broadcast_event(session_id: str, event_data: dict[str, Any]) -> None:
 async def websocket_session_stream(websocket: WebSocket, session_id: str) -> None:
     """
     WebSocket endpoint for real-time live audio chunk ingestion and progress broadcasting.
-    - Accepts 500ms binary PCM audio streaming chunks or JSON control messages.
-    - Emits live updates to UI subscribers.
+    - Accepts continuous binary audio streaming chunks or JSON control messages.
+    - Emits live updates (utterances, status, summaries) to UI subscribers.
     """
     await websocket.accept()
     if session_id not in active_subscribers:
@@ -63,31 +63,48 @@ async def websocket_session_stream(websocket: WebSocket, session_id: str) -> Non
             "message": "Connected to live pipeline stream.",
         })
 
+        async def ws_progress_callback(event: dict[str, Any]) -> None:
+            await broadcast_event(session_id, event)
+
         while True:
-            # Receive either binary audio chunk (bytes) or text JSON message
             message = await websocket.receive()
 
             if "bytes" in message and message["bytes"]:
                 audio_chunk_bytes = message["bytes"]
-                # Forward binary chunk to audio router / processor
-                # Broadcast progress state
+
                 await broadcast_event(session_id, {
                     "type": "chunk-received",
                     "session_id": session_id,
                     "bytes_length": len(audio_chunk_bytes),
                 })
 
+                # Process self-contained audio payload via orchestrator
+                asyncio.create_task(
+                    orchestrator.process_audio_file(
+                        session_id=session_id,
+                        audio_bytes=audio_chunk_bytes,
+                        filename="live_ws_chunk.webm",
+                        progress_callback=ws_progress_callback,
+                    )
+                )
+
             elif "text" in message and message["text"]:
                 try:
                     payload = json.loads(message["text"])
                     cmd_type = payload.get("type", "")
 
-                    if cmd_type == "flush" or cmd_type == "finish":
+                    if cmd_type in ("flush", "finish", "stop"):
                         await broadcast_event(session_id, {
-                            "type": "flush-started",
+                            "type": "session-finished",
                             "session_id": session_id,
                         })
-                        # Finalize pipeline processing
+                        # Trigger final summary flush for any trailing utterances
+                        asyncio.create_task(
+                            orchestrator.trigger_final_summary(
+                                session_id=session_id,
+                                progress_callback=ws_progress_callback,
+                            )
+                        )
                 except json.JSONDecodeError:
                     pass
 
