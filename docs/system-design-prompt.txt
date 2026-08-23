@@ -1,0 +1,27 @@
+as system:
+config a basic UI modile for backend.
+backend is ai pipeline.
+- databae: using sqlite (.sql file only)
+- when start a new session, need to save to database with metadata.
+- audio input can be audio file. and audio stream. system need to detect and call sd_with_audio_prep module for audio processing
+- what sd_with_audio_prep does: 
+	1. using silero vad to detect speech activity.
+	2. using torch_hub to detect source code speech.
+	3. using bss to separate sources.
+	4. using speakerbeam to detect speaker.
+- need to make sure the speaker_diarization module is called correctly and processed data is saved to database.
+- need to show progress in UI.
+- need to show error in UI.
+- when process completed, need to show result in UI.
+- UI will be served by fastapi + uvicorn.
+
+- when run sd_with_audio_prep then for each chunk, this detect single or multiple speaeker
+- if single the call api of asr-module to transcribe to text
+- if multiple speaker then output of this module is multilpe audio file for each speaker
+- then for each audio file of each speaker, call api asr-module also to create text.
+- call async for faster 
+- then when result of the asr-module return. then map to schema then store to json --> then push to src/ module (llm summmary)
+- need to check models, schema of each module to find the suitable and best integration
+- need to store all data, results to database or json file.
+- UI basic do not need to implement at this phase, i will do later.
+- need to plan and create architect, integration for current modules to consistent system.
