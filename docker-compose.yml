@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  # 1. Central Backend Orchestrator & Gateway (Port 8080)
+  backend-gateway:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pipeline-backend-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SD_URL=http://sd-module:8002/api/v1/diarize
+      - ASR_URL=http://asr-module:8001/api/v1/transcribe
+      - LLM_URL=http://llms-module:8000/api/v1/meetings/process
+    volumes:
+      - ./backend/db:/app/backend/db
+    depends_on:
+      - sd-module
+      - asr-module
+      - llms-module
+    networks:
+      - pipeline-network
+
+  # 2. Speaker Diarization Microservice (Port 8002)
+  sd-module:
+    build:
+      context: ./backend/sd-module
+      dockerfile: Dockerfile
+    container_name: pipeline-sd-module
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend/sd-module/weights:/app/weights
+    networks:
+      - pipeline-network
+
+  # 3. Speech-to-Text Microservice (Port 8001)
+  asr-module:
+    build:
+      context: ./backend/asr-module
+      dockerfile: Dockerfile
+    container_name: pipeline-asr-module
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend/asr-module/models:/app/models
+    networks:
+      - pipeline-network
+
+  # 4. LLM Summarization Microservice (Port 8000)
+  llms-module:
+    build:
+      context: ./backend/llms-module
+      dockerfile: Dockerfile
+    container_name: pipeline-llms-module
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/llms-module/models:/app/models
+    networks:
+      - pipeline-network
+
+networks:
+  pipeline-network:
+    driver: bridge
