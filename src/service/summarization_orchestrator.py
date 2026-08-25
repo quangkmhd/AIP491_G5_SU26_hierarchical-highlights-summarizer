@@ -38,6 +38,7 @@ class StreamingOrchestrator:
         self.tiler = tiler or MultiscaleTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
+        self.reset_incremental()
 
     def _build_segment_events(
         self,
@@ -158,9 +159,6 @@ class StreamingOrchestrator:
         self, text: str, speaker: str = "Speaker 01", index: int | None = None,
     ) -> Iterator[dict[str, Any]]:
         """Tiếp nhận một câu thoại real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
-        if not hasattr(self, "_incremental_utterances"):
-            self.reset_incremental()
-
         utt_idx = index if index is not None else len(self._incremental_utterances)
         utt = Utterance(speaker=speaker, text=text, index=utt_idx)
         self._incremental_utterances.append(utt)
@@ -180,7 +178,7 @@ class StreamingOrchestrator:
 
     def flush_and_finalize(self) -> Iterator[dict[str, Any]]:
         """Xả nốt các câu thoại cuối cùng và phát ra sự kiện hoàn thành cuộc họp."""
-        if not hasattr(self, "_incremental_utterances") or not self._incremental_utterances:
+        if not self._incremental_utterances:
             return
 
         tail_ranges = self.tiler.flush()
