@@ -15,6 +15,7 @@ from core.vad import SileroVAD
 from pipeline.audio_preprocessing import AudioPreprocessing
 from pipeline.speaker_diarization import SpeakerDiarization
 from state.voiceprint_pool import VoiceprintPool
+from state.deferred_segment_buffer import DeferredSegmentBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -74,11 +75,13 @@ class DIContainer:
 
         # --- Initialize State & Orchestration ---
         self.pool = VoiceprintPool(self.config)
+        self.deferred_buffer = DeferredSegmentBuffer(self.config)
         self.module1 = AudioPreprocessing(self.denoiser, self.vad, self.config)
         self.module2 = SpeakerDiarization(
             self.ovd, self.embedder,
             self.tse, self.bss, self.pool, self.config,
-            vad=self.vad
+            vad=self.vad,
+            deferred_buffer=self.deferred_buffer
         )
 
         total_time = round(time.perf_counter() - t0, 2)
@@ -89,6 +92,7 @@ class DIContainer:
     def reset_session(self):
         """Reset the entire pipeline state for a new meeting."""
         self.pool.reset()
+        self.deferred_buffer.reset()
         self.module1.reset_session()
         self.module2.reset_session()
         logger.info("[DIContainer] Pipeline session state successfully reset.")

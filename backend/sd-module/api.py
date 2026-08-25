@@ -113,6 +113,17 @@ def create_app() -> FastAPI:
             "service": "Speaker Diarization Microservice",
         }
 
+    @app.post("/api/v1/reset")
+    async def reset_session() -> dict[str, Any]:
+        """Reset the entire session state (clear Voiceprint Profile and buffer)."""
+        if container_instance is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Speaker Diarization models are loading or unavailable.",
+            )
+        container_instance.reset_session()
+        return {"status": "success", "message": "Diarization state reset successfully."}
+
     @app.post("/api/v1/diarize")
     async def diarize_audio(file: UploadFile = File(...)) -> dict[str, Any]:
         """Process an uploaded audio file and return diarization segments with separated streams."""

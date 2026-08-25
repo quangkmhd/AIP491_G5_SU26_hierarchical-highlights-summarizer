@@ -55,6 +55,7 @@ async def websocket_session_stream(websocket: WebSocket, session_id: str) -> Non
         session = db.get_session(session_id)
         if not session:
             session = db.create_session(session_id=session_id, title=f"Live Stream Session {session_id[:8]}")
+            await orchestrator.reset_diarization_session()
 
         await websocket.send_json({
             "type": "connected",

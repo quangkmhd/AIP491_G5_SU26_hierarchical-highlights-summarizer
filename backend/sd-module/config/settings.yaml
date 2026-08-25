@@ -64,6 +64,17 @@ module2_diarization:
     theta_dur: 0.8
     theta_conf: 0.75
 
+  deferred_buffer:
+    enabled: true
+    max_segments: 50              # Capacity limit (~8MB max RAM)
+    max_age_seconds: 120          # Segment TTL: evict after 2 minutes
+    max_retries: 5                # Max reconcile attempts before eviction
+
+    reconcile_gate:
+      theta_dur: 0.6              # Relaxed vs real-time (0.8)
+      theta_conf: 0.65            # Relaxed vs real-time (0.75)
+      alpha_factor: 0.5           # EMA weight reduction (50% of base_alpha)
+
 # --- Model Paths ---
 model_paths:
   deepfilternet: "weights/dfn"

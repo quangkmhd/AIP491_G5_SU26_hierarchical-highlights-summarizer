@@ -95,7 +95,7 @@ class VoiceprintPool:
         with open(os.path.join(self.save_dir, "pool_metadata.json"), 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=4)
         
-    def update_profile(self, embedding: np.ndarray, last_active_time: float, speaker_id: str = None, confidence: float = 1.0, reference_audio: np.ndarray = None) -> str:
+    def update_profile(self, embedding: np.ndarray, last_active_time: float, speaker_id: str = None, confidence: float = 1.0, reference_audio: np.ndarray = None, alpha_factor: float = 1.0) -> str:
         """Add new or update a Speaker's profile using EMA"""
         if speaker_id is None or speaker_id not in self.profiles:
             speaker_id = f"SPK_{self.next_id:03d}"
@@ -113,7 +113,9 @@ class VoiceprintPool:
             old_emb = self.profiles[speaker_id]["embedding"]
             
             # Dynamic Alpha: The higher the confidence, the more it learns (max is base_alpha)
-            dynamic_alpha = min(self.base_alpha, self.base_alpha * confidence)
+            # alpha_factor < 1.0 reduces EMA weight for deferred segment reconciliation
+            effective_alpha = self.base_alpha * alpha_factor
+            dynamic_alpha = min(effective_alpha, effective_alpha * confidence)
             new_emb = dynamic_alpha * embedding + (1 - dynamic_alpha) * old_emb
             
             # Restore magnitude (L2 normalization) after interpolation

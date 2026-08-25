@@ -34,6 +34,8 @@ async def create_and_process_session(
     )
     sid = session_rec["session_id"]
 
+    await orchestrator.reset_diarization_session()
+
     if audio_bytes:
         background_tasks.add_task(
             orchestrator.process_audio_file,

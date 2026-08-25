@@ -1,0 +1,2 @@
+This folder is intentionally ignored by git to avoid tracking large model weight files.
+Place the offline model weights here as specified in config/settings.yaml

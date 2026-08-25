@@ -88,6 +88,16 @@ class PipelineOrchestrator:
         self._last_summarized_count: dict[str, int] = {}
         self.router = AudioStreamRouter(asr_url=asr_url)
 
+    async def reset_diarization_session(self) -> None:
+        """Calls the reset endpoint on the sd-module to clear previous voiceprints and buffers."""
+        reset_url = self.sd_url.replace("/diarize", "/reset")
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(reset_url)
+                logger.info(f"Successfully reset sd-module state at {reset_url}")
+        except Exception as e:
+            logger.warning(f"Failed to reset sd-module state: {e}")
+
     async def process_audio_file(
         self,
         session_id: str,

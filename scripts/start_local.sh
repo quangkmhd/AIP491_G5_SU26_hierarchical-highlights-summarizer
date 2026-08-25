@@ -7,7 +7,7 @@
 #   1. ASR-Module (Port 8000)   -> .asr-module-venv/bin/python
 #   2. SD-Module  (Port 8002)   -> .sd-module-venv/bin/python
 #   3. LLMs-Module(Port 8003)   -> .llms-module-venv/bin/python
-#   4. Backend Gateway (8080)   -> .sd-module-venv/bin/python (PYTHONPATH=.)
+#   4. Backend Gateway (8080)   -> .backend-gateway-venv/bin/python (PYTHONPATH=.)
 #   5. Frontend   (Port 8501)   -> frontend/venv/bin/streamlit
 # ==============================================================================
 
@@ -50,7 +50,7 @@ PYTHONPATH=. "$PROJECT_ROOT/backend/llms-module/.llms-module-venv/bin/python" -m
 # 4. Start Central Backend Gateway (Port 8080)
 echo "[4/5] Starting Central Backend Gateway on http://localhost:8080 ..."
 cd "$PROJECT_ROOT"
-PYTHONPATH=. "$PROJECT_ROOT/backend/sd-module/.sd-module-venv/bin/python" -m uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8080 --reload &
+PYTHONPATH=. "$PROJECT_ROOT/backend/.backend-gateway-venv/bin/python" -m uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8080 --reload &
 
 # Wait for Backend Gateway (Port 8080) readiness before opening Frontend UI
 echo "Waiting for Backend Gateway (Port 8080) readiness probe..."

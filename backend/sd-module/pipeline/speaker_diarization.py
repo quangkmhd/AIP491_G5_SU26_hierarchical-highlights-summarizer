@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class SpeakerDiarization:
-    def __init__(self, ovd, embedder, tse, bss, pool, config, vad=None):
+    def __init__(self, ovd, embedder, tse, bss, pool, config, vad=None, deferred_buffer=None):
         self.ovd = ovd
         self.embedder = embedder
         self.tse = tse
@@ -18,12 +18,17 @@ class SpeakerDiarization:
         self.pool = pool
         self.config = config
         self.vad = vad
+        self.deferred_buffer = deferred_buffer
 
         config_module2 = self.config.get("module2_diarization", {})
         self.config_branch_a = config_module2.get("branch_a_single_speaker", {})
         self.config_branch_b = config_module2.get("branch_b_overlap_tse", {})
         self.config_post_vad = config_module2.get("post_vad", {})
         self.matching_threshold = self.config_branch_a.get("matching_threshold", 0.5)
+
+        # Reconcile config (DSR)
+        cfg_reconcile = config_module2.get("deferred_buffer", {}).get("reconcile_gate", {})
+        self.reconcile_alpha_factor = cfg_reconcile.get("alpha_factor", 0.5)
 
     def reset_session(self):
         """
@@ -32,6 +37,8 @@ class SpeakerDiarization:
         """
         if hasattr(self.ovd, 'reset'):
             self.ovd.reset()
+        if self.deferred_buffer:
+            self.deferred_buffer.reset()
         logger.info("[Diarization] Session state reset successful (OVD buffer cleared).")
 
     def _apply_post_vad(self, stream: np.ndarray) -> tuple[np.ndarray, bool, float, float]:
@@ -65,6 +72,53 @@ class SpeakerDiarization:
             return id_1
         return "UNKNOWN"
 
+    def _try_reconcile(self):
+        """Scan DeferredBuffer and re-match against the latest pool state (DSR)."""
+        if not self.deferred_buffer:
+            return
+
+        segments = self.deferred_buffer.get_valid_segments()
+        if not segments:
+            return
+
+        reconciled = 0
+        current_time = time.time()
+
+        for seg in segments:
+            seg.retry_count += 1
+            id_1, score_1, _, _ = self.pool.find_best_match(seg.embedding)
+
+            if not id_1 or score_1 <= self.matching_threshold:
+                continue  # Still no match — keep in buffer
+
+            if seg.origin == "BRANCH_A":
+                # Matched → update profile with REDUCED alpha
+                cfg = self.config.get("module2_diarization", {}).get("deferred_buffer", {})
+                gate = cfg.get("reconcile_gate", {})
+                r_theta_dur = gate.get("theta_dur", 0.6)
+                r_theta_conf = gate.get("theta_conf", 0.65)
+
+                if seg.t_d > r_theta_dur and seg.t_c > r_theta_conf:
+                    self.pool.update_profile(
+                        seg.embedding, current_time,
+                        speaker_id=id_1,
+                        confidence=seg.t_c,
+                        reference_audio=seg.audio,
+                        alpha_factor=self.reconcile_alpha_factor,
+                    )
+                    self.deferred_buffer.remove(seg)
+                    reconciled += 1
+                # If reconcile gate fails → keep in buffer for next attempt
+
+            elif seg.origin == "OVERLAP_STREAM":
+                # Overlap stream → only update last_active, NO EMA update
+                self.pool.update_last_active(id_1, current_time)
+                self.deferred_buffer.remove(seg)
+                reconciled += 1
+
+        if reconciled > 0:
+            logger.info(f"[DSR] Reconciled {reconciled}/{len(segments)} deferred segments")
+
     def process(self, clean_audio: np.ndarray, t_d: float, t_c: float) -> dict:
         """
         Processes identification according to the Pipeline Architecture (New Design).
@@ -94,12 +148,29 @@ class SpeakerDiarization:
 
             # Quality Gate for Pool update (Only Branch A is allowed to perform EMA updates)
             pool_cfg = self.config_branch_a.get("pool_update", {})
-            if t_d > pool_cfg.get("theta_dur", 0.8) and t_c > pool_cfg.get("theta_conf", 0.75):
+            quality_gate_passed = (
+                t_d > pool_cfg.get("theta_dur", 0.8)
+                and t_c > pool_cfg.get("theta_conf", 0.75)
+            )
+
+            if quality_gate_passed:
                 matched_id = self.pool.update_profile(
                     emb, current_time, speaker_id=matched_id, confidence=t_c, reference_audio=clean_audio
                 )
-            
+                # Trigger reconcile after successful pool update
+                if self.deferred_buffer:
+                    self._try_reconcile()
+            else:
+                # Quality Gate FAIL → cache segment for later reconciliation
+                if self.deferred_buffer:
+                    self.deferred_buffer.push(emb, clean_audio, t_d, t_c, "BRANCH_A")
+
             spk_name = matched_id if matched_id else "UNKNOWN"
+
+            # Cache UNKNOWN due to no match (only if Quality Gate passed — gate-fail is handled above)
+            if spk_name == "UNKNOWN" and quality_gate_passed and self.deferred_buffer:
+                self.deferred_buffer.push(emb, clean_audio, t_d, t_c, "BRANCH_A")
+
             dur_sec = float(len(clean_audio) / sr)
             result["speakers"].append(spk_name)
             result["speaker_details"].append({"speaker": spk_name, "speech_duration_sec": round(dur_sec, 3)})

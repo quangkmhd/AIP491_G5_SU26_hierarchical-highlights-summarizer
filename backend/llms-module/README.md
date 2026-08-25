@@ -47,7 +47,7 @@ Activate virtual environment and start Uvicorn (with `--reload` for auto-restart
 
 ```bash
 source .llms-module-venv/bin/activate
-uvicorn runtime.api:create_app --factory --reload --host 0.0.0.0 --port 8000
+uvicorn runtime.api:create_app --factory --reload --host 0.0.0.0 --port 8003
 ```
 
 Server base URL: **`http://localhost:8003`**
