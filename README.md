@@ -58,7 +58,7 @@ pip install -r backend/requirements.txt
 
 Ensure model weights are placed in their respective directories:
 - **`backend/sd-module/weights/`**: Model weights for Silero VAD, DeepFilterNet3, Pyannote OVD, CAM++, Conv-TasNet, and SpeakerBeam.
-- **`backend/asr-module/models/`**: Sherpa-ONNX Zipformer models (`encoder-epoch-99-avg-1.onnx`, `decoder-epoch-99-avg-1.onnx`, `joiner-epoch-99-avg-1.onnx`, `tokens.txt`).
+- **`backend/asr-module/models/`**: Sherpa-ONNX Zipformer models (`encoder.onnx`, `decoder.onnx`, `joiner.onnx`, `tokens.txt`).
 - **`backend/llms-module/models/`**: ViT5 and BARTpho pre-trained weights.
 
 ---
