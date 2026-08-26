@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Any, Iterator
 from uuid import uuid4
 
-from src.service.chunking_service import ChunkingService
 from src.service.hierarchical_summarization import HierarchicalSummarizationService
 from src.service.multiscale_text_tiling import MultiscaleTextTilingService
 from src.types.hierarchical_summary import HierarchicalSummary
@@ -28,16 +27,18 @@ class SummarizationEventType(str, Enum):
 class StreamingOrchestrator:
     """Bộ điều phối liên kết toàn bộ pipeline phân đoạn chủ đề và tóm tắt phân cấp."""
 
+    CHUNK_SIZE: int = 8
+
     def __init__(
         self,
         tiler: MultiscaleTextTilingService | None = None,
-        chunker: ChunkingService | None = None,
         summarizer: HierarchicalSummarizationService | None = None,
+        chunk_size: int = CHUNK_SIZE,
     ) -> None:
-        """Khởi tạo các dịch vụ phân đoạn, chia khối và tóm tắt."""
+        """Khởi tạo các dịch vụ phân đoạn và tóm tắt."""
         self.tiler = tiler or MultiscaleTextTilingService()
-        self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
+        self.chunk_size = chunk_size
         self._incremental_utterances: list[Utterance] = []
         self._incremental_segments: list[SegmentResult] = []
         self._incremental_meeting_id = uuid4()
@@ -120,8 +121,8 @@ class StreamingOrchestrator:
             segment_utts = all_utterances[start_utt : end_utt + 1]
             seg = SegmentResult(utterances_start=start_utt, utterances_end=end_utt)
 
-            for chunk_idx, i in enumerate(range(0, len(segment_utts), self.chunker.CHUNK_SIZE)):
-                chunk_utts = segment_utts[i : i + self.chunker.CHUNK_SIZE]
+            for chunk_idx, i in enumerate(range(0, len(segment_utts), self.chunk_size)):
+                chunk_utts = segment_utts[i : i + self.chunk_size]
                 chunk = Chunk(utterances=chunk_utts)
                 chunk.rolling_summary = self.summarizer.abstractive(chunk)
                 seg.chunks.append(chunk)

@@ -1,4 +1,3 @@
-from .chunking_service import ChunkingService
 from .hierarchical_summarization import HierarchicalSummarizationService
 from .multiscale_text_tiling import MultiscaleTextTilingService
 from .summarization_orchestrator import (
@@ -7,7 +6,6 @@ from .summarization_orchestrator import (
 )
 
 __all__ = [
-    "ChunkingService",
     "HierarchicalSummarizationService",
     "MultiscaleTextTilingService",
     "StreamingOrchestrator",
