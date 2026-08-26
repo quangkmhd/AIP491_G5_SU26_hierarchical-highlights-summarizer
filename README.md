@@ -1,90 +1,141 @@
-# Hierarchical Highlights Summarizer & Meeting Pipeline
+# Hierarchical Highlights Summarizer & Meeting Intelligence System
 
-An end-to-end, multi-stage AI meeting intelligence system featuring:
+An end-to-end, multi-stage AI meeting intelligence and transcription system featuring:
 1. **Target Speaker Diarization (`backend/sd-module`)**: Silero VAD + Pyannote OVD + CAM++ Voiceprint Embedder + Conv-TasNet (BSS) & SpeakerBeam (TSE) voice separation.
 2. **Speech-to-Text Microservice (`backend/asr-module`)**: Sherpa-ONNX Zipformer Transducer engine.
 3. **LLM Summarization Engine (`backend/llms-module`)**: Multiscale TextTiling topic segmentation + ViT5 chunk summarizer + BARTpho topic titler.
 4. **Central Orchestrator Gateway (`backend/`)**: FastAPI + SQLite state machine + WebSocket streaming engine (Port `8080`).
+5. **Modern Web Frontend (`frontend/`)**: React + Vite interface for real-time and batch audio processing (Port `8501`).
 
 ---
 
 ## Service Port Assignments
 
-| Service | Directory | Port | Primary Endpoint |
-| :--- | :--- | :--- | :--- |
-| **Backend Gateway** | `backend/` | **`8080`** | `POST http://localhost:8080/api/v1/sessions` |
-| **Speaker Diarization** | `backend/sd-module/` | **`8002`** | `POST http://localhost:8002/api/v1/diarize` |
-| **Speech-to-Text ASR** | `backend/asr-module/` | **`8001`** | `POST http://localhost:8001/api/v1/transcribe` |
-| **LLM Summarization** | `backend/llms-module/` | **`8000`** | `POST http://localhost:8000/api/v1/meetings/process` |
+| Service | Directory | Port | Primary Endpoint | Swagger Docs |
+| :--- | :--- | :--- | :--- | :--- |
+| **Backend Gateway** | `backend/` | **`8080`** | `POST http://localhost:8080/api/v1/sessions` | `http://localhost:8080/docs` |
+| **ASR (Speech-to-Text)** | `backend/asr-module/` | **`8000`** | `POST http://localhost:8000/api/v1/transcribe` | `http://localhost:8000/docs` |
+| **Speaker Diarization** | `backend/sd-module/` | **`8002`** | `POST http://localhost:8002/api/v1/diarize` | `http://localhost:8002/docs` |
+| **LLM Summarization** | `backend/llms-module/` | **`8003`** | `POST http://localhost:8003/api/v1/meetings/process` | `http://localhost:8003/docs` |
+| **Frontend UI** | `frontend/` | **`8501`** | `http://localhost:8501` | — |
 
 ---
 
-## Method 1: Run with Docker Compose (Recommended)
+## Prerequisites & Model Weights
 
-To build and run all 4 isolated microservice containers automatically:
+### 1. Python & Node.js Requirements
+- Python 3.11+
+- Node.js 18+ and npm
+- `virtualenv` (`pip install virtualenv`)
 
-```bash
-docker-compose up --build
-```
-
----
-
-## Method 3: Launch Pure-Python Streamlit UI (`frontend/`)
-
-Create a local virtualenv inside `frontend/` and run the Streamlit web demo:
-
-```bash
-# 1. Create virtual environment inside frontend directory
-python -m venv frontend/venv
-
-# 2. Install frontend dependencies
-./frontend/venv/bin/pip install -r frontend/requirements.txt
-
-# 3. Launch Streamlit UI
-./frontend/venv/bin/streamlit run frontend/app.py
-```
-
-Access the pure-Python web interface in your browser at `http://localhost:8501`.
-
-### Step 1: Install Dependencies
-
-Ensure Python 3.11+ is installed, then install the root requirements:
-
-```bash
-pip install -r backend/requirements.txt
-```
-
-### Step 2: Download Model Weights (Manual Download Guide)
-
-Ensure model weights are placed in their respective directories:
+### 2. Download Model Weights
+Ensure model weights are placed in their respective submodule directories:
 - **`backend/sd-module/weights/`**: Model weights for Silero VAD, DeepFilterNet3, Pyannote OVD, CAM++, Conv-TasNet, and SpeakerBeam.
 - **`backend/asr-module/models/`**: Sherpa-ONNX Zipformer models (`encoder.onnx`, `decoder.onnx`, `joiner.onnx`, `tokens.txt`).
 - **`backend/llms-module/models/`**: ViT5 and BARTpho pre-trained weights.
 
 ---
 
-### Step 3: Launch Microservices in Terminal Windows
+## Local Setup & Installation
 
-Open **4 terminal windows** to run each service independently:
+Each microservice uses its own dedicated virtual environment to maintain isolated dependency trees without version conflicts.
 
-#### Terminal 1: LLM Summarization Service (Port 8000)
 ```bash
-PYTHONPATH=backend/llms-module uvicorn backend.llms-module.runtime.api:create_app --factory --host 0.0.0.0 --port 8000
+# 1. ASR Module
+cd backend/asr-module
+virtualenv .asr-module-venv
+source .asr-module-venv/bin/activate
+pip install -r asr-module-requirements.txt
+deactivate && cd ../..
+
+# 2. SD Module
+cd backend/sd-module
+virtualenv .sd-module-venv
+source .sd-module-venv/bin/activate
+pip install -r sd-module-requirements.txt
+deactivate && cd ../..
+
+# 3. LLMs Module
+cd backend/llms-module
+virtualenv .llms-module-venv
+source .llms-module-venv/bin/activate
+pip install -r llms-module-requirements.txt
+deactivate && cd ../..
+
+# 4. Central Backend Gateway
+cd backend
+virtualenv .backend-gateway-venv
+source .backend-gateway-venv/bin/activate
+pip install -r requirements.txt
+deactivate && cd ..
+
+# 5. Frontend UI
+cd frontend
+npm install
+cd ..
 ```
 
-#### Terminal 2: Speech-to-Text ASR Service (Port 8001)
+---
+
+## Running the System
+
+### Method 1: Unified Local Script (Recommended)
+
+Run all microservices and the frontend with a single command:
+
+**macOS / Linux:**
 ```bash
-PYTHONPATH=backend/asr-module uvicorn backend.asr-module.main:app --host 0.0.0.0 --port 8001
+bash scripts/start_local.sh
 ```
 
-#### Terminal 3: Speaker Diarization Service (Port 8002)
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start_local.ps1
+```
+
+---
+
+### Method 2: Launch Microservices Individually
+
+You can also run each service in a separate terminal:
+
+#### Terminal 1: ASR Service (Port 8000)
 ```bash
-PYTHONPATH=backend/sd-module uvicorn backend.sd-module.api:create_app --factory --host 0.0.0.0 --port 8002
+cd backend/asr-module
+PYTHONPATH=. .asr-module-venv/bin/python main.py
+```
+
+#### Terminal 2: Speaker Diarization Service (Port 8002)
+```bash
+cd backend/sd-module
+PYTHONPATH=. .sd-module-venv/bin/python -m uvicorn api:create_app --factory --host 0.0.0.0 --port 8002
+```
+
+#### Terminal 3: LLM Summarization Service (Port 8003)
+```bash
+cd backend/llms-module
+PYTHONPATH=. .llms-module-venv/bin/python -m uvicorn runtime.api:create_app --factory --host 0.0.0.0 --port 8003
 ```
 
 #### Terminal 4: Central Backend Gateway (Port 8080)
 ```bash
-PYTHONPATH=. uvicorn backend.main:app --host 0.0.0.0 --port 8080 --reload
+PYTHONPATH=. backend/.backend-gateway-venv/bin/python -m uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8080 --reload --reload-dir backend
+```
+
+#### Terminal 5: React Frontend (Port 8501)
+```bash
+cd frontend
+npm run dev -- --port 8501 --host
+```
+
+---
+
+### Method 3: Docker Compose
+
+To build and run all containerized microservices:
+
+```bash
+docker-compose up --build
 ```
 
 ---
