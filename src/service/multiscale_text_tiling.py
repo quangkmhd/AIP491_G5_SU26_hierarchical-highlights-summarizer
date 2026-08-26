@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import math
 import numpy as np
+import stopwordsiso
 
 DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
 
+
+# =====================================================================
+# 1. Các hàm toán học & cốt lõi tính toán Multiscale TextTiling
+# =====================================================================
 
 def bow(text: str, stopwords: set[str]) -> dict[str, int]:
     """Tách từ, chuyển về chữ thường và đếm tần suất từ sau khi lọc stop-words."""
@@ -159,7 +164,7 @@ def find_boundaries(
     window_size: int = 40,
     stride: int = 5,
 ) -> tuple[list[int], dict[int, float]]:
-    """Thực thi thuật toán Sliding TextTiling để tìm vị trí ranh giới phân đoạn chủ đề."""
+    """Thực thi thuật toán Sliding TextTiling để tìm vị trí ranh giới phân đoạn chủ đề theo lô (batch)."""
     n = len(utterances)
     if n <= 1:
         return [n - 1] if n == 1 else [], {}
@@ -234,6 +239,10 @@ def find_boundaries(
 
     return boundaries, boundary_depths
 
+
+# =====================================================================
+# 2. Bộ phân đoạn trực tiếp theo thời gian thực (Streaming Segmenter)
+# =====================================================================
 
 class StreamingTextTilingSegmenter:
     """Thuật toán phân đoạn streaming Sliding TextTiling theo cửa sổ trượt."""
@@ -391,6 +400,10 @@ class StreamingTextTilingSegmenter:
         return newly_committed
 
 
+# =====================================================================
+# 3. Dịch vụ phân đoạn đa tỷ lệ (MultiscaleTextTilingService)
+# =====================================================================
+
 class MultiscaleTextTilingService:
     """Dịch vụ phân đoạn chủ đề đa tỷ lệ MultiscaleTextTilingService."""
 
@@ -416,11 +429,7 @@ class MultiscaleTextTilingService:
         self.window_size = window_size
         self.stride = stride
 
-        if self.use_stopwords:
-            import stopwordsiso
-            self._stopwords = stopwordsiso.stopwords(["vi"])
-        else:
-            self._stopwords = set()
+        self._stopwords = stopwordsiso.stopwords(["vi"]) if self.use_stopwords else set()
 
         self._streamer = StreamingTextTilingSegmenter(
             block_size=self.block_size,
@@ -434,29 +443,6 @@ class MultiscaleTextTilingService:
             stride=self.stride,
         )
         self.reset()
-
-    def reset(self) -> None:
-        """Đặt lại trạng thái streaming của dịch vụ về ban đầu."""
-        self._streamer.reset()
-        self._last_emitted_boundary: int = -1
-
-    def update(self, utterance: str) -> list[tuple[int, int]]:
-        """Tiếp nhận một câu thoại mới ở chế độ streaming và trả về danh sách phạm vi (start, end) phân đoạn nếu có."""
-        committed = self._streamer.update(utterance)
-        ranges: list[tuple[int, int]] = []
-        for b, _ in committed:
-            ranges.append((self._last_emitted_boundary + 1, b))
-            self._last_emitted_boundary = b
-        return ranges
-
-    def flush(self) -> list[tuple[int, int]]:
-        """Xả bộ đệm câu thoại còn lại ở cuối cuộc họp để chốt phạm vi phân đoạn cuối."""
-        committed = self._streamer.flush()
-        ranges: list[tuple[int, int]] = []
-        for b, _ in committed:
-            ranges.append((self._last_emitted_boundary + 1, b))
-            self._last_emitted_boundary = b
-        return ranges
 
     def process(self, utterances: list[str]) -> list[tuple[int, int]]:
         """Xử lý danh sách câu thoại dạng batch và trả về danh sách phạm vi (start, end) các phân đoạn."""
@@ -486,3 +472,26 @@ class MultiscaleTextTilingService:
             ranges.append((prev + 1, b))
             prev = b
         return ranges
+
+    def update(self, utterance: str) -> list[tuple[int, int]]:
+        """Tiếp nhận một câu thoại mới ở chế độ streaming và trả về danh sách phạm vi (start, end) phân đoạn nếu có."""
+        committed = self._streamer.update(utterance)
+        ranges: list[tuple[int, int]] = []
+        for b, _ in committed:
+            ranges.append((self._last_emitted_boundary + 1, b))
+            self._last_emitted_boundary = b
+        return ranges
+
+    def flush(self) -> list[tuple[int, int]]:
+        """Xả bộ đệm câu thoại còn lại ở cuối cuộc họp để chốt phạm vi phân đoạn cuối."""
+        committed = self._streamer.flush()
+        ranges: list[tuple[int, int]] = []
+        for b, _ in committed:
+            ranges.append((self._last_emitted_boundary + 1, b))
+            self._last_emitted_boundary = b
+        return ranges
+
+    def reset(self) -> None:
+        """Đặt lại trạng thái streaming của dịch vụ về ban đầu."""
+        self._streamer.reset()
+        self._last_emitted_boundary: int = -1
