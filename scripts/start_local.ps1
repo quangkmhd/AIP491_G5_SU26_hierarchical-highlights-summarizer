@@ -27,22 +27,22 @@ try {
     # 1. Start ASR-Module (Port 8000)
     Write-Host "[1/5] Starting ASR-Module (Sherpa-ONNX) on http://localhost:8000 ..."
     $env:PYTHONPATH = "."
-    $asrProc = Start-Process -NoNewWindow -PassThru -FilePath "$PROJECT_ROOT\backend\asr-module\.asr-module-venv\Scripts\python.exe" -ArgumentList "main.py" -WorkingDirectory "$PROJECT_ROOT\backend\asr-module"
+    $asrProc = Start-Process -NoNewWindow -PassThru -FilePath ".\.asr-module-venv\Scripts\python.exe" -ArgumentList "main.py" -WorkingDirectory "$PROJECT_ROOT\backend\asr-module"
     $Processes += $asrProc
 
     # 2. Start SD-Module (Port 8002)
     Write-Host "[2/5] Starting SD-Module (Diarization) on http://localhost:8002 ..."
-    $sdProc = Start-Process -NoNewWindow -PassThru -FilePath "$PROJECT_ROOT\backend\sd-module\.sd-module-venv\Scripts\python.exe" -ArgumentList "-m", "uvicorn", "api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8002" -WorkingDirectory "$PROJECT_ROOT\backend\sd-module"
+    $sdProc = Start-Process -NoNewWindow -PassThru -FilePath ".\.sd-module-venv\Scripts\python.exe" -ArgumentList "-m", "uvicorn", "api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8002" -WorkingDirectory "$PROJECT_ROOT\backend\sd-module"
     $Processes += $sdProc
 
     # 3. Start LLMs-Module (Port 8003)
     Write-Host "[3/5] Starting LLMs-Module (ViT5 / BARTpho) on http://localhost:8003 ..."
-    $llmProc = Start-Process -NoNewWindow -PassThru -FilePath "$PROJECT_ROOT\backend\llms-module\.llms-module-venv\Scripts\python.exe" -ArgumentList "-m", "uvicorn", "runtime.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8003" -WorkingDirectory "$PROJECT_ROOT\backend\llms-module"
+    $llmProc = Start-Process -NoNewWindow -PassThru -FilePath ".\.llms-module-venv\Scripts\python.exe" -ArgumentList "-m", "uvicorn", "runtime.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8003" -WorkingDirectory "$PROJECT_ROOT\backend\llms-module"
     $Processes += $llmProc
 
     # 4. Start Central Backend Gateway (Port 8080)
     Write-Host "[4/5] Starting Central Backend Gateway on http://localhost:8080 ..."
-    $gwProc = Start-Process -NoNewWindow -PassThru -FilePath "$PROJECT_ROOT\backend\.backend-gateway-venv\Scripts\python.exe" -ArgumentList "-m", "uvicorn", "backend.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080", "--reload" -WorkingDirectory "$PROJECT_ROOT"
+    $gwProc = Start-Process -NoNewWindow -PassThru -FilePath ".\backend\.backend-gateway-venv\Scripts\python.exe" -ArgumentList "-m", "uvicorn", "backend.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080", "--reload", "--reload-dir", "backend" -WorkingDirectory "$PROJECT_ROOT"
     $Processes += $gwProc
 
     # Wait for Backend Gateway (Port 8080) readiness before opening Frontend UI

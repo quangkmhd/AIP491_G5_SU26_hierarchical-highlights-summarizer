@@ -35,22 +35,22 @@ trap cleanup SIGINT SIGTERM EXIT
 # 1. Start ASR-Module (Port 8000)
 echo "[1/5] Starting ASR-Module (Sherpa-ONNX) on http://localhost:8000 ..."
 cd "$PROJECT_ROOT/backend/asr-module"
-PYTHONPATH=. "$PROJECT_ROOT/backend/asr-module/.asr-module-venv/bin/python" main.py &
+PYTHONPATH=. .asr-module-venv/bin/python main.py &
 
 # 2. Start SD-Module (Port 8002)
 echo "[2/5] Starting SD-Module (Diarization) on http://localhost:8002 ..."
 cd "$PROJECT_ROOT/backend/sd-module"
-PYTHONPATH=. "$PROJECT_ROOT/backend/sd-module/.sd-module-venv/bin/python" -m uvicorn api:create_app --factory --host 0.0.0.0 --port 8002 &
+PYTHONPATH=. .sd-module-venv/bin/python -m uvicorn api:create_app --factory --host 0.0.0.0 --port 8002 &
 
 # 3. Start LLMs-Module (Port 8003)
 echo "[3/5] Starting LLMs-Module (ViT5 / BARTpho) on http://localhost:8003 ..."
 cd "$PROJECT_ROOT/backend/llms-module"
-PYTHONPATH=. "$PROJECT_ROOT/backend/llms-module/.llms-module-venv/bin/python" -m uvicorn runtime.api:create_app --factory --host 0.0.0.0 --port 8003 &
+PYTHONPATH=. .llms-module-venv/bin/python -m uvicorn runtime.api:create_app --factory --host 0.0.0.0 --port 8003 &
 
 # 4. Start Central Backend Gateway (Port 8080)
 echo "[4/5] Starting Central Backend Gateway on http://localhost:8080 ..."
 cd "$PROJECT_ROOT"
-PYTHONPATH=. "$PROJECT_ROOT/backend/.backend-gateway-venv/bin/python" -m uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8080 --reload &
+PYTHONPATH=. backend/.backend-gateway-venv/bin/python -m uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8080 --reload --reload-dir backend &
 
 # Wait for Backend Gateway (Port 8080) readiness before opening Frontend UI
 echo "Waiting for Backend Gateway (Port 8080) readiness probe..."
