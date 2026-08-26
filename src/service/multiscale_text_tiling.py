@@ -295,9 +295,7 @@ class StreamingTextTilingSegmenter:
 
     def update(self, utterance: str) -> list[tuple[int, float]]:
         """Nạp một câu thoại mới, đánh giá cửa sổ trượt và trả về danh sách ranh giới đã chốt."""
-        # -------------------------------------------------------------
-        # 5.1. Tiếp nhận câu thoại & Quản lý bộ đệm (Buffer Ingestion)
-        # -------------------------------------------------------------
+        # 1. Tiếp nhận câu thoại & Quản lý bộ đệm (Buffer Ingestion)
         self.buffer.append(utterance)
         n = len(self.buffer)
         W = self.window_size
@@ -310,14 +308,10 @@ class StreamingTextTilingSegmenter:
             start = self.next_window_start
             win_utts = self.buffer[start : start + W]
 
-            # -------------------------------------------------------------
-            # 5.2. Đánh giá tương đồng trên cửa sổ trượt W (Window Similarity)
-            # -------------------------------------------------------------
+            # 2. Đánh giá tương đồng trên cửa sổ trượt W (Window Similarity)
             sim = similarity_scores(win_utts, block_size=self.block_size, stopwords=self.stopwords)
             if len(sim) >= 2:
-                # -------------------------------------------------------------
-                # 5.3. Đánh giá độ sâu đa tỷ lệ & Lọc ứng viên vượt ngưỡng
-                # -------------------------------------------------------------
+                # 3. Đánh giá độ sâu đa tỷ lệ & Lọc ứng viên vượt ngưỡng (Depth Score)
                 depth = multiscale_depth(
                     sim,
                     radii=self.radii,
@@ -335,9 +329,7 @@ class StreamingTextTilingSegmenter:
                     if depth[j] > threshold:
                         self.pending_candidates[g] = float(depth[j])
 
-            # -------------------------------------------------------------
-            # 5.4. Vùng nhìn trước an toàn & Hậu xử lý gộp đoạn
-            # -------------------------------------------------------------
+            # 4. Vùng nhìn trước an toàn & Hậu xử lý gộp đoạn (Lookahead & Merging)
             # Trừ đi vùng nhìn trước (lookahead) để đảm bảo có đủ ngữ cảnh hai phía
             commit_cutoff = start + W - self.lookahead
             eligible = sorted([g for g in self.pending_candidates if g <= commit_cutoff])
@@ -350,9 +342,7 @@ class StreamingTextTilingSegmenter:
                 # Gộp các phân đoạn quá ngắn vào phân đoạn lân cận
                 merged = merge_small_segments(b_list, d_map, min_seg)
 
-                # -------------------------------------------------------------
-                # 5.5. Chốt ranh giới & Tịnh tiến cửa sổ theo Stride (Commit)
-                # -------------------------------------------------------------
+                # 5. Chốt ranh giới & Tịnh tiến cửa sổ theo Stride (Commit)
                 for g in merged:
                     if g > self.last_committed_index:
                         depth_val = d_map[g]
