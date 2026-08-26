@@ -51,7 +51,3 @@ class HierarchicalSummarizationService:
             return ""
         joined = " / ".join(summaries)
         return self._topic_titler.generate_title(joined[-self.TITLE_INPUT_MAX_CHARS:])
-
-    def abstractive_utterances(self, utterances: list[Utterance]) -> str:
-        """Tóm tắt trực tiếp danh sách câu thoại Utterance."""
-        return self.abstractive(Chunk(utterances=utterances))

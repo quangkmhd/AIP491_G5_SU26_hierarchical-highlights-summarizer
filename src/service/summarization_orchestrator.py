@@ -38,7 +38,10 @@ class StreamingOrchestrator:
         self.tiler = tiler or MultiscaleTextTilingService()
         self.chunker = chunker or ChunkingService()
         self.summarizer = summarizer or HierarchicalSummarizationService()
-        self.reset_incremental()
+        self._incremental_utterances: list[Utterance] = []
+        self._incremental_segments: list[SegmentResult] = []
+        self._incremental_meeting_id = uuid4()
+        self._incremental_t0 = time.perf_counter()
 
     # --- 1. Xử lý toàn bộ cuộc họp (Batch Processing) ---
 
@@ -60,14 +63,6 @@ class StreamingOrchestrator:
         )
 
     # --- 2. Xử lý thời gian thực tăng tiến (Real-time Streaming) ---
-
-    def reset_incremental(self) -> None:
-        """Đặt lại trạng thái xử lý tăng tiến cho một phiên làm việc streaming mới."""
-        self._incremental_utterances: list[Utterance] = []
-        self._incremental_segments: list[SegmentResult] = []
-        self._incremental_meeting_id = uuid4()
-        self._incremental_t0 = time.perf_counter()
-        self.tiler.reset()
 
     def accept_utterance(
         self, text: str, speaker: str = "Speaker 01", index: int | None = None,
