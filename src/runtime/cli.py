@@ -57,7 +57,12 @@ def cmd_stream(args: argparse.Namespace) -> int:
     seg_count = 0
     final_summary: dict | None = None
 
-    for event in orchestrator.process_stream(transcript):
+    def _stream_events():
+        for utt in transcript.utterances:
+            yield from orchestrator.accept_utterance(text=utt.text, speaker=utt.speaker, index=utt.index)
+        yield from orchestrator.flush_and_finalize()
+
+    for event in _stream_events():
         evt_type = event.get("type")
         if evt_type == "segment-closed":
             seg_count += 1
