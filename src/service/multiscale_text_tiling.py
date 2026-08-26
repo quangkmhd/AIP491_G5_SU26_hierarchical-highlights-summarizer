@@ -8,7 +8,7 @@ DEFAULT_RADII: list[int] = [3, 5, 10, 15, 20]
 
 
 # =====================================================================
-# 1. Các hàm toán học & cốt lõi tính toán Multiscale TextTiling
+# MODULE 1: BIỂU DIỄN TỪ VỰNG & KHÔNG GIAN VECTOR (LEXICAL & VECTOR SPACE)
 # =====================================================================
 
 def bow(text: str, stopwords: set[str]) -> dict[str, int]:
@@ -28,6 +28,10 @@ def cosine(a: dict[str, int], b: dict[str, int]) -> float:
     den = math.sqrt(sum(v ** 2 for v in a.values())) * math.sqrt(sum(v ** 2 for v in b.values()))
     return num / den if den else 0.0
 
+
+# =====================================================================
+# MODULE 2: TÍNH TOÁN TƯƠNG ĐỒNG NGỮ NGHĨA CHUỖI HỘI THOẠI (SIMILARITY)
+# =====================================================================
 
 def similarity_scores(
     utterances: list[str],
@@ -53,6 +57,10 @@ def similarity_scores(
         scores.append(cosine(b1, b2))
     return scores
 
+
+# =====================================================================
+# MODULE 3: TÍNH TOÁN & TỔNG HỢP ĐỘ SÂU ĐA TỶ LỆ (MULTISCALE DEPTH SCORE)
+# =====================================================================
 
 def depth_scores(scores: list[float], radius: int | None = None) -> np.ndarray:
     """Tính điểm độ sâu (depth score) tại mỗi khoảng hẫng dựa trên bán kính đỉnh xung quanh."""
@@ -108,6 +116,10 @@ def multiscale_depth(
         return stacked.sum(axis=0)
     return stacked.mean(axis=0)
 
+
+# =====================================================================
+# MODULE 4: PHÁT HIỆN & TỐI ƯU HÓA RANH GIỚI THEO LÔ (BATCH SEGMENTATION)
+# =====================================================================
 
 def merge_small_segments(
     boundaries: list[int],
@@ -241,7 +253,7 @@ def find_boundaries(
 
 
 # =====================================================================
-# 2. Bộ phân đoạn trực tiếp theo thời gian thực (Streaming Segmenter)
+# MODULE 5: ĐỘNG CƠ PHÂN ĐOẠN THỜI GIAN THỰC (REAL-TIME STREAMING ENGINE)
 # =====================================================================
 
 class StreamingTextTilingSegmenter:
@@ -283,7 +295,9 @@ class StreamingTextTilingSegmenter:
 
     def update(self, utterance: str) -> list[tuple[int, float]]:
         """Nạp một câu thoại mới, đánh giá cửa sổ trượt và trả về danh sách ranh giới đã chốt."""
-        # 1. Thêm câu thoại mới vào bộ đệm tích lũy
+        # -------------------------------------------------------------
+        # 5.1. Tiếp nhận câu thoại & Quản lý bộ đệm (Buffer Ingestion)
+        # -------------------------------------------------------------
         self.buffer.append(utterance)
         n = len(self.buffer)
         W = self.window_size
@@ -291,15 +305,19 @@ class StreamingTextTilingSegmenter:
 
         newly_committed: list[tuple[int, float]] = []
 
-        # 2. Lặp khi số câu trong bộ đệm đủ điều kiện tạo một cửa sổ trượt W câu
+        # Lặp khi số câu trong bộ đệm đủ điều kiện tạo một cửa sổ trượt W câu
         while n - self.next_window_start >= W:
             start = self.next_window_start
             win_utts = self.buffer[start : start + W]
 
-            # 3. Tính toán điểm tương đồng Cosine giữa các khối câu trong cửa sổ
+            # -------------------------------------------------------------
+            # 5.2. Đánh giá tương đồng trên cửa sổ trượt W (Window Similarity)
+            # -------------------------------------------------------------
             sim = similarity_scores(win_utts, block_size=self.block_size, stopwords=self.stopwords)
             if len(sim) >= 2:
-                # 4. Tính điểm độ sâu đa tỷ lệ (Multiscale Depth Score)
+                # -------------------------------------------------------------
+                # 5.3. Đánh giá độ sâu đa tỷ lệ & Lọc ứng viên vượt ngưỡng
+                # -------------------------------------------------------------
                 depth = multiscale_depth(
                     sim,
                     radii=self.radii,
@@ -317,12 +335,13 @@ class StreamingTextTilingSegmenter:
                     if depth[j] > threshold:
                         self.pending_candidates[g] = float(depth[j])
 
-            # 5. Xác định điểm chốt an toàn (commit cutoff): Trừ đi vùng nhìn trước (lookahead)
-            # để đảm bảo ranh giới có đủ ngữ cảnh hai phía trước khi chốt cố định
+            # -------------------------------------------------------------
+            # 5.4. Vùng nhìn trước an toàn & Hậu xử lý gộp đoạn
+            # -------------------------------------------------------------
+            # Trừ đi vùng nhìn trước (lookahead) để đảm bảo có đủ ngữ cảnh hai phía
             commit_cutoff = start + W - self.lookahead
             eligible = sorted([g for g in self.pending_candidates if g <= commit_cutoff])
 
-            # 6. Nếu có ứng viên nằm trong vùng an toàn, tiến hành lọc và gộp đoạn nhỏ
             if eligible:
                 min_seg = max(2, int(W * self.min_segment_ratio))
                 b_list = list(eligible)
@@ -331,7 +350,9 @@ class StreamingTextTilingSegmenter:
                 # Gộp các phân đoạn quá ngắn vào phân đoạn lân cận
                 merged = merge_small_segments(b_list, d_map, min_seg)
 
-                # Chốt ranh giới và bổ sung vào danh sách ranh giới mới phát sinh
+                # -------------------------------------------------------------
+                # 5.5. Chốt ranh giới & Tịnh tiến cửa sổ theo Stride (Commit)
+                # -------------------------------------------------------------
                 for g in merged:
                     if g > self.last_committed_index:
                         depth_val = d_map[g]
@@ -347,7 +368,7 @@ class StreamingTextTilingSegmenter:
                 for g in to_remove:
                     del self.pending_candidates[g]
 
-            # 7. Trượt cửa sổ sang bước tiếp theo theo stride (S)
+            # Dịch chuyển cửa sổ sang vị trí tiếp theo theo bước nhảy S (stride)
             self.next_window_start += S
 
         return newly_committed
@@ -412,10 +433,6 @@ class StreamingTextTilingSegmenter:
 
         return newly_committed
 
-
-# =====================================================================
-# 3. Dịch vụ phân đoạn đa tỷ lệ (MultiscaleTextTilingService)
-# =====================================================================
 
 class MultiscaleTextTilingService:
     """Dịch vụ phân đoạn chủ đề đa tỷ lệ MultiscaleTextTilingService."""
