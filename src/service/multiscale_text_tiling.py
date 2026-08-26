@@ -283,6 +283,7 @@ class StreamingTextTilingSegmenter:
 
     def update(self, utterance: str) -> list[tuple[int, float]]:
         """Nạp một câu thoại mới, đánh giá cửa sổ trượt và trả về danh sách ranh giới đã chốt."""
+        # 1. Thêm câu thoại mới vào bộ đệm tích lũy
         self.buffer.append(utterance)
         n = len(self.buffer)
         W = self.window_size
@@ -290,20 +291,25 @@ class StreamingTextTilingSegmenter:
 
         newly_committed: list[tuple[int, float]] = []
 
+        # 2. Lặp khi số câu trong bộ đệm đủ điều kiện tạo một cửa sổ trượt W câu
         while n - self.next_window_start >= W:
             start = self.next_window_start
             win_utts = self.buffer[start : start + W]
 
+            # 3. Tính toán điểm tương đồng Cosine giữa các khối câu trong cửa sổ
             sim = similarity_scores(win_utts, block_size=self.block_size, stopwords=self.stopwords)
             if len(sim) >= 2:
+                # 4. Tính điểm độ sâu đa tỷ lệ (Multiscale Depth Score)
                 depth = multiscale_depth(
                     sim,
                     radii=self.radii,
                     agg=self.agg,
                     normalize_mode=self.normalize_mode,
                 )
+                # Ngưỡng phát hiện ranh giới chuyển chủ đề: mean + alpha * std
                 threshold = float(depth.mean() + self.alpha * depth.std())
 
+                # Lưu các vị trí có độ sâu vượt ngưỡng vào danh sách ứng viên (pending candidates)
                 for j in range(len(depth)):
                     g = start + j
                     if g <= self.last_committed_index:
@@ -311,16 +317,21 @@ class StreamingTextTilingSegmenter:
                     if depth[j] > threshold:
                         self.pending_candidates[g] = float(depth[j])
 
+            # 5. Xác định điểm chốt an toàn (commit cutoff): Trừ đi vùng nhìn trước (lookahead)
+            # để đảm bảo ranh giới có đủ ngữ cảnh hai phía trước khi chốt cố định
             commit_cutoff = start + W - self.lookahead
             eligible = sorted([g for g in self.pending_candidates if g <= commit_cutoff])
 
+            # 6. Nếu có ứng viên nằm trong vùng an toàn, tiến hành lọc và gộp đoạn nhỏ
             if eligible:
                 min_seg = max(2, int(W * self.min_segment_ratio))
                 b_list = list(eligible)
                 d_map = {g: self.pending_candidates[g] for g in b_list}
 
+                # Gộp các phân đoạn quá ngắn vào phân đoạn lân cận
                 merged = merge_small_segments(b_list, d_map, min_seg)
 
+                # Chốt ranh giới và bổ sung vào danh sách ranh giới mới phát sinh
                 for g in merged:
                     if g > self.last_committed_index:
                         depth_val = d_map[g]
@@ -331,10 +342,12 @@ class StreamingTextTilingSegmenter:
                         if g in self.pending_candidates:
                             del self.pending_candidates[g]
 
+                # Xóa các ứng viên cũ nằm dưới ngưỡng commit_cutoff để giải phóng bộ nhớ
                 to_remove = [g for g in self.pending_candidates if g <= commit_cutoff]
                 for g in to_remove:
                     del self.pending_candidates[g]
 
+            # 7. Trượt cửa sổ sang bước tiếp theo theo stride (S)
             self.next_window_start += S
 
         return newly_committed
