@@ -21,7 +21,7 @@ def _load_backend_env_config() -> dict[str, int]:
     env_file = backend_dir / ".env"
     config = {
         "min_utterances_stack": 40,
-        "overlap_context": 5,
+        "overlap_context": 30,
     }
 
     if env_file.is_file():
@@ -128,7 +128,8 @@ class PipelineOrchestrator:
 
             async with httpx.AsyncClient(timeout=180.0) as client:
                 files = {"file": (filename, audio_bytes, "audio/wav")}
-                resp_sd = await client.post(self.sd_url, files=files)
+                params = {"is_final": "true" if is_final else "false"}
+                resp_sd = await client.post(self.sd_url, files=files, params=params)
                 if resp_sd.status_code != 200:
                     raise RuntimeError(f"sd-module failed HTTP {resp_sd.status_code}: {resp_sd.text}")
 
@@ -195,13 +196,17 @@ class PipelineOrchestrator:
             if not db_utterances and not is_final:
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 self.db.update_session_status(session_id, "completed", 100.0)
+                existing_summary_rec = self.db.get_summary(session_id)
+                current_summary = existing_summary_rec.get("hierarchical_json") if existing_summary_rec else None
                 result = {
                     "session_id": session_id,
                     "status": "completed",
                     "total_utterances": len(existing_utts),
-                    "summary": self.db.get_summary(session_id) or {"segments": []},
                     "processing_time_ms": elapsed_ms,
                 }
+                if current_summary:
+                    result["summary"] = current_summary
+
                 if progress_callback:
                     await progress_callback({
                         "type": "session-completed",
@@ -217,21 +222,35 @@ class PipelineOrchestrator:
             last_summarized_count = self._last_summarized_count.get(session_id, 0)
             new_utts_since_last_summary = total_session_utts - last_summarized_count
 
+            # Determine required new utterances threshold:
+            # - Initial summary run: requires min_utterances_stack (e.g., 40)
+            # - Subsequent periodic runs: requires stride = (min_utterances_stack - overlap_context) (e.g., 40 - 30 = 10)
+            required_step = (
+                self.min_utterances_stack
+                if last_summarized_count == 0
+                else max(1, self.min_utterances_stack - self.overlap_context)
+            )
+
             # Check if periodic stack threshold is reached or if this is the final flush
-            if new_utts_since_last_summary < self.min_utterances_stack and not is_final:
+            if new_utts_since_last_summary < required_step and not is_final:
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 self.db.update_session_status(session_id, "completed", 100.0)
                 logger.info(
-                    f"Session {session_id}: Stacked {new_utts_since_last_summary}/{self.min_utterances_stack} "
-                    f"new utterances (Total: {total_session_utts}). Waiting for next periodic interval."
+                    f"[LLM-Stack] Session {session_id}: Stacked {new_utts_since_last_summary}/{required_step} "
+                    f"new utterances (Total in DB: {total_session_utts}, Last summarized: {last_summarized_count}). "
+                    f"Waiting for next periodic interval."
                 )
+                existing_summary_rec = self.db.get_summary(session_id)
+                current_summary = existing_summary_rec.get("hierarchical_json") if existing_summary_rec else None
                 result = {
                     "session_id": session_id,
                     "status": "completed",
                     "total_utterances": total_session_utts,
-                    "summary": self.db.get_summary(session_id) or {"segments": []},
                     "processing_time_ms": elapsed_ms,
                 }
+                if current_summary:
+                    result["summary"] = current_summary
+
                 if progress_callback:
                     await progress_callback({
                         "type": "session-completed",
@@ -243,11 +262,11 @@ class PipelineOrchestrator:
             if total_session_utts == 0:
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 self.db.update_session_status(session_id, "completed", 100.0)
+                logger.info(f"[LLM-Stack] Session {session_id}: 0 utterances in DB, skipping LLM call.")
                 return {
                     "session_id": session_id,
                     "status": "completed",
                     "total_utterances": 0,
-                    "summary": {"segments": []},
                     "processing_time_ms": elapsed_ms,
                 }
 
@@ -263,19 +282,17 @@ class PipelineOrchestrator:
             session_record = self.db.get_session(session_id)
             title = session_record.get("title") if session_record else "Meeting Summary"
 
-            # Gather utterances incorporating the configured overlap context from previous interval
-            if self.overlap_context > 0 and last_summarized_count > 0:
-                start_context_idx = max(0, last_summarized_count - self.overlap_context)
-                utts_to_summarize = all_session_utts[start_context_idx:]
-                logger.info(
-                    f"Session {session_id}: Running periodic LLM summarization on {len(utts_to_summarize)} utterances "
-                    f"({new_utts_since_last_summary} new + {len(utts_to_summarize) - new_utts_since_last_summary} overlap context)."
-                )
-            else:
-                utts_to_summarize = all_session_utts
-                logger.info(
-                    f"Session {session_id}: Running initial LLM summarization on {len(utts_to_summarize)} utterances."
-                )
+            # Window slicing: Slice the last `min_utterances_stack` utterances (e.g. 40)
+            # which naturally contains 30 overlap old utterances + 10 new utterances
+            start_window_idx = max(0, total_session_utts - self.min_utterances_stack)
+            utts_to_summarize = all_session_utts[start_window_idx:total_session_utts]
+            overlap_count = max(0, len(utts_to_summarize) - new_utts_since_last_summary)
+
+            logger.info(
+                f"[LLM-Trigger] Session {session_id}: Triggering LLM summarization on window "
+                f"[{start_window_idx}:{total_session_utts}] ({len(utts_to_summarize)} utterances = "
+                f"{new_utts_since_last_summary} new + {overlap_count} overlap). Stride={required_step}."
+            )
 
             llm_payload = {
                 "meeting_title": title,
@@ -305,6 +322,12 @@ class PipelineOrchestrator:
             self.db.save_summary(session_id, summary_json, processing_time_ms=elapsed_ms)
             self.db.update_session_status(session_id, "completed", 100.0)
 
+            total_chapters = len(summary_json.get("segments", []))
+            logger.info(
+                f"[LLM-Trigger] Session {session_id}: Summarized {len(utts_to_summarize)} utterances "
+                f"into {total_chapters} topic chapters successfully in {elapsed_ms}ms."
+            )
+
             result = {
                 "session_id": session_id,
                 "status": "completed",
@@ -320,7 +343,6 @@ class PipelineOrchestrator:
                     "result": result,
                 })
 
-            logger.info(f"Session {session_id}: Summarized {total_session_utts} utterances successfully in {elapsed_ms}ms.")
             return result
 
         except Exception as e:
@@ -341,8 +363,43 @@ class PipelineOrchestrator:
         progress_callback: Optional[Callable[[dict[str, Any]], Any]] = None,
     ) -> Optional[dict[str, Any]]:
         """Force a final LLM summarization flush across all session utterances when recording finishes."""
+        # Step 1: Flush any trailing speech from SmartAudioBuffer in sd-module
+        try:
+            flush_url = self.sd_url.rsplit("/", 1)[0] + "/flush"
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp_flush = await client.post(flush_url)
+                if resp_flush.status_code == 200:
+                    flush_json = resp_flush.json()
+                    flushed_segments = flush_json.get("segments", [])
+                    if flushed_segments:
+                        existing_utts = self.db.get_utterances(session_id)
+                        u_index = len(existing_utts)
+                        time_offset = round(max((float(u.get("end_time") or 0.0) for u in existing_utts), default=0.0), 2)
+                        for seg in flushed_segments:
+                            routed_utts = await self.router.route_diarized_segment(seg)
+                            for item in routed_utts:
+                                rec = self.db.add_utterance(
+                                    session_id=session_id,
+                                    speaker_id=item["speaker_id"],
+                                    text=item["text"],
+                                    utterance_index=u_index,
+                                    start_time=round(time_offset + float(item.get("start_time") or 0.0), 2),
+                                    end_time=round(time_offset + float(item.get("end_time") or 0.0), 2),
+                                    has_overlap=item["has_overlap"],
+                                )
+                                u_index += 1
+                                if progress_callback:
+                                    await progress_callback({
+                                        "type": "utterance-emitted",
+                                        "session_id": session_id,
+                                        "utterance": rec,
+                                    })
+        except Exception as ex:
+            logger.warning(f"SmartAudioBuffer flush exception on session finish: {ex}")
+
         all_session_utts = self.db.get_utterances(session_id)
         if not all_session_utts:
+            logger.info(f"[LLM-Final] Session {session_id}: No utterances found for final summary flush.")
             return None
 
         last_summarized_count = self._last_summarized_count.get(session_id, 0)
@@ -350,10 +407,20 @@ class PipelineOrchestrator:
 
         # If already summarized up to latest utterance, return current summary
         if total_session_utts == last_summarized_count:
+            logger.info(
+                f"[LLM-Final] Session {session_id}: All {total_session_utts} utterances already summarized. "
+                f"Returning current summary."
+            )
             return self.db.get_summary(session_id)
 
+        new_utts_count = total_session_utts - last_summarized_count
         session_record = self.db.get_session(session_id)
         title = session_record.get("title") if session_record else "Meeting Summary"
+
+        logger.info(
+            f"[LLM-Final] Session {session_id}: Final summary flush triggered on all {total_session_utts} "
+            f"session utterances ({new_utts_count} new utterances since last summary)."
+        )
 
         llm_payload = {
             "meeting_title": title,
@@ -376,6 +443,11 @@ class PipelineOrchestrator:
                     summary_json = resp_json.get("summary", resp_json)
                     self.db.save_summary(session_id, summary_json)
                     self._last_summarized_count[session_id] = total_session_utts
+                    total_chapters = len(summary_json.get("segments", []))
+                    logger.info(
+                        f"[LLM-Final] Session {session_id}: Final summary created with {total_chapters} "
+                        f"topic chapters across {total_session_utts} total utterances."
+                    )
 
                     if progress_callback:
                         await progress_callback({
@@ -389,7 +461,11 @@ class PipelineOrchestrator:
                             },
                         })
                     return summary_json
+                else:
+                    logger.warning(
+                        f"[LLM-Final] Session {session_id}: Final summary call failed HTTP {resp_llm.status_code}: {resp_llm.text}"
+                    )
         except Exception as e:
-            logger.warning(f"Final summary flush failed for session {session_id}: {e}")
+            logger.warning(f"[LLM-Final] Session {session_id}: Final summary flush exception: {e}")
 
         return self.db.get_summary(session_id)

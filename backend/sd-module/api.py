@@ -124,8 +124,63 @@ def create_app() -> FastAPI:
         container_instance.reset_session()
         return {"status": "success", "message": "Diarization state reset successfully."}
 
+    @app.post("/api/v1/flush")
+    async def flush_diarization() -> dict[str, Any]:
+        """Force flush any remaining audio in SmartAudioBuffer at the end of a session."""
+        if container_instance is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Speaker Diarization models are loading or unavailable.",
+            )
+        target_sr = container_instance.config.get("audio", {}).get("sample_rate", 16000)
+        res1 = container_instance.module1.flush()
+        results = []
+        if res1 and res1["status"] == "PASS":
+            res2 = container_instance.module2.process(
+                res1["clean_audio"], res1["t_d"], res1["t_c"]
+            )
+            chunk_duration = float(len(res1["clean_audio"]) / target_sr)
+            spk_timestamps = []
+            for detail in res2.get("speaker_details", []):
+                spk_name = detail.get("speaker")
+                spk_dur = detail.get("speech_duration_sec", chunk_duration)
+                spk_timestamps.append({
+                    "speaker": spk_name,
+                    "start_time": 0.0,
+                    "end_time": round(spk_dur, 3),
+                    "speech_duration_sec": round(spk_dur, 3)
+                })
+
+            encoded_streams = []
+            for stream in res2.get("audio_streams", []):
+                b_io = io.BytesIO()
+                stream_int16 = (stream * 32767).clip(-32768, 32767).astype(np.int16)
+                wavfile.write(b_io, target_sr, stream_int16)
+                encoded_streams.append(base64.b64encode(b_io.getvalue()).decode("ascii"))
+
+            results.append({
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": round(chunk_duration, 3),
+                "branch": res2.get("branch", "BRANCH_A"),
+                "speakers": res2.get("speakers", []),
+                "speaker_timestamps": spk_timestamps,
+                "has_overlap": res2.get("has_overlap", False),
+                "audio_streams_b64": encoded_streams,
+            })
+
+        return {
+            "status": "success",
+            "total_segments": len(results),
+            "segments": results,
+            "chunks": results,
+        }
+
     @app.post("/api/v1/diarize")
-    async def diarize_audio(file: UploadFile = File(...)) -> dict[str, Any]:
+    async def diarize_audio(
+        file: UploadFile = File(...),
+        is_final: bool = False,
+    ) -> dict[str, Any]:
         """Process an uploaded audio file and return diarization segments with separated streams."""
         if container_instance is None:
             raise HTTPException(
@@ -203,44 +258,45 @@ def create_app() -> FastAPI:
                     "audio_streams_b64": encoded_streams,
                 })
 
-        # Flush buffer
-        res1 = container_instance.module1.flush()
-        if res1 and res1["status"] == "PASS":
-            res2 = container_instance.module2.process(
-                res1["clean_audio"], res1["t_d"], res1["t_c"]
-            )
-            chunk_duration = float(len(res1["clean_audio"]) / target_sr)
-            start_time = current_time
-            end_time = current_time + chunk_duration
+        # Flush buffer only if this is the final audio chunk or batch file completion
+        if is_final:
+            res1 = container_instance.module1.flush()
+            if res1 and res1["status"] == "PASS":
+                res2 = container_instance.module2.process(
+                    res1["clean_audio"], res1["t_d"], res1["t_c"]
+                )
+                chunk_duration = float(len(res1["clean_audio"]) / target_sr)
+                start_time = current_time
+                end_time = current_time + chunk_duration
 
-            spk_timestamps = []
-            for detail in res2.get("speaker_details", []):
-                spk_name = detail.get("speaker")
-                spk_dur = detail.get("speech_duration_sec", chunk_duration)
-                spk_timestamps.append({
-                    "speaker": spk_name,
+                spk_timestamps = []
+                for detail in res2.get("speaker_details", []):
+                    spk_name = detail.get("speaker")
+                    spk_dur = detail.get("speech_duration_sec", chunk_duration)
+                    spk_timestamps.append({
+                        "speaker": spk_name,
+                        "start_time": round(start_time, 3),
+                        "end_time": round(start_time + spk_dur, 3),
+                        "speech_duration_sec": round(spk_dur, 3)
+                    })
+
+                encoded_streams = []
+                for stream in res2.get("audio_streams", []):
+                    b_io = io.BytesIO()
+                    stream_int16 = (stream * 32767).clip(-32768, 32767).astype(np.int16)
+                    wavfile.write(b_io, target_sr, stream_int16)
+                    encoded_streams.append(base64.b64encode(b_io.getvalue()).decode("ascii"))
+
+                results.append({
+                    "chunk_index": len(results),
                     "start_time": round(start_time, 3),
-                    "end_time": round(start_time + spk_dur, 3),
-                    "speech_duration_sec": round(spk_dur, 3)
+                    "end_time": round(end_time, 3),
+                    "branch": res2.get("branch", "BRANCH_A"),
+                    "speakers": res2.get("speakers", []),
+                    "speaker_timestamps": spk_timestamps,
+                    "has_overlap": res2.get("has_overlap", False),
+                    "audio_streams_b64": encoded_streams,
                 })
-
-            encoded_streams = []
-            for stream in res2.get("audio_streams", []):
-                b_io = io.BytesIO()
-                stream_int16 = (stream * 32767).clip(-32768, 32767).astype(np.int16)
-                wavfile.write(b_io, target_sr, stream_int16)
-                encoded_streams.append(base64.b64encode(b_io.getvalue()).decode("ascii"))
-
-            results.append({
-                "chunk_index": len(results),
-                "start_time": round(start_time, 3),
-                "end_time": round(end_time, 3),
-                "branch": res2.get("branch", "BRANCH_A"),
-                "speakers": res2.get("speakers", []),
-                "speaker_timestamps": spk_timestamps,
-                "has_overlap": res2.get("has_overlap", False),
-                "audio_streams_b64": encoded_streams,
-            })
 
         proc_time = round(time.perf_counter() - t_start, 3)
 
