@@ -79,6 +79,11 @@ report_compilation/.obsidian/
 Source_Code/
 Source_Code_Summary/
 
+<<<<<<< Updated upstream
 # Debug audio files
 backend/audio-testing/*.wav
 
+=======
+# Audio testing
+audio-testing/
+>>>>>>> Stashed changes
