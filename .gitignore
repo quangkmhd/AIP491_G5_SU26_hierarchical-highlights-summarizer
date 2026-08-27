@@ -78,3 +78,7 @@ frontend/dist/
 report_compilation/.obsidian/
 Source_Code/
 Source_Code_Summary/
+
+# Debug audio files
+backend/audio-testing/*.wav
+
