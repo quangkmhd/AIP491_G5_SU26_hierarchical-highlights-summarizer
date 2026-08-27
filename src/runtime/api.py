@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
 
                 for evt in ws_orchestrator.accept_utterance(
                     text=text,
-                    speaker=payload.get("speaker", "Speaker 01"),
+                    speaker=payload.get("speaker", "no.0"),
                     index=payload.get("index"),
                 ):
                     await websocket.send_json(evt)

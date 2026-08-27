@@ -19,7 +19,7 @@ class Utterance(BaseModel):
         ...,
         min_length=1,
         max_length=128,
-        description="Speaker label (e.g. 'A', 'B', or a real name).",
+        description="Speaker label (e.g. 'no.0', 'no.1', 'no.2').",
     )
     text: str = Field(
         ...,

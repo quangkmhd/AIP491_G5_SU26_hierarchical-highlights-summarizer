@@ -24,7 +24,7 @@ def _load_transcript(file: TextIO) -> DialogueTranscript:
     utterances_raw = item.get("utterances") or []
     utts = [
         Utterance(
-            speaker=u.get("speaker", f"S{i + 1}") if isinstance(u, dict) else f"S{i + 1}",
+            speaker=u.get("speaker", f"no.{i}") if isinstance(u, dict) else f"no.{i}",
             text=u.get("text", u) if isinstance(u, dict) else u,
             index=u.get("index", i) if isinstance(u, dict) else i,
         )

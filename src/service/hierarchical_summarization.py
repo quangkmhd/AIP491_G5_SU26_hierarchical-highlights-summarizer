@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from src.repo.model_loader import ModelLoader
@@ -30,9 +31,27 @@ class HierarchicalSummarizationService:
             loader.load_topic_titler()
         )
 
+    @staticmethod
+    def _normalize_speaker(speaker: str, speaker_map: dict[str, str]) -> str:
+        """Chuẩn hoá nhãn người nói về định dạng 'no.0', 'no.1',... khớp với tập train."""
+        spk = speaker.strip()
+        if re.match(r"^no\.\d+$", spk):
+            return spk
+        match = re.match(r"^no(\d+)$", spk, re.IGNORECASE)
+        if match:
+            return f"no.{match.group(1)}"
+        if spk not in speaker_map:
+            speaker_map[spk] = f"no.{len(speaker_map)}"
+        return speaker_map[spk]
+
     def _format_utterances(self, utterances: list[Utterance]) -> str:
-        """Định dạng danh sách câu thoại dạng 'Người nói: Nội dung' cho mô hình tóm tắt."""
-        return "\n".join(f"{u.speaker}: {u.text}" for u in utterances)
+        """Định dạng danh sách câu thoại dạng 'no.X: Nội dung' cho mô hình tóm tắt."""
+        speaker_map: dict[str, str] = {}
+        lines: list[str] = []
+        for u in utterances:
+            norm_spk = self._normalize_speaker(u.speaker, speaker_map)
+            lines.append(f"{norm_spk}: {u.text}")
+        return "\n".join(lines)
 
     def abstractive(self, chunk: Chunk) -> str:
         """Sinh câu tóm tắt trừu tượng cho một khối câu thoại Chunk bằng ViT5."""

@@ -66,7 +66,7 @@ class StreamingOrchestrator:
     # --- 2. Xử lý thời gian thực tăng tiến (Real-time Streaming) ---
 
     def accept_utterance(
-        self, text: str, speaker: str = "Speaker 01", index: int | None = None,
+        self, text: str, speaker: str = "no.0", index: int | None = None,
     ) -> Iterator[dict[str, Any]]:
         """Tiếp nhận một câu thoại real-time và đẩy vào pipeline phân đoạn/tóm tắt."""
         utt_idx = index if index is not None else len(self._incremental_utterances)
