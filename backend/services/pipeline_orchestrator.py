@@ -295,7 +295,8 @@ class PipelineOrchestrator:
                 if resp_llm.status_code != 200:
                     raise RuntimeError(f"llms-module failed HTTP {resp_llm.status_code}: {resp_llm.text}")
 
-                summary_json = resp_llm.json()
+                resp_json = resp_llm.json()
+                summary_json = resp_json.get("summary", resp_json)
 
             # Record that we have summarized up to the current total count
             self._last_summarized_count[session_id] = total_session_utts
@@ -371,7 +372,8 @@ class PipelineOrchestrator:
             async with httpx.AsyncClient(timeout=300.0) as client:
                 resp_llm = await client.post(self.llm_url, json=llm_payload)
                 if resp_llm.status_code == 200:
-                    summary_json = resp_llm.json()
+                    resp_json = resp_llm.json()
+                    summary_json = resp_json.get("summary", resp_json)
                     self.db.save_summary(session_id, summary_json)
                     self._last_summarized_count[session_id] = total_session_utts
 

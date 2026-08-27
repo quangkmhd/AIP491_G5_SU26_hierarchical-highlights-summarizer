@@ -59,8 +59,10 @@ export default function MainContent({ activeTab, utterances, summary }) {
             {summary && summary.segments && summary.segments.length > 0 ? (
               summary.segments.map((seg, idx) => (
                 <div key={idx} className="recap-chapter">
-                  <h4 className="recap-title">📖 {seg.chapter_title || `Topic Segment ${idx + 1}`}</h4>
-                  <p className="recap-text">{seg.chunk_summary}</p>
+                  <h4 className="recap-title">📖 {seg.title || `Topic Segment ${idx + 1}`}</h4>
+                  <p className="recap-text">
+                    {seg.chunks ? seg.chunks.map(c => c.rolling_summary).join(' ') : (seg.chunk_summary || '')}
+                  </p>
                 </div>
               ))
             ) : (
