@@ -35,7 +35,11 @@ export default function App() {
   }, []);
 
   const handleSummaryReceived = useCallback((newSummary) => {
-    setSummary(newSummary);
+    if (!newSummary) return;
+    const summaryData = newSummary.hierarchical_json || newSummary;
+    if (summaryData && Array.isArray(summaryData.segments) && summaryData.segments.length > 0) {
+      setSummary(summaryData);
+    }
   }, []);
 
   const { isRecording, recordingTime, startRecording, stopRecording } =
@@ -63,7 +67,10 @@ export default function App() {
       if (details) {
         setActiveSession(details.session);
         setUtterances(details.utterances || []);
-        setSummary(details.summary || null);
+        const polledSummary = details.summary?.hierarchical_json || details.summary;
+        if (polledSummary && Array.isArray(polledSummary.segments) && polledSummary.segments.length > 0) {
+          setSummary(polledSummary);
+        }
       }
     };
 

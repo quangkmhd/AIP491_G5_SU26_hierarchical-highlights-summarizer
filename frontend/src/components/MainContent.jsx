@@ -52,31 +52,34 @@ export default function MainContent({ activeTab, utterances, summary }) {
         </div>
       )}
 
-      {showRecap && (
-        <div className="split-pane">
-          <div className="pane-header">AI RECAP & NOTES</div>
-          <div className="pane-body">
-            {summary && summary.segments && summary.segments.length > 0 ? (
-              summary.segments.map((seg, idx) => (
-                <div key={idx} className="recap-chapter">
-                  <h4 className="recap-title">📖 {seg.title || `Topic Segment ${idx + 1}`}</h4>
-                  <p className="recap-text">
-                    {seg.chunks ? seg.chunks.map(c => c.rolling_summary).join(' ') : (seg.chunk_summary || '')}
+      {showRecap && (() => {
+        const segments = summary?.segments || summary?.hierarchical_json?.segments || [];
+        return (
+          <div className="split-pane">
+            <div className="pane-header">AI RECAP & NOTES</div>
+            <div className="pane-body">
+              {segments.length > 0 ? (
+                segments.map((seg, idx) => (
+                  <div key={idx} className="recap-chapter">
+                    <h4 className="recap-title">📖 {seg.title || `Topic Segment ${idx + 1}`}</h4>
+                    <p className="recap-text">
+                      {seg.chunks ? seg.chunks.map(c => c.rolling_summary).join(' ') : (seg.chunk_summary || '')}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <h4>No Recap Available</h4>
+                  <p>
+                    Recap notes, decisions, and action items will be automatically generated during
+                    the session.
                   </p>
                 </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <h4>No Recap Available</h4>
-                <p>
-                  Recap notes, decisions, and action items will be automatically generated during
-                  the session.
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </main>
   );
 }
