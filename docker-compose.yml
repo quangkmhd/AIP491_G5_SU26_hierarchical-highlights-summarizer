@@ -13,6 +13,7 @@ services:
       - SD_URL=http://sd-module:8002/api/v1/diarize
       - ASR_URL=http://asr-module:8001/api/v1/transcribe
       - LLM_URL=http://llms-module:8000/api/v1/meetings/process
+      - LLM_WS_URL=ws://llms-module:8000/ws
     volumes:
       - ./backend/db:/app/backend/db
     depends_on:

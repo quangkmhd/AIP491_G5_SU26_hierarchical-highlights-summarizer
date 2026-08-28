@@ -29,12 +29,18 @@ class FakeWebSocket:
         self,
         fail_first_utterance: bool = False,
         fail_indexes: set[int] | None = None,
+        fail_flush: bool = False,
+        topic_indexes: set[int] | None = None,
+        topic_segments: dict[int, str] | None = None,
     ) -> None:
         self.sent: list[dict] = []
         self.responses: list[str] = []
         self.closed = False
         self.fail_first_utterance = fail_first_utterance
         self.fail_indexes = fail_indexes or set()
+        self.fail_flush = fail_flush
+        self.topic_indexes = topic_indexes or set()
+        self.topic_segments = topic_segments or {}
 
     async def send(self, message: str) -> None:
         payload = json.loads(message)
@@ -44,12 +50,35 @@ class FakeWebSocket:
                 self.fail_first_utterance = False
                 self.fail_indexes.discard(payload["index"])
                 raise ConnectionError("connection dropped")
+            if payload["index"] in self.topic_indexes or payload["index"] in self.topic_segments:
+                segment_id = self.topic_segments.get(payload["index"], "seg-1")
+                chunk_id = f"chunk-{segment_id}" if self.topic_segments else "chunk-1"
+                self.responses.extend([
+                    json.dumps({
+                        "type": "chunk-closed", "session_id": payload["session_id"],
+                        "segment_id": segment_id, "chunk_id": chunk_id, "chunk_index": 0,
+                        "utterances_start": payload["index"], "utterances_end": payload["index"],
+                        "rolling_summary": "Live summary",
+                    }),
+                    json.dumps({
+                        "type": "segment-closed", "session_id": payload["session_id"],
+                        "segment_id": segment_id, "utterances_start": payload["index"],
+                        "utterances_end": payload["index"],
+                    }),
+                    json.dumps({
+                        "type": "title-emitted", "session_id": payload["session_id"],
+                        "segment_id": segment_id, "title": "Live topic",
+                    }),
+                ])
             self.responses.append(json.dumps({
                 "type": "utterance-accepted",
                 "session_id": payload["session_id"],
                 "index": payload["index"],
             }))
         elif payload["type"] == "flush":
+            if self.fail_flush:
+                self.fail_flush = False
+                raise ConnectionError("flush connection dropped")
             self.responses.append(json.dumps({
                 "type": "meeting-completed",
                 "session_id": payload["session_id"],
@@ -164,3 +193,85 @@ async def test_finish_flushes_and_saves_authoritative_summary() -> None:
     assert connector.created[0].sent[-1] == {"type": "flush", "session_id": "a"}
     assert summary == {"segments": [{"title": "Final"}]}
     assert db.saved == [("a", summary)]
+
+
+@pytest.mark.asyncio
+async def test_finish_empty_meeting_returns_without_opening_stream() -> None:
+    db = FakeDatabase()
+    connector = FakeConnector()
+    manager = MeetingStreamManager(db, connector=connector, max_retries=1)
+
+    summary = await manager.finish("a")
+
+    assert summary is None
+    assert connector.created == []
+
+
+@pytest.mark.asyncio
+async def test_finish_reconnects_replays_and_retries_flush() -> None:
+    db = FakeDatabase()
+    db.utterances["a"] = [utterance("a", 0, "tail")]
+    first = FakeWebSocket(fail_flush=True)
+    second = FakeWebSocket()
+    connector = FakeConnector([first, second])
+    manager = MeetingStreamManager(db, connector=connector, max_retries=2, retry_delay=0)
+    await manager.publish("a", db.utterances["a"][0])
+
+    summary = await manager.finish("a")
+
+    assert [message["type"] for message in second.sent] == ["start", "utterance", "flush"]
+    assert summary == {"segments": [{"title": "Final"}]}
+
+
+@pytest.mark.asyncio
+async def test_closed_topic_is_materialized_before_utterance_ack_returns() -> None:
+    db = FakeDatabase()
+    db.utterances["a"] = [utterance("a", 0, "topic")]
+    connector = FakeConnector([FakeWebSocket(topic_indexes={0})])
+    manager = MeetingStreamManager(db, connector=connector, max_retries=1)
+
+    await manager.publish("a", db.utterances["a"][0])
+
+    assert db.saved[-1] == (
+        "a",
+        {
+            "segments": [{
+                "segment_id": "seg-1",
+                "title": "Live topic",
+                "utterances_start": 0,
+                "utterances_end": 0,
+                "chunks": [{
+                    "chunk_id": "chunk-1",
+                    "chunk_index": 0,
+                    "utterances_start": 0,
+                    "utterances_end": 0,
+                    "rolling_summary": "Live summary",
+                }],
+            }],
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_replay_never_materializes_fewer_topics_than_previous_snapshot() -> None:
+    db = FakeDatabase()
+    first = FakeWebSocket(
+        fail_indexes={2},
+        topic_segments={0: "old-a", 1: "old-b"},
+    )
+    replay = FakeWebSocket(topic_segments={0: "new-a", 1: "new-b"})
+    manager = MeetingStreamManager(
+        db,
+        connector=FakeConnector([first, replay]),
+        max_retries=2,
+        retry_delay=0,
+    )
+
+    for index in range(3):
+        record = utterance("a", index, str(index))
+        db.utterances["a"].append(record)
+        await manager.publish("a", record)
+
+    snapshot_sizes = [len(summary["segments"]) for _, summary in db.saved]
+    first_complete_snapshot = snapshot_sizes.index(2)
+    assert all(size >= 2 for size in snapshot_sizes[first_complete_snapshot:])

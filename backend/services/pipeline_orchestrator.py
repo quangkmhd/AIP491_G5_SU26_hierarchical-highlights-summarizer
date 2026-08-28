@@ -10,52 +10,9 @@ import asyncio
 import httpx
 from backend.db.database import DatabaseManager
 from backend.services.audio_router import AudioStreamRouter
-import os
-from pathlib import Path
 from backend.services.meeting_stream_manager import MeetingStreamManager
 
 logger = logging.getLogger(__name__)
-
-
-def _load_backend_env_config() -> dict[str, int]:
-    """Load MIN_UTTERANCES_STACK and UTTERANCES_OVERLAP_CONTEXT from backend/.env or env vars."""
-    backend_dir = Path(__file__).resolve().parent.parent
-    env_file = backend_dir / ".env"
-    config = {
-        "min_utterances_stack": 40,
-        "overlap_context": 30,
-    }
-
-    if env_file.is_file():
-        try:
-            with open(env_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        k, v = line.split("=", 1)
-                        k_clean = k.strip()
-                        if k_clean == "MIN_UTTERANCES_STACK":
-                            config["min_utterances_stack"] = int(v.strip())
-                        elif k_clean == "UTTERANCES_OVERLAP_CONTEXT":
-                            config["overlap_context"] = int(v.strip())
-        except Exception as e:
-            logger.warning(f"Failed to read {env_file}: {e}")
-
-    # Fallback to environment variables if present
-    if "MIN_UTTERANCES_STACK" in os.environ:
-        try:
-            config["min_utterances_stack"] = int(os.environ["MIN_UTTERANCES_STACK"])
-        except ValueError:
-            pass
-
-    if "UTTERANCES_OVERLAP_CONTEXT" in os.environ:
-        try:
-            config["overlap_context"] = int(os.environ["UTTERANCES_OVERLAP_CONTEXT"])
-        except ValueError:
-            pass
-
-    return config
-
 
 class PipelineOrchestrator:
     """Master pipeline orchestrator connecting all AI microservices and persistent SQLite DB."""
@@ -66,29 +23,12 @@ class PipelineOrchestrator:
         sd_url: str = "http://localhost:8002/api/v1/diarize",
         asr_url: str = "http://localhost:8000/api/v1/transcribe",
         llm_url: str = "http://localhost:8003/api/v1/meetings/process",
-        min_utterances_stack: Optional[int] = None,
-        overlap_context: Optional[int] = None,
         stream_manager: MeetingStreamManager | None = None,
     ):
         self.db = db_manager
         self.sd_url = sd_url
         self.asr_url = asr_url
         self.llm_url = llm_url
-
-        env_cfg = _load_backend_env_config()
-        self.min_utterances_stack = (
-            min_utterances_stack
-            if min_utterances_stack is not None
-            else env_cfg["min_utterances_stack"]
-        )
-        self.overlap_context = (
-            overlap_context
-            if overlap_context is not None
-            else env_cfg["overlap_context"]
-        )
-
-        # Tracks the count of summarized utterances per session to support periodic intervals
-        self._last_summarized_count: dict[str, int] = {}
         self.router = AudioStreamRouter(asr_url=asr_url)
         self.stream_manager = stream_manager
         self._live_session_locks: dict[str, asyncio.Lock] = {}
@@ -263,53 +203,14 @@ class PipelineOrchestrator:
                 logger.info(f"Session {session_id}: Completed with 0 new utterances in {elapsed_ms}ms.")
                 return result
 
-            # Stage 3: Periodic LLM Topic Segmentation & Hierarchical Summarization
+            # Stage 3 (offline only): summarize the complete transcript once.
             all_session_utts = self.db.get_utterances(session_id)
             total_session_utts = len(all_session_utts)
-            last_summarized_count = self._last_summarized_count.get(session_id, 0)
-            new_utts_since_last_summary = total_session_utts - last_summarized_count
-
-            # Determine required new utterances threshold:
-            # - Initial summary run: requires min_utterances_stack (e.g., 40)
-            # - Subsequent periodic runs: requires stride = (min_utterances_stack - overlap_context) (e.g., 40 - 30 = 10)
-            required_step = (
-                self.min_utterances_stack
-                if last_summarized_count == 0
-                else max(1, self.min_utterances_stack - self.overlap_context)
-            )
-
-            # Check if periodic stack threshold is reached or if this is the final flush
-            if new_utts_since_last_summary < required_step and not is_final:
-                elapsed_ms = int((time.time() - start_time) * 1000)
-                self.db.update_session_status(session_id, "completed", 100.0)
-                logger.info(
-                    f"[LLM-Stack] Session {session_id}: Stacked {new_utts_since_last_summary}/{required_step} "
-                    f"new utterances (Total in DB: {total_session_utts}, Last summarized: {last_summarized_count}). "
-                    f"Waiting for next periodic interval."
-                )
-                existing_summary_rec = self.db.get_summary(session_id)
-                current_summary = existing_summary_rec.get("hierarchical_json") if existing_summary_rec else None
-                result = {
-                    "session_id": session_id,
-                    "status": "completed",
-                    "total_utterances": total_session_utts,
-                    "processing_time_ms": elapsed_ms,
-                }
-                if current_summary:
-                    result["summary"] = current_summary
-
-                if progress_callback:
-                    await progress_callback({
-                        "type": "session-completed",
-                        "session_id": session_id,
-                        "result": result,
-                    })
-                return result
 
             if total_session_utts == 0:
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 self.db.update_session_status(session_id, "completed", 100.0)
-                logger.info(f"[LLM-Stack] Session {session_id}: 0 utterances in DB, skipping LLM call.")
+                logger.info(f"Session {session_id}: 0 utterances in DB, skipping LLM call.")
                 return {
                     "session_id": session_id,
                     "status": "completed",
@@ -329,16 +230,11 @@ class PipelineOrchestrator:
             session_record = self.db.get_session(session_id)
             title = session_record.get("title") if session_record else "Meeting Summary"
 
-            # Window slicing: Slice the last `min_utterances_stack` utterances (e.g. 40)
-            # which naturally contains 30 overlap old utterances + 10 new utterances
-            start_window_idx = max(0, total_session_utts - self.min_utterances_stack)
-            utts_to_summarize = all_session_utts[start_window_idx:total_session_utts]
-            overlap_count = max(0, len(utts_to_summarize) - new_utts_since_last_summary)
+            utts_to_summarize = all_session_utts
 
             logger.info(
-                f"[LLM-Trigger] Session {session_id}: Triggering LLM summarization on window "
-                f"[{start_window_idx}:{total_session_utts}] ({len(utts_to_summarize)} utterances = "
-                f"{new_utts_since_last_summary} new + {overlap_count} overlap). Stride={required_step}."
+                f"[LLM-Batch] Session {session_id}: Summarizing complete transcript "
+                f"({len(utts_to_summarize)} utterances)."
             )
 
             llm_payload = {
@@ -361,9 +257,6 @@ class PipelineOrchestrator:
 
                 resp_json = resp_llm.json()
                 summary_json = resp_json.get("summary", resp_json)
-
-            # Record that we have summarized up to the current total count
-            self._last_summarized_count[session_id] = total_session_utts
 
             elapsed_ms = int((time.time() - start_time) * 1000)
             self.db.save_summary(session_id, summary_json, processing_time_ms=elapsed_ms)

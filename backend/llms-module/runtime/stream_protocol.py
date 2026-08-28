@@ -69,7 +69,9 @@ class StreamProtocolSession:
         )
         self.accepted_indexes.add(index)
         self.next_index = index + 1
-        return messages
+        accepted = [message for message in messages if message["type"] == "utterance-accepted"]
+        other_events = [message for message in messages if message["type"] != "utterance-accepted"]
+        return other_events + accepted
 
     def _flush(self) -> list[dict[str, Any]]:
         if self.closed:

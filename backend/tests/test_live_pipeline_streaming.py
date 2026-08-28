@@ -30,6 +30,9 @@ class FakeDatabase:
     def fail_session(self, session_id: str, message: str) -> None:
         self.statuses.append("failed")
 
+    def save_summary(self, session_id: str, summary: dict, processing_time_ms=None) -> None:
+        pass
+
 
 class FakeStreamManager:
     def __init__(self) -> None:
@@ -118,3 +121,16 @@ async def test_finalize_publishes_flushed_tail_before_stream_flush() -> None:
     assert streams.finished == ["live-1"]
     assert summary == {"segments": []}
     assert orchestrator.llm_url not in RecordingHttpClient.calls
+
+
+@pytest.mark.asyncio
+async def test_offline_batch_sends_all_utterances_without_legacy_stack_threshold() -> None:
+    db = FakeDatabase()
+    orchestrator = PipelineOrchestrator(db)
+    orchestrator.router.route_diarized_segment = AsyncMock(return_value=[routed("offline")])
+    RecordingHttpClient.calls = []
+
+    with patch("backend.services.pipeline_orchestrator.httpx.AsyncClient", RecordingHttpClient):
+        await orchestrator.process_audio_file("offline-1", b"audio")
+
+    assert RecordingHttpClient.calls.count(orchestrator.llm_url) == 1

@@ -1,9 +1,7 @@
 """REST API Router for Session Management & Processing."""
 
-import asyncio
 from typing import Any, Optional
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile, status
-from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["Sessions"])
 

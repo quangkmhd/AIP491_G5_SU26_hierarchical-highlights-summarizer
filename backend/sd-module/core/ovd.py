@@ -14,6 +14,8 @@ class PyannoteOVD:
     def __init__(self, config: dict):
         self.config = config
         self.sr = config.get("audio", {}).get("sample_rate", 16000)
+        self.pipeline = None
+        self.audio_buffer = np.array([], dtype=np.float32)
 
         ovd_cfg = config.get("module2_diarization", {}).get("ovd", {})
         self.window_duration = ovd_cfg.get("window_duration", 10.0)
@@ -30,8 +32,6 @@ class PyannoteOVD:
         if not os.path.exists(model_path):
             rel_path = to_relative_path(model_path)
             logger.warning(f"[OVD] Checkpoint not found at: '{rel_path}'. Overlap detection disabled.")
-            self.inference = None
-            self.audio_buffer = np.array([], dtype=np.float32)
             return
 
         try:
@@ -57,8 +57,6 @@ class PyannoteOVD:
         except Exception as e:
             logger.error(f"[OVD] Failed to initialize Pyannote OVD: {e}")
             self.pipeline = None
-
-        self.audio_buffer = np.array([], dtype=np.float32)
 
     def reset(self):
         """Reset the internal rolling audio buffer for a new meeting session."""

@@ -34,6 +34,12 @@ Ensure model weights are placed in their respective submodule directories:
 - **`backend/asr-module/models/`**: Sherpa-ONNX Zipformer models (`encoder.onnx`, `decoder.onnx`, `joiner.onnx`, `tokens.txt`).
 - **`backend/llms-module/models/`**: ViT5 and BARTpho pre-trained weights.
 
+Download the compatible Silero VAD checkpoint without changing its configured name or location:
+
+```bash
+bash scripts/download_silero_vad.sh
+```
+
 ---
 
 ## Local Setup & Installation
@@ -170,3 +176,14 @@ Connect your client / microphone stream to:
 ws://localhost:8080/ws/sessions/{session_id}/stream
 ```
 Stream binary PCM 16kHz audio frames (500ms chunks) to receive live `utterance-emitted` and `progress-updated` events.
+
+Each ASR utterance is persisted and forwarded immediately to a dedicated LLM
+WebSocket for that meeting. TextTiling owns its 40-utterance analysis window;
+the Gateway doesn't batch utterances. Finish a REST-created live meeting with:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sessions/{session_id}/finalize
+```
+
+Finalization rejects later audio, flushes trailing diarization/ASR output, then
+flushes the topic segmenter and stores the authoritative summary.

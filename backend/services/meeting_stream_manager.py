@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
 from dataclasses import dataclass, field
 import inspect
 import json
@@ -23,6 +24,8 @@ class _SessionStream:
     websocket: Any | None = None
     acknowledged_index: int | None = None
     final_summary: dict[str, Any] | None = None
+    partial_segments: dict[str, dict[str, Any]] = field(default_factory=dict)
+    materialize_after_index: int | None = None
     closed: bool = False
 
 
@@ -74,11 +77,27 @@ class MeetingStreamManager:
         async with state.lock:
             if state.closed:
                 return state.final_summary
-            await self._with_reconnect(session_id, state, progress_callback)
-            await state.websocket.send(json.dumps({"type": "flush", "session_id": session_id}))
-            state.final_summary = await self._receive_until_completed(
-                state, session_id, progress_callback
-            )
+            if not self.db.get_utterances(session_id):
+                state.closed = True
+                return None
+            last_error: Exception | None = None
+            for attempt in range(self.max_retries):
+                try:
+                    await self._with_reconnect(session_id, state, progress_callback)
+                    await state.websocket.send(
+                        json.dumps({"type": "flush", "session_id": session_id})
+                    )
+                    state.final_summary = await self._receive_until_completed(
+                        state, session_id, progress_callback
+                    )
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    await self._close_socket(state)
+                    if attempt + 1 < self.max_retries and self.retry_delay:
+                        await asyncio.sleep(self.retry_delay * (2 ** attempt))
+            else:
+                raise RuntimeError(f"Unable to flush LLM stream for {session_id}") from last_error
             state.closed = True
             if state.final_summary is not None:
                 self.db.save_summary(session_id, state.final_summary)
@@ -116,8 +135,26 @@ class MeetingStreamManager:
         state: _SessionStream,
         progress_callback: ProgressCallback | None,
     ) -> None:
+        preserved_indexes = [
+            int(segment["utterances_end"])
+            for segment in state.partial_segments.values()
+            if segment.get("utterances_end") is not None
+        ]
+        if state.materialize_after_index is not None:
+            preserved_indexes.append(state.materialize_after_index)
+        if not preserved_indexes and hasattr(self.db, "get_summary"):
+            saved = self.db.get_summary(session_id)
+            if saved:
+                preserved_indexes.extend(
+                    int(segment["utterances_end"])
+                    for segment in saved["hierarchical_json"].get("segments", [])
+                    if segment.get("utterances_end") is not None
+                )
+
         state.websocket = await self._connector(self.ws_url)
         state.acknowledged_index = None
+        state.partial_segments = {}
+        state.materialize_after_index = max(preserved_indexes, default=None)
         session = self.db.get_session(session_id) or {}
         await state.websocket.send(json.dumps({
             "type": "start",
@@ -144,7 +181,7 @@ class MeetingStreamManager:
         }))
         while True:
             event = json.loads(await state.websocket.recv())
-            await self._emit(event, progress_callback)
+            await self._handle_event(state, session_id, event, progress_callback)
             if event.get("type") == "error":
                 raise RuntimeError(event.get("message") or "LLM stream protocol error")
             if event.get("type") == "utterance-accepted" and int(event["index"]) == index:
@@ -159,17 +196,77 @@ class MeetingStreamManager:
     ) -> dict[str, Any] | None:
         while True:
             event = json.loads(await state.websocket.recv())
-            await self._emit(event, progress_callback)
+            await self._handle_event(state, session_id, event, progress_callback)
             if event.get("type") == "error":
                 raise RuntimeError(event.get("message") or "LLM stream protocol error")
             if event.get("type") == "meeting-completed":
                 return event.get("hierarchical_summary")
 
-    async def _emit(
+    async def _handle_event(
         self,
+        state: _SessionStream,
+        session_id: str,
         event: dict[str, Any],
         progress_callback: ProgressCallback | None,
     ) -> None:
+        event_type = event.get("type")
+        segment_id = event.get("segment_id")
+        if event_type == "chunk-closed" and segment_id:
+            segment = state.partial_segments.setdefault(segment_id, {
+                "segment_id": segment_id,
+                "title": "",
+                "utterances_start": event["utterances_start"],
+                "utterances_end": event["utterances_end"],
+                "chunks": [],
+            })
+            if not any(
+                chunk["chunk_id"] == event["chunk_id"] for chunk in segment["chunks"]
+            ):
+                segment["chunks"].append({
+                    "chunk_id": event["chunk_id"],
+                    "chunk_index": event["chunk_index"],
+                    "utterances_start": event["utterances_start"],
+                    "utterances_end": event["utterances_end"],
+                    "rolling_summary": event["rolling_summary"],
+                })
+            segment["utterances_end"] = event["utterances_end"]
+        elif event_type == "segment-closed" and segment_id:
+            segment = state.partial_segments.setdefault(segment_id, {
+                "segment_id": segment_id,
+                "title": "",
+                "chunks": [],
+            })
+            segment["utterances_start"] = event["utterances_start"]
+            segment["utterances_end"] = event["utterances_end"]
+        elif event_type == "title-emitted" and segment_id:
+            segment = state.partial_segments.setdefault(segment_id, {
+                "segment_id": segment_id,
+                "chunks": [],
+            })
+            segment["title"] = event["title"]
+            materialized_end = max(
+                (
+                    int(item["utterances_end"])
+                    for item in state.partial_segments.values()
+                    if item.get("title") and item.get("utterances_end") is not None
+                ),
+                default=-1,
+            )
+            if (
+                state.materialize_after_index is not None
+                and materialized_end < state.materialize_after_index
+            ):
+                logger.debug(
+                    "Deferring summary materialization for %s until replay reaches index %s",
+                    session_id,
+                    state.materialize_after_index,
+                )
+            else:
+                state.materialize_after_index = None
+                self.db.save_summary(session_id, {
+                    "segments": deepcopy(list(state.partial_segments.values()))
+                })
+
         if progress_callback is None:
             return
         result = progress_callback(event)

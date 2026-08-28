@@ -1,4 +1,4 @@
-from frontend_streamlit.live_api import finalize_live_session
+from frontend_streamlit.live_api import finalize_live_session, summary_cards
 
 
 class Response:
@@ -20,3 +20,17 @@ def test_frontend_finalize_posts_to_session_endpoint_and_returns_summary() -> No
 
     assert calls == [("http://gateway:8080/api/v1/sessions/meeting-1/finalize", 330.0)]
     assert summary == {"segments": []}
+
+
+def test_summary_cards_render_streaming_schema_title_and_chunk_summaries() -> None:
+    cards = summary_cards({
+        "segments": [{
+            "title": "Architecture",
+            "chunks": [
+                {"rolling_summary": "First decision"},
+                {"rolling_summary": "Second decision"},
+            ],
+        }]
+    })
+
+    assert cards == [("Architecture", "First decision\nSecond decision")]

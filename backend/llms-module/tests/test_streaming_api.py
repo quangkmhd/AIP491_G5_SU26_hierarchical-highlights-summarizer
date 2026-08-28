@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from runtime.api import create_app
+from runtime.stream_protocol import StreamProtocolSession
 from service.summarization_orchestrator import OrchestratorEvent, SummarizationEventType
 
 
@@ -27,6 +28,14 @@ class FakeStreamingOrchestrator:
             {"hierarchical_summary": {"segments": []}},
         )
 
+
+class BoundaryStreamingOrchestrator(FakeStreamingOrchestrator):
+    def accept_utterance(self, text: str, speaker: str, index: int):
+        yield from super().accept_utterance(text, speaker, index)
+        yield OrchestratorEvent(
+            SummarizationEventType.SEGMENT_CLOSED,
+            {"segment_id": "segment", "utterances_start": index, "utterances_end": index},
+        )
 
 def build_test_app():
     streams: list[FakeStreamingOrchestrator] = []
@@ -120,3 +129,21 @@ def test_flush_returns_one_completed_event() -> None:
     assert completed["type"] == "meeting-completed"
     assert completed["session_id"] == "meeting-a"
     assert streams[0].finalized is True
+
+
+def test_ack_is_last_so_gateway_materializes_topic_events_before_publish_returns() -> None:
+    protocol = StreamProtocolSession(BoundaryStreamingOrchestrator())
+    protocol.handle({"type": "start", "session_id": "meeting-a"})
+
+    messages = protocol.handle({
+        "type": "utterance",
+        "session_id": "meeting-a",
+        "index": 0,
+        "speaker": "A",
+        "text": "topic boundary",
+    })
+
+    assert [message["type"] for message in messages] == [
+        "segment-closed",
+        "utterance-accepted",
+    ]

@@ -486,29 +486,3 @@ class MultiscaleTextTilingService:
             ranges.append((prev + 1, b))
             prev = b
         return ranges
-        self.reset()
-        n = len(utterances)
-        if n == 0:
-            return []
-        if n == 1:
-            return [(0, 0)]
-
-        boundaries, _ = find_boundaries(
-            utterances,
-            block_size=self.block_size,
-            radii=self.radii,
-            alpha=self.alpha,
-            stopwords=self._stopwords,
-            agg=self.agg,
-            normalize_mode=self.normalize,
-            min_segment_ratio=self.min_segment_ratio,
-            window_size=self.window_size,
-            stride=self.stride,
-        )
-
-        ranges: list[tuple[int, int]] = []
-        prev = -1
-        for b in boundaries:
-            ranges.append((prev + 1, b))
-            prev = b
-        return ranges

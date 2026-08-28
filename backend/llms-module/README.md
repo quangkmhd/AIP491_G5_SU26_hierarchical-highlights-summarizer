@@ -258,29 +258,40 @@ print(json.dumps(response.json(), indent=2, ensure_ascii=False))
 
 ---
 
-### Step 3: Real-Time WebSocket Streaming (`ws://localhost:8000/ws`)
+### Step 3: Real-Time WebSocket Streaming (`ws://localhost:8003/ws`)
 
 Stream utterances line-by-line during a live meeting. The server automatically emits real-time events as chunks and topic segments close.
 
 - **Protocol:** `WebSocket`
-- **URL:** `ws://localhost:8000/ws`
+- **URL:** `ws://localhost:8003/ws`
 
 #### Message Types Sent by Client:
 
-1. **Send Utterance:**
+1. **Start one meeting stream:**
+   ```json
+   {
+     "type": "start",
+     "session_id": "meeting-123",
+     "meeting_title": "Sprint review"
+   }
+   ```
+
+2. **Send Utterance:**
    ```json
    {
      "type": "utterance",
+     "session_id": "meeting-123",
      "speaker": "Quản lý Dự án",
      "text": "Chào mọi người, chúng ta bắt đầu buổi họp tổng kết Sprint 14.",
      "index": 0
    }
    ```
 
-2. **Finish Meeting (Flush):**
+3. **Finish Meeting (Flush):**
    ```json
    {
-     "type": "flush"
+     "type": "flush",
+     "session_id": "meeting-123"
    }
    ```
 
@@ -291,6 +302,12 @@ Stream utterances line-by-line during a live meeting. The server automatically e
 - `title-emitted`: Emitted when BARTpho generates the chapter title.
 - `meeting-completed`: Emitted on `flush`, returning the complete `hierarchical_summary`.
 
+Every connection owns an independent TextTiling state. Indexes must be
+contiguous within a stream. Repeated indexes are ACKed with `duplicate: true`
+without being appended again; gaps return `out-of-order-index`. A reconnect
+must send `start` and replay persisted utterances from the beginning because
+the previous in-memory TextTiling state may have been lost.
+
 #### Python WebSocket Test Script:
 ```python
 import asyncio
@@ -298,20 +315,22 @@ import json
 import websockets
 
 async def test_websocket():
-    uri = "ws://localhost:8000/ws"
+    uri = "ws://localhost:8003/ws"
     async with websockets.connect(uri) as ws:
+        session_id = "meeting-123"
+        await ws.send(json.dumps({"type": "start", "session_id": session_id}))
         with open("data/sample_transcript.json", "r", encoding="utf-8") as f:
             utts = json.load(f)["utterances"]
 
         # 1. Stream utterances line-by-line
         for u in utts:
-            payload = {"type": "utterance", "speaker": u["speaker"], "text": u["text"], "index": u["index"]}
+            payload = {"type": "utterance", "session_id": session_id, "speaker": u["speaker"], "text": u["text"], "index": u["index"]}
             await ws.send(json.dumps(payload))
             print(f"Sent [{u['index']}]: {u['speaker']}")
             await asyncio.sleep(0.1)
 
         # 2. Finish session
-        await ws.send(json.dumps({"type": "flush"}))
+        await ws.send(json.dumps({"type": "flush", "session_id": session_id}))
 
         # 3. Listen for incoming events
         while True:
@@ -327,19 +346,22 @@ asyncio.run(test_websocket())
 
 #### JavaScript Example (Browser / React / Vue):
 ```javascript
-const ws = new WebSocket("ws://localhost:8000/ws");
+const ws = new WebSocket("ws://localhost:8003/ws");
 
 ws.onopen = () => {
   console.log("WebSocket connected!");
 
+  ws.send(JSON.stringify({ type: "start", session_id: "meeting-123" }));
+
   ws.send(JSON.stringify({
     type: "utterance",
+    session_id: "meeting-123",
     speaker: "Quản lý Dự án",
     text: "Chào mọi người, chúng ta bắt đầu buổi họp tổng kết.",
     index: 0
   }));
 
-  ws.send(JSON.stringify({ type: "flush" }));
+  ws.send(JSON.stringify({ type: "flush", session_id: "meeting-123" }));
 };
 
 ws.onmessage = (event) => {

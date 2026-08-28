@@ -294,7 +294,12 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM summaries WHERE session_id = ? ORDER BY created_at DESC LIMIT 1",
+                """
+                SELECT * FROM summaries
+                WHERE session_id = ?
+                ORDER BY created_at DESC, rowid DESC
+                LIMIT 1
+                """,
                 (session_id,),
             )
             row = cursor.fetchone()

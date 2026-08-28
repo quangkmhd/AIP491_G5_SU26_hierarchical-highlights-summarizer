@@ -20,3 +20,18 @@ def finalize_live_session(
     if response.status_code != 200:
         raise RuntimeError(response.text or f"Finalize failed with HTTP {response.status_code}")
     return response.json().get("summary")
+
+
+def summary_cards(summary: dict | None) -> list[tuple[str, str]]:
+    """Normalize batch and streaming summary schemas for the current UI."""
+    cards: list[tuple[str, str]] = []
+    for segment in (summary or {}).get("segments", []):
+        title = segment.get("title") or segment.get("chapter_title") or "Chapter"
+        chunk_texts = [
+            chunk.get("rolling_summary", "").strip()
+            for chunk in segment.get("chunks", [])
+            if chunk.get("rolling_summary", "").strip()
+        ]
+        text = "\n".join(chunk_texts) or segment.get("chunk_summary", "")
+        cards.append((title, text))
+    return cards

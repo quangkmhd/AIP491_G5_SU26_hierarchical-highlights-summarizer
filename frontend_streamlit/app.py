@@ -1,12 +1,9 @@
-import hashlib
-import json
 import os
 import time
-from typing import Any, Optional
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
-from frontend_streamlit.live_api import finalize_live_session
+from frontend_streamlit.live_api import finalize_live_session, summary_cards
 
 # Gateway backend configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
@@ -181,9 +178,9 @@ with nav_upload:
                             with col_summ:
                                 st.markdown("#### 📌 Hierarchical LLM Summary")
                                 summ = s_data.get("summary", {})
-                                for seg in summ.get("segments", []):
-                                    with st.expander(f"📖 {seg.get('chapter_title', 'Chapter')}", expanded=True):
-                                        st.write(seg.get("chunk_summary", ""))
+                                for chapter_title, chunk_summary in summary_cards(summ):
+                                    with st.expander(f"📖 {chapter_title}", expanded=True):
+                                        st.write(chunk_summary)
                             break
 
                         elif status == "failed":
@@ -387,12 +384,12 @@ with nav_online:
             summary = s_data.get("summary")
 
             if summary:
-                for seg in summary.get("segments", []):
+                for chapter_title, chunk_summary in summary_cards(summary):
                     st.markdown(
                         f"""
                         <div class="summary-box">
-                            <h4 style="margin:0 0 8px 0; color:#c084fc;">📖 {seg.get('chapter_title')}</h4>
-                            <p style="margin:0; font-size:0.9rem;">{seg.get('chunk_summary')}</p>
+                            <h4 style="margin:0 0 8px 0; color:#c084fc;">📖 {chapter_title}</h4>
+                            <p style="margin:0; font-size:0.9rem; white-space:pre-line;">{chunk_summary}</p>
                         </div>
                         """,
                         unsafe_allow_html=True,
