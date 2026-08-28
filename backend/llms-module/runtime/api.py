@@ -1,16 +1,18 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from repo.model_loader import BARTPHO_MODEL_PATH, PROJECT_ROOT, VIT5_MODEL_PATH
 from service import StreamingOrchestrator
 from schemas_dto.schemas import TranscriptIngestionRequest
+from runtime.stream_protocol import StreamProtocolSession
 
 
 def create_app(
     orchestrator: StreamingOrchestrator | None = None,
+    streaming_orchestrator_factory: Callable[[], StreamingOrchestrator] | None = None,
 ) -> FastAPI:
     """Initialize FastAPI Web Server for Text Summarization & Segmentation service."""
     app = FastAPI(
@@ -27,6 +29,9 @@ def create_app(
     )
 
     app.state.orchestrator = orchestrator or StreamingOrchestrator()
+    app.state.streaming_orchestrator_factory = streaming_orchestrator_factory or (
+        lambda: StreamingOrchestrator(summarizer=app.state.orchestrator.summarizer)
+    )
 
     @app.get("/health")
     def health_check(response: Response) -> dict[str, Any]:
@@ -88,9 +93,7 @@ def create_app(
     async def websocket_text_summarization(websocket: WebSocket) -> None:
         """WebSocket endpoint for real-time utterance ingestion and summarization event streaming."""
         await websocket.accept()
-        ws_orchestrator = app.state.orchestrator
-        ws_orchestrator.reset_incremental()
-        utterance_counter = 0
+        protocol = StreamProtocolSession(app.state.streaming_orchestrator_factory())
 
         try:
             while True:
@@ -101,23 +104,10 @@ def create_app(
                     await websocket.send_json({"type": "error", "message": "Invalid JSON format"})
                     continue
 
-                msg_type = payload.get("type", "utterance")
-
-                if msg_type in {"flush", "session_end", "complete"}:
-                    for evt in ws_orchestrator.flush_and_finalize():
-                        await websocket.send_json({"type": evt.type.value, **evt.data})
+                for response in protocol.handle(payload):
+                    await websocket.send_json(response)
+                if protocol.closed:
                     break
-
-                text = payload.get("text", "").strip()
-                if not text:
-                    continue
-
-                speaker = payload.get("speaker", "Speaker 01")
-                idx = payload.get("index", utterance_counter)
-                utterance_counter += 1
-
-                for evt in ws_orchestrator.accept_utterance(text=text, speaker=speaker, index=idx):
-                    await websocket.send_json({"type": evt.type.value, **evt.data})
 
         except WebSocketDisconnect:
             pass
