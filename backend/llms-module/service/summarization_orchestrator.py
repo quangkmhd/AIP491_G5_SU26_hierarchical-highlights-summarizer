@@ -54,14 +54,16 @@ class StreamingOrchestrator:
         segments_target: list[SegmentResult],
     ) -> Iterator[OrchestratorEvent]:
         """Summarize dialogue chunks and emit CHUNK_CLOSED, SEGMENT_CLOSED, and TITLE_EMITTED events."""
-        for start_utt, end_utt in seg_ranges:
+        for start_pos, end_pos in seg_ranges:
             seg_idx = len(segments_target)
-            segment_utts = [u for u in all_utterances if start_utt <= u.index <= end_utt] or all_utterances[start_utt : end_utt + 1]
+            segment_utts = all_utterances[start_pos : end_pos + 1]
+            if not segment_utts:
+                continue
 
             seg = SegmentResult(
                 title=f"Chapter {seg_idx + 1}",
-                utterances_start=start_utt,
-                utterances_end=end_utt,
+                utterances_start=segment_utts[0].index,
+                utterances_end=segment_utts[-1].index,
             )
 
             for chunk_idx, i in enumerate(range(0, len(segment_utts), self.chunker.CHUNK_SIZE)):
@@ -151,6 +153,7 @@ class StreamingOrchestrator:
         self._incremental_segments: list[SegmentResult] = []
         self._incremental_meeting_id = uuid4()
         self._incremental_t0 = time.perf_counter()
+        self._incremental_finalized = False
         self.tiler.reset()
 
     def accept_utterance(
@@ -178,6 +181,9 @@ class StreamingOrchestrator:
         """Flush remaining utterances and emit meeting completed event."""
         if not hasattr(self, "_incremental_utterances") or not self._incremental_utterances:
             return
+        if self._incremental_finalized:
+            return
+        self._incremental_finalized = True
 
         tail_ranges = self.tiler.flush()
         if tail_ranges:
