@@ -6,6 +6,7 @@ from typing import Any, Optional
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
+from frontend_streamlit.live_api import finalize_live_session
 
 # Gateway backend configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
@@ -223,8 +224,17 @@ with nav_online:
                     st.error(f"Failed to start live session: {e}")
         else:
             if st.button("🔴 Stop & Finalize Meeting", type="secondary", use_container_width=True):
-                st.session_state["live_meeting_active"] = False
-                st.rerun()
+                try:
+                    with st.spinner("Finalizing trailing speech and topic segments..."):
+                        finalize_live_session(
+                            BACKEND_URL,
+                            st.session_state["live_session_id"],
+                        )
+                    st.session_state["live_meeting_active"] = False
+                    st.success("Meeting finalized successfully.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Unable to finalize meeting: {exc}")
 
     with col_ctrl2:
         if st.session_state["live_meeting_active"]:
