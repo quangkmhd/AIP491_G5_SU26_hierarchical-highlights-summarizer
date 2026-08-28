@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api import sessions_router, ws_router
 from backend.db.database import DatabaseManager
+from backend.services.meeting_stream_manager import MeetingStreamManager
 from backend.services.pipeline_orchestrator import PipelineOrchestrator
 
 logging.basicConfig(
@@ -22,13 +23,18 @@ async def lifespan(app: FastAPI):
     """Initialize database and central pipeline orchestrator on server startup."""
     logger.info("Initializing Backend Central Gateway (Port 8080)...")
     db_manager = DatabaseManager()
-    orchestrator = PipelineOrchestrator(db_manager=db_manager)
+    stream_manager = MeetingStreamManager(db_manager=db_manager)
+    orchestrator = PipelineOrchestrator(
+        db_manager=db_manager,
+        stream_manager=stream_manager,
+    )
 
     app.state.db = db_manager
     app.state.orchestrator = orchestrator
 
     logger.info("Backend Gateway initialized successfully.")
     yield
+    await stream_manager.close_all()
     logger.info("Shutting down Backend Gateway.")
 
 

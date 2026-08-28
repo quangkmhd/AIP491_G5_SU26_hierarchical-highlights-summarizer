@@ -81,7 +81,7 @@ async def websocket_session_stream(websocket: WebSocket, session_id: str) -> Non
 
                 # Process self-contained audio payload via orchestrator
                 asyncio.create_task(
-                    orchestrator.process_audio_file(
+                    orchestrator.process_live_audio_chunk(
                         session_id=session_id,
                         audio_bytes=audio_chunk_bytes,
                         filename="live_ws_chunk.webm",
@@ -101,7 +101,7 @@ async def websocket_session_stream(websocket: WebSocket, session_id: str) -> Non
                         })
                         # Trigger final summary flush for any trailing utterances
                         asyncio.create_task(
-                            orchestrator.trigger_final_summary(
+                            orchestrator.finalize_live_session(
                                 session_id=session_id,
                                 progress_callback=ws_progress_callback,
                             )

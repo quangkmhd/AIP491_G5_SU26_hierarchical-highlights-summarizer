@@ -6,11 +6,13 @@ for both audio file upload batch processing and real-time audio chunk streaming.
 import logging
 import time
 from typing import Any, Callable, Optional
+import asyncio
 import httpx
 from backend.db.database import DatabaseManager
 from backend.services.audio_router import AudioStreamRouter
 import os
 from pathlib import Path
+from backend.services.meeting_stream_manager import MeetingStreamManager
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,7 @@ class PipelineOrchestrator:
         llm_url: str = "http://localhost:8003/api/v1/meetings/process",
         min_utterances_stack: Optional[int] = None,
         overlap_context: Optional[int] = None,
+        stream_manager: MeetingStreamManager | None = None,
     ):
         self.db = db_manager
         self.sd_url = sd_url
@@ -87,6 +90,28 @@ class PipelineOrchestrator:
         # Tracks the count of summarized utterances per session to support periodic intervals
         self._last_summarized_count: dict[str, int] = {}
         self.router = AudioStreamRouter(asr_url=asr_url)
+        self.stream_manager = stream_manager
+        self._live_session_locks: dict[str, asyncio.Lock] = {}
+
+    async def process_live_audio_chunk(
+        self,
+        session_id: str,
+        audio_bytes: bytes,
+        filename: str = "live_chunk.wav",
+        progress_callback: Optional[Callable[[dict[str, Any]], Any]] = None,
+    ) -> dict[str, Any]:
+        """Process one live audio chunk and publish each ASR utterance immediately."""
+        if self.stream_manager is None:
+            raise RuntimeError("Live streaming requires a MeetingStreamManager")
+        lock = self._live_session_locks.setdefault(session_id, asyncio.Lock())
+        async with lock:
+            return await self.process_audio_file(
+                session_id=session_id,
+                audio_bytes=audio_bytes,
+                filename=filename,
+                progress_callback=progress_callback,
+                _stream_live=True,
+            )
 
     async def reset_diarization_session(self) -> None:
         """Calls the reset endpoint on the sd-module to clear previous voiceprints and buffers."""
@@ -105,6 +130,7 @@ class PipelineOrchestrator:
         filename: str = "audio.wav",
         is_final: bool = False,
         progress_callback: Optional[Callable[[dict[str, Any]], Any]] = None,
+        _stream_live: bool = False,
     ) -> dict[str, Any]:
         """
         Execute full 3-stage pipeline for batch audio file upload:
@@ -179,6 +205,11 @@ class PipelineOrchestrator:
                     db_utterances.append(rec)
                     u_index += 1
 
+                    if _stream_live:
+                        await self.stream_manager.publish(
+                            session_id, rec, progress_callback=progress_callback
+                        )
+
                     if progress_callback:
                         await progress_callback({
                             "type": "utterance-emitted",
@@ -191,6 +222,15 @@ class PipelineOrchestrator:
 
             self.db.update_session_status(session_id, "transcribing", 70.0)
             logger.info(f"Session {session_id}: Transcribed {len(db_utterances)} utterances.")
+
+            if _stream_live:
+                return {
+                    "session_id": session_id,
+                    "status": "recording",
+                    "new_utterances": len(db_utterances),
+                    "total_utterances": len(self.db.get_utterances(session_id)),
+                    "processing_time_ms": int((time.time() - start_time) * 1000),
+                }
 
             # If no utterances were transcribed in this audio frame (silence), complete gracefully
             if not db_utterances and not is_final:
@@ -357,115 +397,52 @@ class PipelineOrchestrator:
                 })
             raise
 
-    async def trigger_final_summary(
+    async def finalize_live_session(
         self,
         session_id: str,
         progress_callback: Optional[Callable[[dict[str, Any]], Any]] = None,
     ) -> Optional[dict[str, Any]]:
-        """Force a final LLM summarization flush across all session utterances when recording finishes."""
-        # Step 1: Flush any trailing speech from SmartAudioBuffer in sd-module
-        try:
+        """Flush trailing audio, publish its utterances, then flush the LLM stream."""
+        if self.stream_manager is None:
+            raise RuntimeError("Live streaming requires a MeetingStreamManager")
+        lock = self._live_session_locks.setdefault(session_id, asyncio.Lock())
+        async with lock:
             flush_url = self.sd_url.rsplit("/", 1)[0] + "/flush"
             async with httpx.AsyncClient(timeout=30.0) as client:
-                resp_flush = await client.post(flush_url)
-                if resp_flush.status_code == 200:
-                    flush_json = resp_flush.json()
-                    flushed_segments = flush_json.get("segments", [])
-                    if flushed_segments:
-                        existing_utts = self.db.get_utterances(session_id)
-                        u_index = len(existing_utts)
-                        time_offset = round(max((float(u.get("end_time") or 0.0) for u in existing_utts), default=0.0), 2)
-                        for seg in flushed_segments:
-                            routed_utts = await self.router.route_diarized_segment(seg)
-                            for item in routed_utts:
-                                rec = self.db.add_utterance(
-                                    session_id=session_id,
-                                    speaker_id=item["speaker_id"],
-                                    text=item["text"],
-                                    utterance_index=u_index,
-                                    start_time=round(time_offset + float(item.get("start_time") or 0.0), 2),
-                                    end_time=round(time_offset + float(item.get("end_time") or 0.0), 2),
-                                    has_overlap=item["has_overlap"],
-                                )
-                                u_index += 1
-                                if progress_callback:
-                                    await progress_callback({
-                                        "type": "utterance-emitted",
-                                        "session_id": session_id,
-                                        "utterance": rec,
-                                    })
-        except Exception as ex:
-            logger.warning(f"SmartAudioBuffer flush exception on session finish: {ex}")
+                response = await client.post(flush_url)
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"sd-module flush failed HTTP {response.status_code}: {response.text}"
+                )
 
-        all_session_utts = self.db.get_utterances(session_id)
-        if not all_session_utts:
-            logger.info(f"[LLM-Final] Session {session_id}: No utterances found for final summary flush.")
-            return None
-
-        last_summarized_count = self._last_summarized_count.get(session_id, 0)
-        total_session_utts = len(all_session_utts)
-
-        # If already summarized up to latest utterance, return current summary
-        if total_session_utts == last_summarized_count:
-            logger.info(
-                f"[LLM-Final] Session {session_id}: All {total_session_utts} utterances already summarized. "
-                f"Returning current summary."
+            existing_utts = self.db.get_utterances(session_id)
+            utterance_index = len(existing_utts)
+            time_offset = round(
+                max((float(u.get("end_time") or 0.0) for u in existing_utts), default=0.0),
+                2,
             )
-            return self.db.get_summary(session_id)
-
-        new_utts_count = total_session_utts - last_summarized_count
-        session_record = self.db.get_session(session_id)
-        title = session_record.get("title") if session_record else "Meeting Summary"
-
-        logger.info(
-            f"[LLM-Final] Session {session_id}: Final summary flush triggered on all {total_session_utts} "
-            f"session utterances ({new_utts_count} new utterances since last summary)."
-        )
-
-        llm_payload = {
-            "meeting_title": title,
-            "language": "vi",
-            "utterances": [
-                {
-                    "speaker": u["speaker_id"],
-                    "text": u["text"],
-                    "index": u["utterance_index"],
-                }
-                for u in all_session_utts
-            ],
-        }
-
-        try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                resp_llm = await client.post(self.llm_url, json=llm_payload)
-                if resp_llm.status_code == 200:
-                    resp_json = resp_llm.json()
-                    summary_json = resp_json.get("summary", resp_json)
-                    self.db.save_summary(session_id, summary_json)
-                    self._last_summarized_count[session_id] = total_session_utts
-                    total_chapters = len(summary_json.get("segments", []))
-                    logger.info(
-                        f"[LLM-Final] Session {session_id}: Final summary created with {total_chapters} "
-                        f"topic chapters across {total_session_utts} total utterances."
+            for segment in response.json().get("segments", []):
+                for item in await self.router.route_diarized_segment(segment):
+                    record = self.db.add_utterance(
+                        session_id=session_id,
+                        speaker_id=item["speaker_id"],
+                        text=item["text"],
+                        utterance_index=utterance_index,
+                        start_time=round(time_offset + float(item.get("start_time") or 0.0), 2),
+                        end_time=round(time_offset + float(item.get("end_time") or 0.0), 2),
+                        has_overlap=item["has_overlap"],
                     )
-
+                    utterance_index += 1
+                    await self.stream_manager.publish(
+                        session_id, record, progress_callback=progress_callback
+                    )
                     if progress_callback:
                         await progress_callback({
-                            "type": "session-completed",
+                            "type": "utterance-emitted",
                             "session_id": session_id,
-                            "result": {
-                                "session_id": session_id,
-                                "status": "completed",
-                                "total_utterances": total_session_utts,
-                                "summary": summary_json,
-                            },
+                            "utterance": record,
                         })
-                    return summary_json
-                else:
-                    logger.warning(
-                        f"[LLM-Final] Session {session_id}: Final summary call failed HTTP {resp_llm.status_code}: {resp_llm.text}"
-                    )
-        except Exception as e:
-            logger.warning(f"[LLM-Final] Session {session_id}: Final summary flush exception: {e}")
 
-        return self.db.get_summary(session_id)
+            return await self.stream_manager.finish(
+                session_id, progress_callback=progress_callback
+            )
