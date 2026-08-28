@@ -72,7 +72,6 @@ def get_session_details(request: Request, session_id: str) -> dict[str, Any]:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found.",
         )
-
     utterances = db.get_utterances(session_id)
     summary = db.get_summary(session_id)
 
@@ -121,6 +120,16 @@ async def process_live_audio_chunk(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found.",
         )
+    if session.get("meeting_type") != "online_live":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Audio streaming is only available for online_live sessions.",
+        )
+    if session.get("status") != "recording":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Session is {session.get('status')} and no longer accepts audio.",
+        )
 
     audio_bytes = await file.read()
     if not audio_bytes:
@@ -130,7 +139,7 @@ async def process_live_audio_chunk(
         )
 
     background_tasks.add_task(
-        orchestrator.process_audio_file,
+        orchestrator.process_live_audio_chunk,
         session_id=session_id,
         audio_bytes=audio_bytes,
         filename=file.filename or "live_chunk.wav",
@@ -139,6 +148,56 @@ async def process_live_audio_chunk(
     return {
         "status": "success",
         "message": f"Live audio frame ({len(audio_bytes)} bytes) queued for processing.",
+    }
+
+
+@router.post("/{session_id}/finalize", response_model=dict[str, Any])
+async def finalize_live_session(request: Request, session_id: str) -> dict[str, Any]:
+    """Stop a live session, flush trailing audio, and finalize its LLM stream once."""
+    db = request.app.state.db
+    orchestrator = request.app.state.orchestrator
+    session = db.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found.",
+        )
+    if session.get("meeting_type") != "online_live":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only online_live sessions can be finalized through this endpoint.",
+        )
+    if session.get("status") == "completed":
+        saved = db.get_summary(session_id)
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "summary": saved["hierarchical_json"] if saved else None,
+        }
+    if not db.transition_session_status(
+        session_id, "recording", "finalizing", 95.0
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Session cannot be finalized from status {session.get('status')}.",
+        )
+
+    try:
+        summary = await orchestrator.finalize_live_session(session_id)
+    except Exception as exc:
+        db.fail_session(session_id, str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Unable to finalize live session: {exc}",
+        ) from exc
+
+    if summary is not None and db.get_summary(session_id) is None:
+        db.save_summary(session_id, summary)
+    db.update_session_status(session_id, "completed", 100.0)
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "summary": summary,
     }
 
 

@@ -44,8 +44,40 @@ class DatabaseManager:
             with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
                 schema_sql = f.read()
             conn.executescript(schema_sql)
+            self._migrate_session_status_constraint(conn)
             conn.commit()
         logger.info(f"Database initialized at '{_rel_path(self.db_path)}'")
+
+    def _migrate_session_status_constraint(self, conn: sqlite3.Connection) -> None:
+        """Expand the sessions status constraint for databases created before live streaming."""
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sessions'"
+        ).fetchone()
+        if not row or "'recording'" in (row[0] or ""):
+            return
+        conn.execute("PRAGMA foreign_keys = OFF")
+        conn.executescript(
+            """
+            CREATE TABLE sessions_streaming_migration (
+                session_id TEXT PRIMARY KEY,
+                title TEXT,
+                audio_source TEXT,
+                meeting_type TEXT CHECK(meeting_type IN ('offline_upload', 'online_live')) DEFAULT 'offline_upload',
+                status TEXT CHECK(status IN ('created', 'recording', 'diarizing', 'transcribing', 'summarizing', 'finalizing', 'completed', 'failed')) DEFAULT 'created',
+                progress_percentage REAL DEFAULT 0.0,
+                error_message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            INSERT INTO sessions_streaming_migration
+            SELECT session_id, title, audio_source, meeting_type, status,
+                   progress_percentage, error_message, created_at, updated_at
+            FROM sessions;
+            DROP TABLE sessions;
+            ALTER TABLE sessions_streaming_migration RENAME TO sessions;
+            """
+        )
+        conn.execute("PRAGMA foreign_keys = ON")
 
     # -------------------------------------------------------------
     # Session Management
@@ -62,14 +94,15 @@ class DatabaseManager:
         session_title = title or f"Meeting Session {sid[:8]}"
         source = audio_source or "upload"
 
+        initial_status = "recording" if meeting_type == "online_live" else "created"
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO sessions (session_id, title, audio_source, meeting_type, status, progress_percentage)
-                VALUES (?, ?, ?, ?, 'created', 0.0)
+                VALUES (?, ?, ?, ?, ?, 0.0)
                 """,
-                (sid, session_title, source, meeting_type),
+                (sid, session_title, source, meeting_type, initial_status),
             )
             conn.commit()
 
@@ -111,6 +144,26 @@ class DatabaseManager:
                 (status, progress, session_id),
             )
             conn.commit()
+
+    def transition_session_status(
+        self,
+        session_id: str,
+        expected_status: str,
+        new_status: str,
+        progress: float,
+    ) -> bool:
+        """Atomically transition a session only when its current status matches."""
+        with self.get_connection() as conn:
+            cursor = conn.execute(
+                """
+                UPDATE sessions
+                SET status = ?, progress_percentage = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE session_id = ? AND status = ?
+                """,
+                (new_status, progress, session_id, expected_status),
+            )
+            conn.commit()
+            return cursor.rowcount == 1
 
     def fail_session(self, session_id: str, error_message: str) -> None:
         """Mark a session as failed with an error message."""

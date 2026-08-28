@@ -143,7 +143,8 @@ class PipelineOrchestrator:
 
         try:
             # Stage 1: Diarization & Speaker Separation (sd-module)
-            self.db.update_session_status(session_id, "diarizing", 10.0)
+            if not _stream_live:
+                self.db.update_session_status(session_id, "diarizing", 10.0)
             if progress_callback:
                 await progress_callback({
                     "type": "progress",
@@ -164,7 +165,8 @@ class PipelineOrchestrator:
             segments = sd_json.get("segments", [])
             logger.info(f"Session {session_id}: Diarization returned {len(segments)} segments.")
 
-            self.db.update_session_status(session_id, "diarizing", 30.0)
+            if not _stream_live:
+                self.db.update_session_status(session_id, "diarizing", 30.0)
             if progress_callback:
                 await progress_callback({
                     "type": "progress",
@@ -174,7 +176,8 @@ class PipelineOrchestrator:
                 })
 
             # Stage 2: Transcribe via Parallel Async STT (asr-module)
-            self.db.update_session_status(session_id, "transcribing", 40.0)
+            if not _stream_live:
+                self.db.update_session_status(session_id, "transcribing", 40.0)
             if progress_callback:
                 await progress_callback({
                     "type": "progress",
@@ -218,9 +221,13 @@ class PipelineOrchestrator:
                         })
 
                 current_progress = 40.0 + (30.0 * (seg_idx + 1) / total_segs)
-                self.db.update_session_status(session_id, "transcribing", round(current_progress, 1))
+                if not _stream_live:
+                    self.db.update_session_status(
+                        session_id, "transcribing", round(current_progress, 1)
+                    )
 
-            self.db.update_session_status(session_id, "transcribing", 70.0)
+            if not _stream_live:
+                self.db.update_session_status(session_id, "transcribing", 70.0)
             logger.info(f"Session {session_id}: Transcribed {len(db_utterances)} utterances.")
 
             if _stream_live:

@@ -98,7 +98,7 @@ async def test_live_utterance_is_published_without_http_batch_or_completed_statu
 
     assert [item[1]["text"] for item in streams.published] == ["hello"]
     assert orchestrator.llm_url not in RecordingHttpClient.calls
-    assert "completed" not in db.statuses
+    assert db.statuses == []
     assert result["status"] == "recording"
 
 

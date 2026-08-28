@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     title TEXT,
     audio_source TEXT,
     meeting_type TEXT CHECK(meeting_type IN ('offline_upload', 'online_live')) DEFAULT 'offline_upload',
-    status TEXT CHECK(status IN ('created', 'diarizing', 'transcribing', 'summarizing', 'completed', 'failed')) DEFAULT 'created',
+    status TEXT CHECK(status IN ('created', 'recording', 'diarizing', 'transcribing', 'summarizing', 'finalizing', 'completed', 'failed')) DEFAULT 'created',
     progress_percentage REAL DEFAULT 0.0,
     error_message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
